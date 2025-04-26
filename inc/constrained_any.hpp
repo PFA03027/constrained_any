@@ -42,7 +42,8 @@ struct value_carrier_base<T, true> : public value_carrier_if {
 	};
 
 	~value_carrier_base() = default;
-	value_carrier_base()  = default;
+	value_carrier_base()
+	  : dummy_ {} {};
 };
 
 template <typename T>
@@ -58,7 +59,8 @@ struct value_carrier_base<T, false> : public value_carrier_if {
 	{
 		value_.~value_type();
 	}
-	value_carrier_base() = default;
+	value_carrier_base()
+	  : dummy_ {} {};
 };
 
 template <typename T>
@@ -115,6 +117,10 @@ private:
 };
 }   // namespace impl
 
+template <typename T>
+struct no_constrained : std::true_type {};
+
+template <template <class> class Constraint = no_constrained>
 class constrained_any {
 public:
 	constrained_any()
@@ -129,7 +135,8 @@ public:
 	          typename std::enable_if<
 				  std::is_copy_constructible<VT>::value &&
 				  !( std::is_same<VT, constrained_any>::value ) &&
-				  !( std::is_same<VT, std::any>::value )>::type* = nullptr>
+				  !( std::is_same<VT, std::any>::value ) &&
+				  Constraint<VT>::value>::type* = nullptr>
 	constrained_any( T&& v )
 	  : up_carrier_( new impl::value_carrier<VT>( std::forward<T>( v ) ) )
 	{
@@ -139,7 +146,10 @@ public:
 	          typename VT = std::decay_t<T>,
 	          typename std::enable_if<
 				  std::is_copy_constructible<VT>::value &&
-				  std::is_constructible<VT, Args...>::value>::type* = nullptr>
+				  std::is_constructible<VT, Args...>::value &&
+				  !( std::is_same<VT, constrained_any>::value ) &&
+				  !( std::is_same<VT, std::any>::value ) &&
+				  Constraint<VT>::value>::type* = nullptr>
 	explicit constrained_any( std::in_place_type_t<T>, Args&&... args )
 	  : up_carrier_( new impl::value_carrier<VT>( std::forward<Args>( args )... ) )
 	{
@@ -159,7 +169,10 @@ public:
 	          typename VT = std::decay_t<T>,
 	          typename std::enable_if<
 				  std::is_copy_constructible<VT>::value &&
-				  std::is_constructible<VT, Args...>::value>::type* = nullptr>
+				  std::is_constructible<VT, Args...>::value &&
+				  !( std::is_same<VT, constrained_any>::value ) &&
+				  !( std::is_same<VT, std::any>::value ) &&
+				  Constraint<VT>::value>::type* = nullptr>
 	std::decay_t<T>& emplace( Args&&... args )
 	{
 		impl::value_carrier<VT>*                      p     = new impl::value_carrier<VT>( std::forward<Args>( args )... );
@@ -205,7 +218,8 @@ public:
 	          typename std::enable_if<
 				  std::is_copy_constructible<VT>::value &&
 				  !( std::is_same<VT, constrained_any>::value ) &&
-				  !( std::is_same<VT, std::any>::value )>::type* = nullptr>
+				  !( std::is_same<VT, std::any>::value ) &&
+				  Constraint<VT>::value>::type* = nullptr>
 	constrained_any& operator=( T&& rhs )
 	{
 		using carrier_t = impl::value_carrier<VT>;
@@ -238,30 +252,30 @@ public:
 private:
 	std::unique_ptr<impl::value_carrier_if> up_carrier_;
 
-	template <class T>
-	friend T constrained_any_cast( const constrained_any& operand );
+	template <class T, template <class> class UConstraint>
+	friend T constrained_any_cast( const constrained_any<UConstraint>& operand );
 
-	template <class T>
-	friend T constrained_any_cast( constrained_any& operand );
+	template <class T, template <class> class UConstraint>
+	friend T constrained_any_cast( constrained_any<UConstraint>& operand );
 
-	template <class T>
-	friend T constrained_any_cast( constrained_any&& operand );
+	template <class T, template <class> class UConstraint>
+	friend T constrained_any_cast( constrained_any<UConstraint>&& operand );
 
-	template <class T>
-	friend const T* constrained_any_cast( const constrained_any* operand ) noexcept;
+	template <class T, template <class> class UConstraint>
+	friend const T* constrained_any_cast( const constrained_any<UConstraint>* operand ) noexcept;
 
-	template <class T>
-	friend T* constrained_any_cast( constrained_any* operand ) noexcept;
+	template <class T, template <class> class UConstraint>
+	friend T* constrained_any_cast( constrained_any<UConstraint>* operand ) noexcept;
 };
 
-template <class T, class... Args>
-constrained_any make_constrained_any( Args&&... args )
+template <class T, template <class> class Constraint = no_constrained, class... Args>
+constrained_any<Constraint> make_constrained_any( Args&&... args )
 {
-	return constrained_any( std::in_place_type<T>, std::forward<Args>( args )... );
+	return constrained_any<Constraint>( std::in_place_type<T>, std::forward<Args>( args )... );
 }
 
-template <class T>
-T constrained_any_cast( const constrained_any& operand )
+template <class T, template <class> class Constraint>
+T constrained_any_cast( const constrained_any<Constraint>& operand )
 {
 	using U = typename std::remove_cv_t<std::remove_reference_t<T>>;
 	static_assert( std::is_constructible<T, const U&>::value, "T must be constructible" );
@@ -278,8 +292,8 @@ T constrained_any_cast( const constrained_any& operand )
 	return p->ref();
 }
 
-template <class T>
-T constrained_any_cast( constrained_any& operand )
+template <class T, template <class> class Constraint>
+T constrained_any_cast( constrained_any<Constraint>& operand )
 {
 	using U = typename std::remove_cv_t<std::remove_reference_t<T>>;
 	static_assert( std::is_constructible<T, U&>::value, "T must be constructible" );
@@ -296,8 +310,8 @@ T constrained_any_cast( constrained_any& operand )
 	return p->ref();
 }
 
-template <class T>
-T constrained_any_cast( constrained_any&& operand )
+template <class T, template <class> class Constraint>
+T constrained_any_cast( constrained_any<Constraint>&& operand )
 {
 	using U = typename std::remove_cv_t<std::remove_reference_t<T>>;
 	static_assert( std::is_constructible<T, U>::value, "T must be constructible" );
@@ -314,8 +328,8 @@ T constrained_any_cast( constrained_any&& operand )
 	return p->ref();
 }
 
-template <class T>
-const T* constrained_any_cast( const constrained_any* operand ) noexcept
+template <class T, template <class> class Constraint>
+const T* constrained_any_cast( const constrained_any<Constraint>* operand ) noexcept
 {
 	static_assert( !std::is_void_v<T>, "T should not be void" );
 
@@ -333,8 +347,8 @@ const T* constrained_any_cast( const constrained_any* operand ) noexcept
 	return &( p->ref() );
 }
 
-template <class T>
-T* constrained_any_cast( constrained_any* operand ) noexcept
+template <class T, template <class> class Constraint>
+T* constrained_any_cast( constrained_any<Constraint>* operand ) noexcept
 {
 	static_assert( !std::is_void_v<T>, "T should not be void" );
 

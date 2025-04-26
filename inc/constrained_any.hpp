@@ -85,14 +85,14 @@ struct value_carrier : public value_carrier_base<T, std::is_trivially_destructib
 		return typeid( T );
 	}
 
-	value_carrier_if* clone() const
+	value_carrier_if* clone() const override
 	{
 		value_carrier* p = new value_carrier;
 		new ( &( p->value_ ) ) value_type( value_ );
 		return p;
 	}
 
-	value_carrier_if* moved_clone()
+	value_carrier_if* moved_clone() override
 	{
 		value_carrier* p = new value_carrier;
 		new ( &( p->value_ ) ) value_type( std::move( value_ ) );

@@ -40,11 +40,11 @@ struct value_carrier_if<false> {
 	virtual void                     move_value( value_carrier_if<false>& ) = 0;
 };
 
-template <typename T, bool AllowCopyConstructAndAssign>
+template <typename T, bool AllowCopyConstructAndAssign, template <class> class SpecializedOperator>
 struct value_carrier;
 
-template <typename T>
-struct value_carrier<T, true> : public value_carrier_if<true> {
+template <typename T, template <class> class SpecializedOperator>
+struct value_carrier<T, true, SpecializedOperator> : public value_carrier_if<true> {
 	using abst_if_t  = value_carrier_if<true>;
 	using value_type = T;
 
@@ -98,8 +98,8 @@ private:
 	value_type value_;
 };
 
-template <typename T>
-struct value_carrier<T, false> : public value_carrier_if<false> {
+template <typename T, template <class> class SpecializedOperator>
+struct value_carrier<T, false, SpecializedOperator> : public value_carrier_if<false> {
 	using abst_if_t  = value_carrier_if<false>;
 	using value_type = T;
 
@@ -117,6 +117,11 @@ struct value_carrier<T, false> : public value_carrier_if<false> {
 	}
 
 	T& ref( void )
+	{
+		return value_;
+	}
+
+	const T& ref( void ) const
 	{
 		return value_;
 	}
@@ -146,8 +151,10 @@ private:
 
 template <typename T>
 struct no_constrained : std::true_type {};
+template <typename T>
+struct no_specialoperation {};
 
-template <bool AllowToUseCopy = true, template <class> class Constraint = no_constrained>
+template <bool AllowToUseCopy = true, template <class> class Constraint = no_constrained, template <class> class SpecializedOperator = no_specialoperation>
 class constrained_any {
 public:
 	constrained_any()
@@ -255,11 +262,11 @@ public:
 				  Constraint<VT>::value>::type* = nullptr>
 	constrained_any& operator=( T&& rhs )
 	{
-		using carrier_t = impl::value_carrier<VT, AllowToUseCopy>;
+		using carrier_t = impl::value_carrier<VT, AllowToUseCopy, SpecializedOperator>;
 
 		if ( up_carrier_ != nullptr ) {
 			if ( up_carrier_->get_type_info() == typeid( VT ) ) {
-				carrier_t& ref_src = dynamic_cast<carrier_t&>( *( up_carrier_.get() ) );
+				carrier_t& ref_src = dynamic_cast<carrier_t&>( *( up_carrier_.get() ) );   // TODO: should be static_cast
 				ref_src.value_     = std::forward<T>( rhs );
 				return *this;
 			}
@@ -284,46 +291,62 @@ public:
 
 private:
 	template <typename T, class... Args>
-	static auto make_impl_value_carrier( Args&&... args ) -> std::unique_ptr<impl::value_carrier<T, AllowToUseCopy>>
+	static auto make_impl_value_carrier( Args&&... args ) -> std::unique_ptr<impl::value_carrier<T, AllowToUseCopy, SpecializedOperator>>
 	{
-		return std::make_unique<impl::value_carrier<T, AllowToUseCopy>>( std::in_place_type_t<T> {}, std::forward<Args>( args )... );
+		return std::make_unique<impl::value_carrier<T, AllowToUseCopy, SpecializedOperator>>( std::in_place_type_t<T> {}, std::forward<Args>( args )... );
+	}
+
+	template <typename T>
+	auto static_cast_T_carrier() const -> const impl::value_carrier<T, AllowToUseCopy, SpecializedOperator>*
+	{
+		if ( this->type() != typeid( T ) ) {
+			return nullptr;
+		}
+
+		return static_cast<const impl::value_carrier<T, AllowToUseCopy, SpecializedOperator>*>( up_carrier_.get() );
+	}
+
+	template <typename T>
+	auto static_cast_T_carrier() -> impl::value_carrier<T, AllowToUseCopy, SpecializedOperator>*
+	{
+		if ( this->type() != typeid( T ) ) {
+			return nullptr;
+		}
+
+		return static_cast<impl::value_carrier<T, AllowToUseCopy, SpecializedOperator>*>( up_carrier_.get() );
 	}
 
 	std::unique_ptr<impl::value_carrier_if<AllowToUseCopy>> up_carrier_;
 
-	template <class T, bool UAllowToUseCopy, template <class> class UConstraint>
-	friend T constrained_any_cast( const constrained_any<UAllowToUseCopy, UConstraint>& operand );
+	template <class T, bool UAllowToUseCopy, template <class> class UConstraint, template <class> class USpecializedOperator>
+	friend T constrained_any_cast( const constrained_any<UAllowToUseCopy, UConstraint, USpecializedOperator>& operand );
 
-	template <class T, bool UAllowToUseCopy, template <class> class UConstraint>
-	friend T constrained_any_cast( constrained_any<UAllowToUseCopy, UConstraint>& operand );
+	template <class T, bool UAllowToUseCopy, template <class> class UConstraint, template <class> class USpecializedOperator>
+	friend T constrained_any_cast( constrained_any<UAllowToUseCopy, UConstraint, USpecializedOperator>& operand );
 
-	template <class T, bool UAllowToUseCopy, template <class> class UConstraint>
-	friend T constrained_any_cast( constrained_any<UAllowToUseCopy, UConstraint>&& operand );
+	template <class T, bool UAllowToUseCopy, template <class> class UConstraint, template <class> class USpecializedOperator>
+	friend T constrained_any_cast( constrained_any<UAllowToUseCopy, UConstraint, USpecializedOperator>&& operand );
 
-	template <class T, bool UAllowToUseCopy, template <class> class UConstraint>
-	friend const T* constrained_any_cast( const constrained_any<UAllowToUseCopy, UConstraint>* operand ) noexcept;
+	template <class T, bool UAllowToUseCopy, template <class> class UConstraint, template <class> class USpecializedOperator>
+	friend const T* constrained_any_cast( const constrained_any<UAllowToUseCopy, UConstraint, USpecializedOperator>* operand ) noexcept;
 
-	template <class T, bool UAllowToUseCopy, template <class> class UConstraint>
-	friend T* constrained_any_cast( constrained_any<UAllowToUseCopy, UConstraint>* operand ) noexcept;
+	template <class T, bool UAllowToUseCopy, template <class> class UConstraint, template <class> class USpecializedOperator>
+	friend T* constrained_any_cast( constrained_any<UAllowToUseCopy, UConstraint, USpecializedOperator>* operand ) noexcept;
 };
 
-template <class T, bool AllowToUseCopy, template <class> class Constraint = no_constrained, class... Args>
-constrained_any<AllowToUseCopy, Constraint> make_constrained_any( Args&&... args )
+template <class T, bool AllowToUseCopy, template <class> class Constraint = no_constrained, template <class> class SpecializedOperator = no_specialoperation, class... Args>
+constrained_any<AllowToUseCopy, Constraint, SpecializedOperator> make_constrained_any( Args&&... args )
 {
-	return constrained_any<AllowToUseCopy, Constraint>( std::in_place_type<T>, std::forward<Args>( args )... );
+	return constrained_any<AllowToUseCopy, Constraint, SpecializedOperator>( std::in_place_type<T>, std::forward<Args>( args )... );
 }
 
-template <class T, bool AllowToUseCopy, template <class> class Constraint>
-T constrained_any_cast( const constrained_any<AllowToUseCopy, Constraint>& operand )
+template <class T, bool AllowToUseCopy, template <class> class Constraint, template <class> class SpecializedOperator>
+T constrained_any_cast( const constrained_any<AllowToUseCopy, Constraint, SpecializedOperator>& operand )
 {
 	using U = typename std::remove_cv_t<std::remove_reference_t<T>>;
 	static_assert( std::is_constructible<T, const U&>::value, "T must be constructible" );
 
-	if ( operand.type() != typeid( U ) ) {
-		throw std::bad_any_cast();
-	}
-
-	const impl::value_carrier<U, AllowToUseCopy>* p = dynamic_cast<const impl::value_carrier<U, AllowToUseCopy>*>( operand.up_carrier_.get() );
+	auto p = operand.template static_cast_T_carrier<U>();
 	if ( p == nullptr ) {
 		throw std::bad_any_cast();
 	}
@@ -331,17 +354,13 @@ T constrained_any_cast( const constrained_any<AllowToUseCopy, Constraint>& opera
 	return p->ref();
 }
 
-template <class T, bool AllowToUseCopy, template <class> class Constraint>
-T constrained_any_cast( constrained_any<AllowToUseCopy, Constraint>& operand )
+template <class T, bool AllowToUseCopy, template <class> class Constraint, template <class> class SpecializedOperator>
+T constrained_any_cast( constrained_any<AllowToUseCopy, Constraint, SpecializedOperator>& operand )
 {
 	using U = typename std::remove_cv_t<std::remove_reference_t<T>>;
 	static_assert( std::is_constructible<T, U&>::value, "T must be constructible" );
 
-	if ( operand.type() != typeid( U ) ) {
-		throw std::bad_any_cast();
-	}
-
-	impl::value_carrier<U, AllowToUseCopy>* p = dynamic_cast<impl::value_carrier<U, AllowToUseCopy>*>( operand.up_carrier_.get() );
+	auto p = operand.template static_cast_T_carrier<U>();
 	if ( p == nullptr ) {
 		throw std::bad_any_cast();
 	}
@@ -349,17 +368,13 @@ T constrained_any_cast( constrained_any<AllowToUseCopy, Constraint>& operand )
 	return p->ref();
 }
 
-template <class T, bool AllowToUseCopy, template <class> class Constraint>
-T constrained_any_cast( constrained_any<AllowToUseCopy, Constraint>&& operand )
+template <class T, bool AllowToUseCopy, template <class> class Constraint, template <class> class SpecializedOperator>
+T constrained_any_cast( constrained_any<AllowToUseCopy, Constraint, SpecializedOperator>&& operand )
 {
 	using U = typename std::remove_cv_t<std::remove_reference_t<T>>;
 	static_assert( std::is_constructible<T, U>::value, "T must be constructible" );
 
-	if ( operand.type() != typeid( U ) ) {
-		throw std::bad_any_cast();
-	}
-
-	impl::value_carrier<U, AllowToUseCopy>* p = dynamic_cast<impl::value_carrier<U, AllowToUseCopy>*>( operand.up_carrier_.get() );
+	auto p = operand.template static_cast_T_carrier<U>();
 	if ( p == nullptr ) {
 		throw std::bad_any_cast();
 	}
@@ -367,18 +382,14 @@ T constrained_any_cast( constrained_any<AllowToUseCopy, Constraint>&& operand )
 	return std::move( p->ref() );
 }
 
-template <class T, bool AllowToUseCopy, template <class> class Constraint>
-const T* constrained_any_cast( const constrained_any<AllowToUseCopy, Constraint>* operand ) noexcept
+template <class T, bool AllowToUseCopy, template <class> class Constraint, template <class> class SpecializedOperator>
+const T* constrained_any_cast( const constrained_any<AllowToUseCopy, Constraint, SpecializedOperator>* operand ) noexcept
 {
 	static_assert( !std::is_void_v<T>, "T should not be void" );
 
 	if ( operand == nullptr ) return nullptr;
 
-	if ( operand->type() != typeid( T ) ) {
-		return nullptr;
-	}
-
-	const impl::value_carrier<T, AllowToUseCopy>* p = dynamic_cast<const impl::value_carrier<T, AllowToUseCopy>*>( operand->up_carrier_.get() );
+	auto p = operand.template static_cast_T_carrier<T>();
 	if ( p == nullptr ) {
 		return nullptr;
 	}
@@ -386,18 +397,14 @@ const T* constrained_any_cast( const constrained_any<AllowToUseCopy, Constraint>
 	return &( p->ref() );
 }
 
-template <class T, bool AllowToUseCopy, template <class> class Constraint>
-T* constrained_any_cast( constrained_any<AllowToUseCopy, Constraint>* operand ) noexcept
+template <class T, bool AllowToUseCopy, template <class> class Constraint, template <class> class SpecializedOperator>
+T* constrained_any_cast( constrained_any<AllowToUseCopy, Constraint, SpecializedOperator>* operand ) noexcept
 {
 	static_assert( !std::is_void_v<T>, "T should not be void" );
 
 	if ( operand == nullptr ) return nullptr;
 
-	if ( operand->type() != typeid( T ) ) {
-		return nullptr;
-	}
-
-	impl::value_carrier<T, AllowToUseCopy>* p = dynamic_cast<impl::value_carrier<T, AllowToUseCopy>*>( operand->up_carrier_.get() );
+	auto p = operand.template static_cast_T_carrier<T>();
 	if ( p == nullptr ) {
 		return nullptr;
 	}

@@ -218,7 +218,7 @@ TEST( TestConstrainedAny, WithConstraint_CanCopyConstructFromLvalue )
 	Foo_has_print value( 42 );
 
 	// Act
-	yth::constrained_any<is_callable_print> sut( value );
+	yth::constrained_any<true, is_callable_print> sut( value );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -438,4 +438,20 @@ TEST( TestConstrainedAny, CopyAndMoveType_CanMoveAssign )
 	EXPECT_TRUE( src.has_value() );
 	EXPECT_EQ( src.type(), typeid( TestCopyAndMoveType ) );
 	EXPECT_EQ( yth::constrained_any_cast<TestCopyAndMoveType&>( src ).v_, 0 );
+}
+
+// ================================================================
+
+TEST( TestConstrainedAny_NowAllowCopy, CanConstruct )
+{
+	// Arrange
+	std::unique_ptr<int> value = std::make_unique<int>( 42 );
+
+	// Act
+	yth::constrained_any<false> sut( std::move( value ) );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( std::unique_ptr<int> ) );
+	EXPECT_EQ( *( yth::constrained_any_cast<std::unique_ptr<int>&>( sut ) ), 42 );
 }

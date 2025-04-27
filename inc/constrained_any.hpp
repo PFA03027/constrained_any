@@ -23,8 +23,8 @@ namespace impl {
 
 struct value_carrier_if {
 	virtual const std::type_info& get_type_info() const noexcept        = 0;
-	virtual value_carrier_if*     clone() const                         = 0;
-	virtual value_carrier_if*     moved_clone()                         = 0;
+	virtual value_carrier_if*     mk_clone_by_copy_construction() const = 0;
+	virtual value_carrier_if*     mk_clone_by_move_construction()       = 0;
 	virtual void                  copy_value( const value_carrier_if& ) = 0;
 	virtual void                  move_value( value_carrier_if& )       = 0;
 };
@@ -87,14 +87,14 @@ struct value_carrier : public value_carrier_base<T, std::is_trivially_destructib
 		return typeid( T );
 	}
 
-	value_carrier_if* clone() const override
+	value_carrier_if* mk_clone_by_copy_construction() const override
 	{
 		value_carrier* p = new value_carrier;
 		new ( &( p->value_ ) ) value_type( value_ );
 		return p;
 	}
 
-	value_carrier_if* moved_clone() override
+	value_carrier_if* mk_clone_by_move_construction() override
 	{
 		value_carrier* p = new value_carrier;
 		new ( &( p->value_ ) ) value_type( std::move( value_ ) );
@@ -127,9 +127,9 @@ public:
 	  : up_carrier_() {}
 
 	constrained_any( const constrained_any& src )
-	  : up_carrier_( src.up_carrier_ == nullptr ? nullptr : src.up_carrier_->clone() ) {}
+	  : up_carrier_( src.up_carrier_ == nullptr ? nullptr : src.up_carrier_->mk_clone_by_copy_construction() ) {}
 	constrained_any( constrained_any&& src )
-	  : up_carrier_( src.up_carrier_ == nullptr ? nullptr : src.up_carrier_->moved_clone() ) {}
+	  : up_carrier_( src.up_carrier_ == nullptr ? nullptr : src.up_carrier_->mk_clone_by_move_construction() ) {}
 
 	template <typename T, typename VT = std::decay_t<T>,
 	          typename std::enable_if<

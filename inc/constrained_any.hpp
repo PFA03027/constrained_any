@@ -29,43 +29,34 @@ struct value_carrier_if {
 	virtual void                  move_value( value_carrier_if& )       = 0;
 };
 
-template <typename T, bool IsTriviallyDestructible>
-struct value_carrier_base;
-
 template <typename T>
-struct value_carrier_base<T, true> : public value_carrier_if {
+struct value_carrier_base : public value_carrier_if {
 	using value_type = T;
 
-	union {
-		value_type value_;
-		char       dummy_[sizeof( value_type )];
-	};
+	value_type value_;
 
-	~value_carrier_base() = default;
-	value_carrier_base()
-	  : dummy_ {} {};
-};
+	~value_carrier_base()                                      = default;
+	value_carrier_base()                                       = default;
+	value_carrier_base( const value_carrier_base& )            = default;
+	value_carrier_base( value_carrier_base&& )                 = default;
+	value_carrier_base& operator=( const value_carrier_base& ) = default;
+	value_carrier_base& operator=( value_carrier_base&& )      = default;
 
-template <typename T>
-struct value_carrier_base<T, false> : public value_carrier_if {
-	using value_type = T;
-
-	union {
-		value_type value_;
-		char       dummy_[sizeof( value_type )];
-	};
-
-	~value_carrier_base()
+	template <typename U = T, typename std::enable_if<std::is_copy_constructible<U>::value>::type* = nullptr>
+	value_carrier_base( const T& src )
+	  : value_( src )
 	{
-		value_.~value_type();
 	}
-	value_carrier_base()
-	  : dummy_ {} {};
+	template <typename U = T, typename std::enable_if<std::is_move_constructible<U>::value>::type* = nullptr>
+	value_carrier_base( T&& src )
+	  : value_( std::move( src ) )
+	{
+	}
 };
 
 template <typename T>
-struct value_carrier : public value_carrier_base<T, std::is_trivially_destructible<T>::value> {
-	using base_t     = value_carrier_base<T, std::is_trivially_destructible<T>::value>;
+struct value_carrier : public value_carrier_base<T> {
+	using base_t     = value_carrier_base<T>;
 	using value_type = typename base_t::value_type;
 	using base_t::value_;
 
@@ -73,8 +64,8 @@ struct value_carrier : public value_carrier_base<T, std::is_trivially_destructib
 
 	template <typename... Args>
 	value_carrier( Args&&... args )
+	  : value_carrier_base<T>( value_type( std::forward<Args>( args )... ) )
 	{
-		new ( &( base_t::value_ ) ) value_type( std::forward<Args>( args )... );
 	}
 
 	T& ref( void )
@@ -89,31 +80,33 @@ struct value_carrier : public value_carrier_base<T, std::is_trivially_destructib
 
 	value_carrier_if* mk_clone_by_copy_construction() const override
 	{
-		value_carrier* p = new value_carrier;
-		new ( &( p->value_ ) ) value_type( value_ );
+		value_carrier* p = new value_carrier( *this );
 		return p;
 	}
 
 	value_carrier_if* mk_clone_by_move_construction() override
 	{
-		value_carrier* p = new value_carrier;
-		new ( &( p->value_ ) ) value_type( std::move( value_ ) );
+		value_carrier* p = new value_carrier( std::move( *this ) );
 		return p;
 	}
 
 	void copy_value( const value_carrier_if& src ) override
 	{
 		const value_carrier& ref_src = dynamic_cast<const value_carrier&>( src );
-		value_                       = ref_src.value_;
+		*this                        = ref_src;
 	}
 	void move_value( value_carrier_if& src ) override
 	{
 		value_carrier& ref_src = dynamic_cast<value_carrier&>( src );
-		value_                 = std::move( ref_src.value_ );
+		*this                  = std::move( ref_src );
 	}
 
 private:
-	value_carrier() = default;
+	value_carrier()                                  = default;
+	value_carrier( const value_carrier& )            = default;
+	value_carrier( value_carrier&& )                 = default;
+	value_carrier& operator=( const value_carrier& ) = default;
+	value_carrier& operator=( value_carrier&& )      = default;
 };
 }   // namespace impl
 

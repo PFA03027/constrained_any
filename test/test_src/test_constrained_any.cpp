@@ -455,3 +455,56 @@ TEST( TestConstrainedAny_NowAllowCopy, CanConstruct )
 	EXPECT_EQ( sut.type(), typeid( std::unique_ptr<int> ) );
 	EXPECT_EQ( *( yth::constrained_any_cast<std::unique_ptr<int>&>( sut ) ), 42 );
 }
+
+TEST( TestConstrainedAny_NowAllowCopy, CanMoveConstruct )
+{
+	// Arrange
+	std::unique_ptr<int>        value = std::make_unique<int>( 42 );
+	yth::constrained_any<false> src( std::move( value ) );
+
+	// Act
+	yth::constrained_any<false> sut( std::move( src ) );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( std::unique_ptr<int> ) );
+	EXPECT_EQ( *( yth::constrained_any_cast<std::unique_ptr<int>&>( sut ) ), 42 );
+	EXPECT_TRUE( src.has_value() );
+	EXPECT_EQ( src.type(), typeid( std::unique_ptr<int> ) );
+	EXPECT_EQ( yth::constrained_any_cast<std::unique_ptr<int>&>( src ), nullptr );
+}
+
+TEST( TestConstrainedAny_NowAllowCopy, CanMoveAssign )
+{
+	// Arrange
+	std::unique_ptr<int>        value = std::make_unique<int>( 42 );
+	yth::constrained_any<false> src( std::move( value ) );
+	yth::constrained_any<false> sut;
+
+	// Act
+	sut = std::move( src );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( std::unique_ptr<int> ) );
+	EXPECT_EQ( *( yth::constrained_any_cast<std::unique_ptr<int>&>( sut ) ), 42 );
+	EXPECT_TRUE( src.has_value() );
+	EXPECT_EQ( src.type(), typeid( std::unique_ptr<int> ) );
+	EXPECT_EQ( yth::constrained_any_cast<std::unique_ptr<int>&>( src ), nullptr );
+}
+
+TEST( TestConstrainedAny_NowAllowCopy, CanGetValueByMoveCast )
+{
+	// Arrange
+	std::unique_ptr<int>        value = std::make_unique<int>( 42 );
+	yth::constrained_any<false> sut( std::move( value ) );
+
+	// Act
+	auto up_ret = yth::constrained_any_cast<std::unique_ptr<int>&&>( std::move( sut ) );
+
+	// Assert
+	ASSERT_NE( up_ret, nullptr );
+	EXPECT_EQ( *up_ret, 42 );
+	EXPECT_EQ( sut.type(), typeid( std::unique_ptr<int> ) );
+	EXPECT_EQ( yth::constrained_any_cast<std::unique_ptr<int>&>( sut ), nullptr );
+}

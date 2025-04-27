@@ -364,7 +364,7 @@ T constrained_any_cast( constrained_any<AllowToUseCopy, Constraint>&& operand )
 		throw std::bad_any_cast();
 	}
 
-	return p->ref();
+	return std::move( p->ref() );
 }
 
 template <class T, bool AllowToUseCopy, template <class> class Constraint>

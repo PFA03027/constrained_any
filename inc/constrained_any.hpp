@@ -21,6 +21,14 @@
 namespace yth {   // yet another
 namespace impl {
 
+template <typename T, typename SelfTypeOfConstraintAny, bool AllowUseCopy, template <class> class Constraint>
+struct is_acceptable_value_type {
+	static constexpr bool value = ( AllowUseCopy ? ( std::is_copy_constructible<T>::value && std::is_copy_assignable<T>::value ) : true ) &&
+	                              !( std::is_same<T, SelfTypeOfConstraintAny>::value ) &&
+	                              !( std::is_same<T, std::any>::value ) &&
+	                              Constraint<T>::value;
+};
+
 template <bool AllowUseCopy>
 struct value_carrier_if;
 
@@ -44,7 +52,7 @@ template <typename T, bool AllowCopyConstructAndAssign, template <class> class S
 struct value_carrier;
 
 template <typename T, template <class> class SpecializedOperator>
-struct value_carrier<T, true, SpecializedOperator> : public value_carrier_if<true> {
+struct value_carrier<T, true, SpecializedOperator> : public value_carrier_if<true>, public SpecializedOperator<value_carrier<T, true, SpecializedOperator>> {
 	using abst_if_t  = value_carrier_if<true>;
 	using value_type = T;
 
@@ -62,6 +70,11 @@ struct value_carrier<T, true, SpecializedOperator> : public value_carrier_if<tru
 	}
 
 	T& ref( void )
+	{
+		return value_;
+	}
+
+	const T& ref( void ) const
 	{
 		return value_;
 	}
@@ -99,7 +112,7 @@ private:
 };
 
 template <typename T, template <class> class SpecializedOperator>
-struct value_carrier<T, false, SpecializedOperator> : public value_carrier_if<false> {
+struct value_carrier<T, false, SpecializedOperator> : public value_carrier_if<false>, public SpecializedOperator<value_carrier<T, false, SpecializedOperator>> {
 	using abst_if_t  = value_carrier_if<false>;
 	using value_type = T;
 
@@ -203,24 +216,16 @@ public:
 	}
 
 	template <typename T, typename VT = std::decay_t<T>,
-	          typename std::enable_if<
-				  ( AllowToUseCopy ? ( std::is_copy_constructible<VT>::value && std::is_copy_assignable<VT>::value ) : true ) &&
-				  !( std::is_same<VT, constrained_any>::value ) &&
-				  !( std::is_same<VT, std::any>::value ) &&
-				  Constraint<VT>::value>::type* = nullptr>
+	          typename std::enable_if<impl::is_acceptable_value_type<VT, constrained_any, AllowToUseCopy, Constraint>::value>::type* = nullptr>
 	constrained_any( T&& v )
 	  : up_carrier_( make_impl_value_carrier<VT>( std::forward<T>( v ) ) )
 	{
 	}
 
-	template <class T, class... Args,
-	          typename VT = std::decay_t<T>,
+	template <class T, class... Args, typename VT = std::decay_t<T>,
 	          typename std::enable_if<
-				  ( AllowToUseCopy ? ( std::is_copy_constructible<VT>::value && std::is_copy_assignable<VT>::value ) : true ) &&
-				  std::is_constructible<VT, Args...>::value &&
-				  !( std::is_same<VT, constrained_any>::value ) &&
-				  !( std::is_same<VT, std::any>::value ) &&
-				  Constraint<VT>::value>::type* = nullptr>
+				  impl::is_acceptable_value_type<VT, constrained_any, AllowToUseCopy, Constraint>::value &&
+				  std::is_constructible<VT, Args...>::value>::type* = nullptr>
 	explicit constrained_any( std::in_place_type_t<T>, Args&&... args )
 	  : up_carrier_( make_impl_value_carrier<VT>( std::forward<Args>( args )... ) )
 	{
@@ -239,11 +244,8 @@ public:
 	template <class T, class... Args,
 	          typename VT = std::decay_t<T>,
 	          typename std::enable_if<
-				  ( AllowToUseCopy ? ( std::is_copy_constructible<VT>::value && std::is_copy_assignable<VT>::value ) : true ) &&
-				  std::is_constructible<VT, Args...>::value &&
-				  !( std::is_same<VT, constrained_any>::value ) &&
-				  !( std::is_same<VT, std::any>::value ) &&
-				  Constraint<VT>::value>::type* = nullptr>
+				  impl::is_acceptable_value_type<VT, constrained_any, AllowToUseCopy, Constraint>::value &&
+				  std::is_constructible<VT, Args...>::value>::type* = nullptr>
 	std::decay_t<T>& emplace( Args&&... args )
 	{
 		auto             up_vc = make_impl_value_carrier<VT>( std::forward<Args>( args )... );
@@ -255,11 +257,7 @@ public:
 	}
 
 	template <class T, typename VT = std::decay_t<T>,
-	          typename std::enable_if<
-				  ( AllowToUseCopy ? ( std::is_copy_constructible<VT>::value && std::is_copy_assignable<VT>::value ) : true ) &&
-				  !( std::is_same<VT, constrained_any>::value ) &&
-				  !( std::is_same<VT, std::any>::value ) &&
-				  Constraint<VT>::value>::type* = nullptr>
+	          typename std::enable_if<impl::is_acceptable_value_type<VT, constrained_any, AllowToUseCopy, Constraint>::value>::type* = nullptr>
 	constrained_any& operator=( T&& rhs )
 	{
 		using carrier_t = impl::value_carrier<VT, AllowToUseCopy, SpecializedOperator>;

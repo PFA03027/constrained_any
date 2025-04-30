@@ -13,10 +13,6 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 
-add_custom_target(build-test)
-
-# add_subdirectory(googletest)
-
 
 add_executable(test_constrained_any EXCLUDE_FROM_ALL test_src/test_constrained_any.cpp)
 target_include_directories( test_constrained_any  PRIVATE ../inc )

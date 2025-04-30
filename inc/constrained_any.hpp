@@ -19,6 +19,25 @@
 #include <utility>
 
 namespace yth {   // yet another
+
+namespace impl {
+struct is_callable_ref_impl {
+	template <typename T>
+	static auto check( T* ) -> decltype( std::declval<T>().ref(), std::true_type() );
+	template <typename T>
+	static auto check( ... ) -> std::false_type;
+};
+
+}   // namespace impl
+
+template <typename T>
+struct is_callable_ref : public decltype( impl::is_callable_ref_impl::check<T>( nullptr ) ) {};
+
+struct special_operation_if {
+	virtual void specialized_operation_callback( void* )       = 0;
+	virtual void specialized_operation_callback( void* ) const = 0;
+};
+
 namespace impl {
 
 template <typename T, typename SelfTypeOfConstraintAny, bool AllowUseCopy, template <class> class Constraint>
@@ -29,12 +48,17 @@ struct is_acceptable_value_type {
 	                              Constraint<T>::value;
 };
 
+struct value_carrier_if_common {
+	virtual ~value_carrier_if_common() = default;
+
+	virtual const std::type_info& get_type_info() const noexcept = 0;
+};
+
 template <bool AllowUseCopy>
 struct value_carrier_if;
 
 template <>
-struct value_carrier_if<true> {
-	virtual const std::type_info&   get_type_info() const noexcept              = 0;
+struct value_carrier_if<true> : public value_carrier_if_common {
 	virtual value_carrier_if<true>* mk_clone_by_copy_construction() const       = 0;
 	virtual value_carrier_if<true>* mk_clone_by_move_construction()             = 0;
 	virtual void                    copy_value( const value_carrier_if<true>& ) = 0;
@@ -42,8 +66,7 @@ struct value_carrier_if<true> {
 };
 
 template <>
-struct value_carrier_if<false> {
-	virtual const std::type_info&    get_type_info() const noexcept         = 0;
+struct value_carrier_if<false> : public value_carrier_if_common {
 	virtual value_carrier_if<false>* mk_clone_by_move_construction()        = 0;
 	virtual void                     move_value( value_carrier_if<false>& ) = 0;
 };
@@ -165,10 +188,16 @@ private:
 template <typename T>
 struct no_constrained : std::true_type {};
 template <typename T>
-struct no_specialoperation {};
+struct no_specialoperation : special_operation_if {
+	void specialized_operation_callback( void* ) override {}
+	void specialized_operation_callback( void* ) const override {}
+};
 
 template <bool AllowToUseCopy = true, template <class> class Constraint = no_constrained, template <class> class SpecializedOperator = no_specialoperation>
-class constrained_any {
+class constrained_any : public SpecializedOperator<constrained_any<AllowToUseCopy, Constraint, SpecializedOperator>> {
+	static_assert( std::is_base_of<special_operation_if, SpecializedOperator<constrained_any>>::value, "SpecializedOperator must be derived from special_operation_if" );
+	static_assert( std::is_convertible<SpecializedOperator<constrained_any>*, special_operation_if*>::value, "SpecializedOperator must be convertible to special_operation_if. Therefore SpecializedOperator should be PUBLIC derived type from special_operation_if." );
+
 public:
 	constrained_any()
 	  : up_carrier_() {}
@@ -285,6 +314,19 @@ public:
 		if ( up_carrier_ == nullptr ) return typeid( void );
 
 		return up_carrier_->get_type_info();
+	}
+
+	special_operation_if* get_special_operation_if() noexcept
+	{
+		if ( up_carrier_ == nullptr ) return nullptr;
+
+		return dynamic_cast<special_operation_if*>( up_carrier_.get() );
+	}
+	const special_operation_if* get_special_operation_if() const noexcept
+	{
+		if ( up_carrier_ == nullptr ) return nullptr;
+
+		return dynamic_cast<const special_operation_if*>( up_carrier_.get() );
 	}
 
 private:

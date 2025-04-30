@@ -209,7 +209,10 @@ public:
 	Foo_has_print& operator=( Foo_has_print&& )      = default;
 
 	// This function is used to check if the class has a print
-	void print() {}
+	void print() const
+	{
+		std::cout << "Success to call print() of Foo_has_print: " << value_ << std::endl;
+	}
 };
 
 TEST( TestConstrainedAny, WithConstraint_CanCopyConstructFromLvalue )
@@ -226,16 +229,13 @@ TEST( TestConstrainedAny, WithConstraint_CanCopyConstructFromLvalue )
 	EXPECT_EQ( yth::constrained_any_cast<Foo_has_print&>( sut ).value_, 42 );
 }
 
-// ================================================================
-
-#if 0
 TEST( TestConstrainedAny, WithConstraint_CanCopyConstructFromLvalueInt )
 {
 	// Arrange
-	int value = 42;
+	Foo_has_print value( 42 );
 
 	// Act
-	yth::constrained_any<is_callable_print> sut( value );
+	yth::constrained_any<true, is_callable_print> sut( value );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -243,7 +243,75 @@ TEST( TestConstrainedAny, WithConstraint_CanCopyConstructFromLvalueInt )
 	EXPECT_EQ( yth::constrained_any_cast<Foo_has_print&>( sut ).value_, 42 );
 }
 
-#endif
+template <typename Carrier>
+class special_operation_adapter_call_print : public yth::special_operation_if {
+public:
+	void specialized_operation_callback( void* p_com_data ) override
+	{
+		*reinterpret_cast<bool*>( p_com_data ) = call_print();
+	}
+	void specialized_operation_callback( void* p_com_data ) const override
+	{
+		*reinterpret_cast<bool*>( p_com_data ) = call_print();
+	}
+
+	template <typename U = Carrier, typename std::enable_if<yth::is_callable_ref<U>::value>::type* = nullptr>
+	bool call_print( void ) const
+	{
+		const Carrier* p = static_cast<const Carrier*>( this );
+
+		p->ref().print();
+		return true;
+	}
+
+	template <typename U = Carrier, typename std::enable_if<!yth::is_callable_ref<U>::value>::type* = nullptr>
+	bool call_print( void ) const
+	{
+		const Carrier* p = static_cast<const Carrier*>( this );
+
+		const yth::special_operation_if* p_soi = p->get_special_operation_if();
+		if ( p_soi == nullptr ) {
+			std::cout << "constrained_any has no value" << std::endl;
+			return false;
+		}
+
+		bool result = false;
+		p_soi->specialized_operation_callback( &result );
+		return result;
+	}
+};
+
+TEST( TestConstrainedAny, WithConstraintAndSpecialOperator_CanConstruct )
+{
+	// Arrange
+	Foo_has_print value( 42 );
+
+	// Act
+	yth::constrained_any<true, is_callable_print, special_operation_adapter_call_print> sut( value );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( Foo_has_print ) );
+	EXPECT_EQ( yth::constrained_any_cast<Foo_has_print&>( sut ).value_, 42 );
+}
+
+TEST( TestConstrainedAny, WithConstraintAndSpecialOperator_CanCallPrint )
+{
+	// Arrange
+	Foo_has_print                                                                       value( 42 );
+	yth::constrained_any<true, is_callable_print, special_operation_adapter_call_print> sut( value );
+
+	// Act
+	bool result = sut.call_print();
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( Foo_has_print ) );
+	EXPECT_EQ( yth::constrained_any_cast<Foo_has_print&>( sut ).value_, 42 );
+	EXPECT_TRUE( result );
+}
+
+// ================================================================
 
 struct TestCopyOnlyType {
 	int v_;

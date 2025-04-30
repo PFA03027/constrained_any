@@ -10,6 +10,16 @@
 				"kind": "build",
 				"isDefault": true
 			}
+		},
+		{
+			"label": "make build-test with Debug",
+			"type": "shell",
+			"command": "make BUILDTYPE=Debug build-test",
+			"problemMatcher": [],
+			"group": {
+				"kind": "build",
+				// "isDefault": true
+			}
 		}
 	]
 }

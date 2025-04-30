@@ -739,7 +739,7 @@ public:
 			return false;
 		}
 
-		argument_and_return_data data { operation_type::e_equal_to, p_a_soi, false, 0 };
+		argument_and_return_data data { operation_type::e_equal_to, p_b_soi, false, 0 };
 		p_a_soi->specialized_operation_callback( &data );
 		return data.bool_to_result_;
 	}

@@ -798,3 +798,180 @@ TEST( TestUnorderedKeyAny, CanUseUnorderedMapWithUnorderedKeyAny )
 	EXPECT_EQ( map[key2], 2 );
 	EXPECT_EQ( map[key3], 3 );
 }
+
+// ================================================
+
+TEST( TestKeyableAny, CanConstruct )
+{
+	// Arrange
+
+	// Act
+	yan::keyable_any sut;
+
+	// Assert
+	EXPECT_FALSE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( void ) );
+}
+
+TEST( TestKeyableAny, CanConstructWithInt )
+{
+	// Arrange
+	int value = 42;
+
+	// Act
+	yan::keyable_any sut( value );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( int ) );
+	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), value );
+}
+
+TEST( TestKeyableAny, CanConstructWithString )
+{
+	// Arrange
+	std::string value = "Hello";
+
+	// Act
+	yan::keyable_any sut( value );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( std::string ) );
+	EXPECT_EQ( yan::constrained_any_cast<std::string>( sut ), value );
+}
+
+TEST( TestKeyableAny, CanConstructWithDouble )
+{
+	// Arrange
+	double value = 3.14;
+
+	// Act
+	yan::keyable_any sut( value );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( double ) );
+	EXPECT_EQ( yan::constrained_any_cast<double>( sut ), value );
+}
+
+TEST( TestKeyableAny, CanEqualToWithSameTypeSameValue )
+{
+	// Arrange
+	yan::keyable_any a( 42 );
+	yan::keyable_any b( 42 );
+
+	// Act
+	bool result = ( a == b );
+
+	// Assert
+	EXPECT_TRUE( result );
+}
+
+TEST( TestKeyableAny, CanEqualToWithSameTypeDifferentValue )
+{
+	// Arrange
+	yan::keyable_any a( 42 );
+	yan::keyable_any b( 43 );
+
+	// Act
+	bool result = ( a == b );
+
+	// Assert
+	EXPECT_FALSE( result );
+}
+
+TEST( TestKeyableAny, CanEqualToWithDifferentType )
+{
+	// Arrange
+	yan::keyable_any a( 42 );
+	yan::keyable_any b( std::string( "Hello" ) );
+	bool             result = true;
+
+	// Act
+	ASSERT_NO_THROW( result = ( a == b ) );
+
+	// Assert
+	EXPECT_FALSE( result );
+}
+
+TEST( TestKeyableAny, CanLessWithSameType )
+{
+	// Arrange
+	yan::keyable_any a( 42 );
+	yan::keyable_any b( 43 );
+
+	// Act
+	bool result = ( a < b );
+
+	// Assert
+	EXPECT_TRUE( result );
+}
+
+TEST( TestKeyableAny, CanLessWithDifferentType )
+{
+	// Arrange
+	yan::keyable_any a( 42 );
+	yan::keyable_any b( std::string( "Hello" ) );
+	bool             result = true;
+
+	// Act
+	ASSERT_NO_THROW( result = ( a < b ) );
+
+	// Assert
+	EXPECT_FALSE( result );
+}
+
+TEST( TestKeyableAny, CanHash )
+{
+	// Arrange
+	yan::keyable_any a( 42 );
+	yan::keyable_any b( 42 );
+
+	// Act
+	size_t hash_a = std::hash<yan::keyable_any>()( a );
+	size_t hash_b = std::hash<yan::keyable_any>()( b );
+
+	// Assert
+	EXPECT_EQ( hash_a, hash_b );
+}
+
+TEST( TestKeyableAny, CanUseUnorderedMapWithKeyableAny )
+{
+	// Arrange
+	std::unordered_map<yan::keyable_any, int> map;
+	yan::keyable_any                          key1( 42 );
+	yan::keyable_any                          key2( 43 );
+	yan::keyable_any                          key3( std::string( "Hello" ) );
+
+	// Act
+	map[key1] = 1;
+	map[key2] = 2;
+	map[key3] = 3;
+
+	// Assert
+	EXPECT_EQ( map.size(), 3 );
+	EXPECT_EQ( map[key1], 1 );
+	EXPECT_EQ( map[key2], 2 );
+	EXPECT_EQ( map[key3], 3 );
+}
+
+TEST( TestKeyableAny, CanUseMapWithKeyableAny )
+{
+	// Arrange
+	std::map<yan::keyable_any, int> map;
+	yan::keyable_any                key1( 42 );
+	yan::keyable_any                key2( 43 );
+	yan::keyable_any                key3( std::string( "Hello" ) );
+
+	// Act
+	map[key1] = 1;
+	map[key2] = 2;
+	map[key3] = 3;
+
+	// Assert
+	EXPECT_EQ( map.size(), 3 );
+	EXPECT_EQ( map[key1], 1 );
+	EXPECT_EQ( map[key2], 2 );
+	EXPECT_EQ( map[key3], 3 );
+}

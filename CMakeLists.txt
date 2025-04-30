@@ -15,3 +15,4 @@ include(${BUILD_TARGET}.cmake)
 enable_testing()
 
 add_subdirectory(test)
+add_subdirectory(sample)

@@ -61,6 +61,9 @@ test: build-test
 	cd ${BUILD_DIR}; \
 	ctest -j ${JOBS} -v
 
+sample: build-test
+	build/sample/sample_of_constrained_any
+
 build-test:
 	make BUILDIMPLTARGET=build-test all
 

@@ -6,6 +6,8 @@ On the other hand, an accepted type is limited by the template parameter named C
 
 Due to Constraint, yan::constrained_any is able to add specialized member functions by the template parameter named SpecializedOperator like mixin.
 
+constrained_any requires C++17 or later.
+
 # pre-defined type aliased from yan::constrained_any
 ## yan::weak_ordering_any
 yan::weak_ordering_any is a type aliased from yan::constrained_any with the constraint of impl::is_weak_orderable\<T\>.

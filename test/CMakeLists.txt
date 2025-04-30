@@ -20,4 +20,11 @@ target_link_libraries(test_constrained_any gtest gtest_main )
 add_dependencies(build-test test_constrained_any)
 add_test(NAME test_constrained_any COMMAND $<TARGET_FILE:test_constrained_any>)
 
+add_executable(test_constrained_any_cxx17 EXCLUDE_FROM_ALL test_src/test_constrained_any.cpp)
+# target_compile_features(test_constrained_any_cxx17 PUBLIC cxx_std_17)
+target_compile_options(test_constrained_any_cxx17 PUBLIC -std=c++17)
+target_include_directories( test_constrained_any_cxx17  PRIVATE ../inc )
+target_link_libraries(test_constrained_any_cxx17 gtest gtest_main )
+add_dependencies(build-test test_constrained_any_cxx17)
+add_test(NAME test_constrained_any_cxx17 COMMAND $<TARGET_FILE:test_constrained_any_cxx17>)
 

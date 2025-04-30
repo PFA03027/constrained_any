@@ -12,9 +12,14 @@
 #ifndef INC_CONSTRAINED_ANY_HPP_
 #define INC_CONSTRAINED_ANY_HPP_
 
+#if __has_include( <version> )
+#include <version>
+#endif
+
 #include <any>
 #include <functional>   // for std::hash
 #include <memory>
+#include <stdexcept>
 #include <type_traits>
 #include <typeindex>
 #include <typeinfo>
@@ -23,6 +28,15 @@
 namespace yan {   // yet another
 
 namespace impl {
+
+#if __cpp_lib_remove_cvref >= 201711L
+template <typename T>
+using remove_cvref = std::remove_cvref<T>;
+#else
+template <typename T>
+using remove_cvref = std::remove_reference<typename std::remove_cv<T>::type>;
+#endif
+
 struct is_callable_ref_impl {
 	template <typename T>
 	static auto check( T* ) -> decltype( std::declval<T>().ref(), std::true_type() );
@@ -216,7 +230,9 @@ public:
 	  : up_carrier_() {}
 
 	constrained_any( const constrained_any& src )
+#if __cpp_concepts >= 201907L
 		requires RequiresCopy
+#endif
 	  : up_carrier_( src.up_carrier_ == nullptr ? nullptr : src.up_carrier_->mk_clone_by_copy_construction() )
 	{
 	}
@@ -225,7 +241,9 @@ public:
 	  : up_carrier_( src.up_carrier_ == nullptr ? nullptr : src.up_carrier_->mk_clone_by_move_construction() ) {}
 
 	constrained_any& operator=( const constrained_any& rhs )
+#if __cpp_concepts >= 201907L
 		requires RequiresCopy
+#endif
 	{
 		if ( this == &rhs ) return *this;
 
@@ -267,7 +285,7 @@ public:
 	}
 
 	template <typename T,
-	          typename std::enable_if<!impl::is_specialized_of_constrained_any<typename std::remove_cvref<T>::type>::value>::type* = nullptr>
+	          typename std::enable_if<!impl::is_specialized_of_constrained_any<typename impl::remove_cvref<T>::type>::value>::type* = nullptr>
 	constrained_any( T&& v )
 	  : constrained_any( std::in_place_type<std::decay_t<T>>, std::forward<T>( v ) )
 	{
@@ -551,9 +569,9 @@ inline bool operator<( const weak_ordering_any& lhs, const weak_ordering_any& rh
 namespace impl {
 
 struct is_hashable_impl {
-	template <typename T, typename RVCVR_T = typename std::remove_cvref<T>::type>
+	template <typename T, typename RVCVR_T = typename impl::remove_cvref<T>::type>
 	static auto check( T* ) -> decltype( std::hash<RVCVR_T>()( std::declval<RVCVR_T>() ), std::true_type() );
-	template <typename T, typename RVCVR_T = typename std::remove_cvref<T>::type>
+	template <typename T, typename RVCVR_T = typename impl::remove_cvref<T>::type>
 	static auto check( ... ) -> std::false_type;
 };
 template <typename T>
@@ -645,7 +663,7 @@ private:
 	{
 		const Carrier* p_a_carrier = static_cast<const Carrier*>( this );
 
-		return std::hash<typename std::remove_cvref<typename Carrier::value_type>::type>()( p_a_carrier->ref() );
+		return std::hash<typename impl::remove_cvref<typename Carrier::value_type>::type>()( p_a_carrier->ref() );
 	}
 
 	bool unordered_key_equal_to( const special_operation_if* p_b_if ) const
@@ -832,7 +850,7 @@ private:
 	{
 		const Carrier* p_a_carrier = static_cast<const Carrier*>( this );
 
-		return std::hash<typename std::remove_cvref<typename Carrier::value_type>::type>()( p_a_carrier->ref() );
+		return std::hash<typename impl::remove_cvref<typename Carrier::value_type>::type>()( p_a_carrier->ref() );
 	}
 
 	bool equal_to_by_value( const special_operation_if* p_b_if ) const

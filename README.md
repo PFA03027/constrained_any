@@ -97,8 +97,10 @@ yan::constrained_any is a generalized any type that has the constraint of the te
 
 
 ```cpp
-template <bool RequiresCopy = true, template <class> class Constraint = no_constrained, template <class> class SpecializedOperator = no_specialoperation>
-class constrained_any;
+namespace yan {
+    template <bool RequiresCopy = true, template <class> class Constraint = no_constrained, template <class> class SpecializedOperator = no_specialoperation>
+    class constrained_any;
+}
 ```
 above is the definition of yan::constrained_any. And it has three template paramters<br>
 
@@ -172,23 +174,25 @@ const special_operation_if* get_special_operation_if() const noexcept;  // (7)
 
 ### Non member function
 ```cpp
-template <class T, bool RequiresCopy, template <class> class Constraint = no_constrained, template <class> class SpecializedOperator = no_specialoperation, class... Args>
-constrained_any<RequiresCopy, Constraint, SpecializedOperator> make_constrained_any( Args&&... args );                      // (1)
+namespace yan {
+    template <class T, bool RequiresCopy, template <class> class Constraint = no_constrained, template <class> class SpecializedOperator = no_specialoperation, class... Args>
+    constrained_any<RequiresCopy, Constraint, SpecializedOperator> make_constrained_any( Args&&... args );  // (1)
 
-template <class T>
-T constrained_any_cast( const constrained_any& operand );    // (2)
+    template <class T>
+    T constrained_any_cast( const constrained_any& operand );    // (2)
 
-template <class T>
-T constrained_any_cast( constrained_any& operand );          // (3)
+    template <class T>
+    T constrained_any_cast( constrained_any& operand );          // (3)
 
-template <class T>
-T constrained_any_cast( constrained_any&& operand );         // (4)
+    template <class T>
+    T constrained_any_cast( constrained_any&& operand );         // (4)
 
-template <class T>
-const T* constrained_any_cast( const constrained_any* operand ) noexcept;   // (5)
+    template <class T>
+    const T* constrained_any_cast( const constrained_any* operand ) noexcept;   // (5)
 
-template <class T>
-T* constrained_any_cast( constrained_any* operand ) noexcept;   // (6)
+    template <class T>
+    T* constrained_any_cast( constrained_any* operand ) noexcept;   // (6)
+}
 ```
 #### abstruction of non member function
 1. make_constrained_any constructs the value of type T that satisfies Constrain\<T\>::value == true with Args... args internally. and then, returns the constrained_any\<RequiresCopy, Constraint, SpecializedOperator\> that has the value.
@@ -210,12 +214,14 @@ as the pre-condition, using U = remove_cv_t<remove_reference_t<T>>.
 ## Utility
 ### yan::special_operation_if
 ```cpp
-struct yan::special_operation_if {
-	virtual ~special_operation_if() = default;
+namespace yan {
+    struct special_operation_if {
+        virtual ~special_operation_if() = default;
 
-	virtual void specialized_operation_callback( void* )       = 0;
-	virtual void specialized_operation_callback( void* ) const = 0;
-};
+        virtual void specialized_operation_callback( void* )       = 0;
+        virtual void specialized_operation_callback( void* ) const = 0;
+    };
+}
 ```
 #### abstruction of yan::special_operation_if
 yan::special_operation_if is an interface for template parameter SpecializedOperator of yan::constrained_any.<br>
@@ -226,8 +232,10 @@ sample of yan::special_operation_if is in sample/sample_of_constrained_any.cpp.
 
 ### yan::is_callable_ref
 ```cpp
-template <typename T>
-struct yan::is_callable_ref;
+namespace yan {
+    template <typename T>
+    struct is_callable_ref;
+}
 ```
 
 #### abstruction of utility

@@ -158,7 +158,7 @@ private:
 /**
  * @brief Constrained any class that has the constraint of convertible to std::string
  */
-using string_convertible_any = yan::constrained_any<true, is_convertible_to_string, special_operation_convert_to_string>;
+using string_convertible_any = yan::constrained_any_base<true, is_convertible_to_string, special_operation_convert_to_string>;
 
 // ---------------------------------------------------
 // Step 4: Use your own constrained_any class

@@ -42,12 +42,21 @@ struct special_operation_if {
 	virtual void specialized_operation_callback( void* ) const = 0;
 };
 
+template <bool AllowToUseCopy, template <class> class Constraint, template <class> class SpecializedOperator>
+class constrained_any;
+
 namespace impl {
 
-template <typename T, typename SelfTypeOfConstraintAny, bool AllowUseCopy, template <class> class Constraint>
+template <typename T>
+struct is_specialized_of_constrained_any : public std::false_type {};
+
+template <bool AllowToUseCopy, template <class> class Constraint, template <class> class SpecializedOperator>
+struct is_specialized_of_constrained_any<constrained_any<AllowToUseCopy, Constraint, SpecializedOperator>> : public std::true_type {};
+
+template <typename T, bool AllowUseCopy, template <class> class Constraint>
 struct is_acceptable_value_type {
 	static constexpr bool value = ( AllowUseCopy ? ( std::is_copy_constructible<T>::value && std::is_copy_assignable<T>::value ) : true ) &&
-	                              !( std::is_same<T, SelfTypeOfConstraintAny>::value ) &&
+	                              !( is_specialized_of_constrained_any<T>::value ) &&
 	                              !( std::is_same<T, std::any>::value ) &&
 	                              Constraint<T>::value;
 };
@@ -248,19 +257,19 @@ public:
 		return *this;
 	}
 
-	template <typename T, typename VT = std::decay_t<T>,
-	          typename std::enable_if<impl::is_acceptable_value_type<VT, constrained_any, AllowToUseCopy, Constraint>::value>::type* = nullptr>
-	constrained_any( T&& v )
-	  : up_carrier_( make_impl_value_carrier<VT>( std::forward<T>( v ) ) )
-	{
-	}
-
 	template <class T, class... Args, typename VT = std::decay_t<T>,
 	          typename std::enable_if<
-				  impl::is_acceptable_value_type<VT, constrained_any, AllowToUseCopy, Constraint>::value &&
+				  impl::is_acceptable_value_type<VT, AllowToUseCopy, Constraint>::value &&
 				  std::is_constructible<VT, Args...>::value>::type* = nullptr>
 	explicit constrained_any( std::in_place_type_t<T>, Args&&... args )
 	  : up_carrier_( make_impl_value_carrier<VT>( std::forward<Args>( args )... ) )
+	{
+	}
+
+	template <typename T,
+	          typename std::enable_if<!impl::is_specialized_of_constrained_any<typename std::remove_cvref<T>::type>::value>::type* = nullptr>
+	constrained_any( T&& v )
+	  : constrained_any( std::in_place_type<std::decay_t<T>>, std::forward<T>( v ) )
 	{
 	}
 
@@ -277,7 +286,7 @@ public:
 	template <class T, class... Args,
 	          typename VT = std::decay_t<T>,
 	          typename std::enable_if<
-				  impl::is_acceptable_value_type<VT, constrained_any, AllowToUseCopy, Constraint>::value &&
+				  impl::is_acceptable_value_type<VT, AllowToUseCopy, Constraint>::value &&
 				  std::is_constructible<VT, Args...>::value>::type* = nullptr>
 	std::decay_t<T>& emplace( Args&&... args )
 	{
@@ -290,7 +299,7 @@ public:
 	}
 
 	template <class T, typename VT = std::decay_t<T>,
-	          typename std::enable_if<impl::is_acceptable_value_type<VT, constrained_any, AllowToUseCopy, Constraint>::value>::type* = nullptr>
+	          typename std::enable_if<impl::is_acceptable_value_type<VT, AllowToUseCopy, Constraint>::value>::type* = nullptr>
 	constrained_any& operator=( T&& rhs )
 	{
 		using carrier_t = impl::value_carrier<VT, AllowToUseCopy, SpecializedOperator>;
@@ -298,7 +307,7 @@ public:
 		if ( up_carrier_ != nullptr ) {
 			if ( up_carrier_->get_type_info() == typeid( VT ) ) {
 				carrier_t& ref_src = dynamic_cast<carrier_t&>( *( up_carrier_.get() ) );   // TODO: should be static_cast
-				ref_src.value_     = std::forward<T>( rhs );
+				ref_src.ref()      = std::forward<T>( rhs );
 				return *this;
 			}
 		}
@@ -673,7 +682,213 @@ struct hash<yan::unordered_key_any> {
 		return key.hash_value();
 	}
 };
+}   // namespace std
 
+namespace yan {
+
+namespace impl {
+template <typename T>
+struct is_keyable {
+	static constexpr bool value = is_weak_orderable<T>::value && is_callable_equal_to<T>::value && is_hashable<T>::value;
+};
+
+template <typename Carrier>
+class special_operation_keyable : public special_operation_if {
+public:
+	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
+	size_t hash_value( void ) const
+	{
+		// this I/F expects to be called as the member function of constranted_any.
+
+		const Carrier* p_a = static_cast<const Carrier*>( this );
+
+		const special_operation_if* p_a_soi = p_a->get_special_operation_if();
+		if ( p_a_soi == nullptr ) {
+			return 0;
+		}
+
+		argument_and_return_data data { operation_type::e_hash_value, nullptr, false, 0 };
+		p_a_soi->specialized_operation_callback( &data );
+		return data.hash_value_;
+	}
+
+	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
+	bool equal_to( const Carrier& b ) const
+	{
+		// this I/F expects to be called as the member function of constranted_any.
+
+		const Carrier* p_a = static_cast<const Carrier*>( this );
+		const Carrier* p_b = static_cast<const Carrier*>( &b );
+
+		std::type_index ti_a = std::type_index( p_a->type() );
+		std::type_index ti_b = std::type_index( p_b->type() );
+		if ( ti_a != ti_b ) {
+			return false;
+		}
+
+		const special_operation_if* p_a_soi = p_a->get_special_operation_if();
+		const special_operation_if* p_b_soi = p_b->get_special_operation_if();
+		if ( ( p_a_soi == nullptr ) && ( p_b_soi == nullptr ) ) {
+			// in this case, this has no value and b has no value. therefore this and b is same.
+			return true;
+		} else if ( p_a_soi == nullptr ) {
+			// in this case, this has no value and b had void. therefore this and b is NOT equal.
+			return false;
+		} else if ( p_b_soi == nullptr ) {
+			// in this case, this has void and b has no value. therefore this and b is NOT equal.
+			return false;
+		}
+
+		argument_and_return_data data { operation_type::e_equal_to, p_a_soi, false, 0 };
+		p_a_soi->specialized_operation_callback( &data );
+		return data.bool_to_result_;
+	}
+
+	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
+	bool less( const Carrier& b ) const
+	{
+		// this I/F expects to be called as the member function of constranted_any.
+
+		const Carrier* p_a = static_cast<const Carrier*>( this );
+		const Carrier* p_b = static_cast<const Carrier*>( &b );
+
+		std::type_index ti_a = std::type_index( p_a->type() );
+		std::type_index ti_b = std::type_index( p_b->type() );
+		if ( ti_a != ti_b ) {
+			return ti_a < ti_b;
+		}
+
+		const special_operation_if* p_a_soi = p_a->get_special_operation_if();
+		const special_operation_if* p_b_soi = p_b->get_special_operation_if();
+		if ( ( p_a_soi == nullptr ) && ( p_b_soi == nullptr ) ) {
+			// in this case, this has no value and b has void. therefore this and b is NOT equal.
+			return false;
+		} else if ( p_a_soi == nullptr ) {
+			// in this case, this has no value and b had void. therefore this and b is NOT equal.
+			return true;
+		} else if ( p_b_soi == nullptr ) {
+			// in this case, this has void and b has no value. therefore this and b is NOT equal.
+			return false;
+		}
+
+		argument_and_return_data data { operation_type::e_less, p_b_soi, false, 0 };
+		p_a_soi->specialized_operation_callback( &data );
+		return data.bool_to_result_;
+	}
+
+private:
+	enum class operation_type {
+		e_hash_value,
+		e_equal_to,
+		e_less
+	};
+	struct argument_and_return_data {
+
+		operation_type              op_type_;
+		const special_operation_if* p_b_;
+		bool                        bool_to_result_;
+		size_t                      hash_value_;
+	};
+
+	void specialized_operation_callback( void* p_b ) override
+	{
+		argument_and_return_data* p_args_of_b = reinterpret_cast<argument_and_return_data*>( p_b );
+		call_operation( p_args_of_b );
+	}
+	void specialized_operation_callback( void* p_b ) const override
+	{
+		argument_and_return_data* p_args_of_b = reinterpret_cast<argument_and_return_data*>( p_b );
+		call_operation( p_args_of_b );
+	}
+
+	void call_operation( argument_and_return_data* p_args_of_b ) const
+	{
+		switch ( p_args_of_b->op_type_ ) {
+			case operation_type::e_hash_value:
+				p_args_of_b->hash_value_ = hash_value();
+				break;
+			case operation_type::e_equal_to:
+				if ( p_args_of_b->p_b_ != nullptr ) {
+					p_args_of_b->bool_to_result_ = equal_to_by_value( p_args_of_b->p_b_ );
+				} else {
+					throw std::logic_error( "argument is nullptr for equal_to" );
+				}
+				break;
+			case operation_type::e_less:
+				if ( p_args_of_b->p_b_ != nullptr ) {
+					p_args_of_b->bool_to_result_ = less_by_value( p_args_of_b->p_b_ );
+				} else {
+					throw std::logic_error( "argument is nullptr for less" );
+				}
+				break;
+			default:
+				throw std::logic_error( "unknown operation type" );
+				break;
+		}
+	}
+
+	template <typename U = Carrier, typename std::enable_if<yan::is_callable_ref<U>::value>::type* = nullptr>
+	size_t hash_value( void ) const
+	{
+		const Carrier* p_a_carrier = static_cast<const Carrier*>( this );
+
+		return std::hash<typename std::remove_cvref<typename Carrier::value_type>::type>()( p_a_carrier->ref() );
+	}
+
+	bool equal_to_by_value( const special_operation_if* p_b_if ) const
+	{
+		if constexpr ( yan::is_callable_ref<Carrier>::value ) {
+			const Carrier* p_a_carrier = static_cast<const Carrier*>( this );
+			const Carrier* p_b_carrier = dynamic_cast<const Carrier*>( p_b_if );
+			if ( p_b_carrier == nullptr ) {
+				throw std::bad_any_cast();
+			}
+
+			return p_a_carrier->ref() == p_b_carrier->ref();
+		} else {
+			throw std::logic_error( "equal_to_by_value() is not implemented for constrained_any itself" );
+		}
+	}
+
+	bool less_by_value( const special_operation_if* p_b_if ) const
+	{
+		if constexpr ( yan::is_callable_ref<Carrier>::value ) {
+			const Carrier* p_a_carrier = static_cast<const Carrier*>( this );
+			const Carrier* p_b_carrier = dynamic_cast<const Carrier*>( p_b_if );
+			if ( p_b_carrier == nullptr ) {
+				throw std::bad_any_cast();
+			}
+
+			return p_a_carrier->ref() < p_b_carrier->ref();
+		} else {
+			throw std::logic_error( "less_by_value() is not implemented for constrained_any itself" );
+		}
+	}
+};
+
+}   // namespace impl
+
+using keyable_any = constrained_any<true, impl::is_keyable, impl::special_operation_keyable>;
+inline bool operator<( const keyable_any& lhs, const keyable_any& rhs )
+{
+	return lhs.less( rhs );
+}
+
+inline bool operator==( const keyable_any& lhs, const keyable_any& rhs )
+{
+	return lhs.equal_to( rhs );
+}
+
+}   // namespace yan
+
+namespace std {
+template <>
+struct hash<yan::keyable_any> {
+	size_t operator()( const yan::keyable_any& key ) const
+	{
+		return key.hash_value();
+	}
+};
 }   // namespace std
 
 #endif

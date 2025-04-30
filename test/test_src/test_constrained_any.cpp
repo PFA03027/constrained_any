@@ -16,6 +16,13 @@
 
 #include <gtest/gtest.h>
 
+// ================================================
+
+static_assert( yan::impl::is_specialized_of_constrained_any<int>::value == false, "int is not a constrained_any" );
+static_assert( yan::impl::is_specialized_of_constrained_any<yan::constrained_any<true, yan::no_constrained, yan::no_specialoperation>>::value, "constrained_any is specialized type of constrained_any" );
+
+// ================================================
+
 TEST( TestConstrainedAny, CanDefaultConstruct )
 {
 	// Arrange
@@ -642,7 +649,7 @@ TEST( TestWeakOrderingAny, CanLessWithSameType )
 	yan::weak_ordering_any b( 43 );
 
 	// Act
-	bool result = a < b;
+	bool result = ( a < b );
 
 	// Assert
 	EXPECT_TRUE( result );

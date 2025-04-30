@@ -18,7 +18,7 @@ TEST( TestConstrainedAny, CanDefaultConstruct )
 	// Arrange
 
 	// Act
-	yth::constrained_any sut;
+	yan::constrained_any sut;
 
 	// Assert
 	EXPECT_FALSE( sut.has_value() );
@@ -27,10 +27,10 @@ TEST( TestConstrainedAny, CanDefaultConstruct )
 TEST( TestConstrainedAny, NoValue_CanCopyConstruct )
 {
 	// Arrange
-	yth::constrained_any src;
+	yan::constrained_any src;
 
 	// Act
-	yth::constrained_any sut( src );
+	yan::constrained_any sut( src );
 
 	// Assert
 	EXPECT_FALSE( sut.has_value() );
@@ -42,10 +42,10 @@ TEST( TestConstrainedAny, NoValue_CanCopyConstruct )
 TEST( TestConstrainedAny, NoValue_CanMoveConstruct )
 {
 	// Arrange
-	yth::constrained_any src;
+	yan::constrained_any src;
 
 	// Act
-	yth::constrained_any sut( std::move( src ) );
+	yan::constrained_any sut( std::move( src ) );
 
 	// Assert
 	EXPECT_FALSE( sut.has_value() );
@@ -60,12 +60,12 @@ TEST( TestConstrainedAny, CanConstructWithLvalue )
 	int value = 42;
 
 	// Act
-	yth::constrained_any sut( value );
+	yan::constrained_any sut( value );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( int ) );
-	EXPECT_EQ( yth::constrained_any_cast<int>( sut ), value );
+	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), value );
 }
 
 TEST( TestConstrainedAny, CanConstructWithRvalue )
@@ -74,19 +74,19 @@ TEST( TestConstrainedAny, CanConstructWithRvalue )
 	int value = 42;
 
 	// Act
-	yth::constrained_any sut( std::move( value ) );
+	yan::constrained_any sut( std::move( value ) );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( int ) );
-	EXPECT_EQ( yth::constrained_any_cast<int>( sut ), value );
+	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), value );
 }
 
 TEST( TestConstrainedAny, NoValue_CanCopyAssign )
 {
 	// Arrange
-	yth::constrained_any src;
-	yth::constrained_any sut;
+	yan::constrained_any src;
+	yan::constrained_any sut;
 
 	// Act
 	sut = src;
@@ -101,8 +101,8 @@ TEST( TestConstrainedAny, NoValue_CanCopyAssign )
 TEST( TestConstrainedAny, NoValue_CanMoveAssign )
 {
 	// Arrange
-	yth::constrained_any src;
-	yth::constrained_any sut;
+	yan::constrained_any src;
+	yan::constrained_any sut;
 
 	// Act
 	sut = std::move( src );
@@ -118,31 +118,31 @@ TEST( TestConstrainedAny, HasValue_CanCopyConstruct )
 {
 	// Arrange
 	int                  value = 42;
-	yth::constrained_any src( value );
+	yan::constrained_any src( value );
 
 	// Act
-	yth::constrained_any sut( src );
+	yan::constrained_any sut( src );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( int ) );
-	EXPECT_EQ( yth::constrained_any_cast<int>( sut ), value );
-	EXPECT_EQ( yth::constrained_any_cast<int>( src ), value );
+	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), value );
+	EXPECT_EQ( yan::constrained_any_cast<int>( src ), value );
 }
 
 TEST( TestConstrainedAny, HasValue_CanMoveConstruct )
 {
 	// Arrange
 	int                  value = 42;
-	yth::constrained_any src( value );
+	yan::constrained_any src( value );
 
 	// Act
-	yth::constrained_any sut( std::move( src ) );
+	yan::constrained_any sut( std::move( src ) );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( int ) );
-	EXPECT_EQ( yth::constrained_any_cast<int>( sut ), value );
+	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), value );
 	EXPECT_TRUE( src.has_value() );
 }
 
@@ -150,8 +150,8 @@ TEST( TestConstrainedAny, HasValue_CanCopyAssign )
 {
 	// Arrange
 	int                  value = 42;
-	yth::constrained_any src( value );
-	yth::constrained_any sut;
+	yan::constrained_any src( value );
+	yan::constrained_any sut;
 
 	// Act
 	sut = src;
@@ -159,16 +159,16 @@ TEST( TestConstrainedAny, HasValue_CanCopyAssign )
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( int ) );
-	EXPECT_EQ( yth::constrained_any_cast<int>( sut ), value );
-	EXPECT_EQ( yth::constrained_any_cast<int>( src ), value );
+	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), value );
+	EXPECT_EQ( yan::constrained_any_cast<int>( src ), value );
 }
 
 TEST( TestConstrainedAny, HasValue_CanMoveAssign )
 {
 	// Arrange
 	int                  value = 42;
-	yth::constrained_any src( value );
-	yth::constrained_any sut;
+	yan::constrained_any src( value );
+	yan::constrained_any sut;
 
 	// Act
 	sut = std::move( src );
@@ -176,7 +176,7 @@ TEST( TestConstrainedAny, HasValue_CanMoveAssign )
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( int ) );
-	EXPECT_EQ( yth::constrained_any_cast<int>( sut ), value );
+	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), value );
 	EXPECT_TRUE( src.has_value() );
 }
 
@@ -221,12 +221,12 @@ TEST( TestConstrainedAny, WithConstraint_CanCopyConstructFromLvalue )
 	Foo_has_print value( 42 );
 
 	// Act
-	yth::constrained_any<true, is_callable_print> sut( value );
+	yan::constrained_any<true, is_callable_print> sut( value );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( Foo_has_print ) );
-	EXPECT_EQ( yth::constrained_any_cast<Foo_has_print&>( sut ).value_, 42 );
+	EXPECT_EQ( yan::constrained_any_cast<Foo_has_print&>( sut ).value_, 42 );
 }
 
 TEST( TestConstrainedAny, WithConstraint_CanCopyConstructFromLvalueInt )
@@ -235,16 +235,16 @@ TEST( TestConstrainedAny, WithConstraint_CanCopyConstructFromLvalueInt )
 	Foo_has_print value( 42 );
 
 	// Act
-	yth::constrained_any<true, is_callable_print> sut( value );
+	yan::constrained_any<true, is_callable_print> sut( value );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( Foo_has_print ) );
-	EXPECT_EQ( yth::constrained_any_cast<Foo_has_print&>( sut ).value_, 42 );
+	EXPECT_EQ( yan::constrained_any_cast<Foo_has_print&>( sut ).value_, 42 );
 }
 
 template <typename Carrier>
-class special_operation_adapter_call_print : public yth::special_operation_if {
+class special_operation_adapter_call_print : public yan::special_operation_if {
 public:
 	void specialized_operation_callback( void* p_com_data ) override
 	{
@@ -255,7 +255,7 @@ public:
 		*reinterpret_cast<bool*>( p_com_data ) = call_print();
 	}
 
-	template <typename U = Carrier, typename std::enable_if<yth::is_callable_ref<U>::value>::type* = nullptr>
+	template <typename U = Carrier, typename std::enable_if<yan::is_callable_ref<U>::value>::type* = nullptr>
 	bool call_print( void ) const
 	{
 		const Carrier* p = static_cast<const Carrier*>( this );
@@ -264,12 +264,12 @@ public:
 		return true;
 	}
 
-	template <typename U = Carrier, typename std::enable_if<!yth::is_callable_ref<U>::value>::type* = nullptr>
+	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
 	bool call_print( void ) const
 	{
 		const Carrier* p = static_cast<const Carrier*>( this );
 
-		const yth::special_operation_if* p_soi = p->get_special_operation_if();
+		const yan::special_operation_if* p_soi = p->get_special_operation_if();
 		if ( p_soi == nullptr ) {
 			std::cout << "constrained_any has no value" << std::endl;
 			return false;
@@ -287,19 +287,19 @@ TEST( TestConstrainedAny, WithConstraintAndSpecialOperator_CanConstruct )
 	Foo_has_print value( 42 );
 
 	// Act
-	yth::constrained_any<true, is_callable_print, special_operation_adapter_call_print> sut( value );
+	yan::constrained_any<true, is_callable_print, special_operation_adapter_call_print> sut( value );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( Foo_has_print ) );
-	EXPECT_EQ( yth::constrained_any_cast<Foo_has_print&>( sut ).value_, 42 );
+	EXPECT_EQ( yan::constrained_any_cast<Foo_has_print&>( sut ).value_, 42 );
 }
 
 TEST( TestConstrainedAny, WithConstraintAndSpecialOperator_CanCallPrint )
 {
 	// Arrange
 	Foo_has_print                                                                       value( 42 );
-	yth::constrained_any<true, is_callable_print, special_operation_adapter_call_print> sut( value );
+	yan::constrained_any<true, is_callable_print, special_operation_adapter_call_print> sut( value );
 
 	// Act
 	bool result = sut.call_print();
@@ -307,7 +307,7 @@ TEST( TestConstrainedAny, WithConstraintAndSpecialOperator_CanCallPrint )
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( Foo_has_print ) );
-	EXPECT_EQ( yth::constrained_any_cast<Foo_has_print&>( sut ).value_, 42 );
+	EXPECT_EQ( yan::constrained_any_cast<Foo_has_print&>( sut ).value_, 42 );
 	EXPECT_TRUE( result );
 }
 
@@ -333,50 +333,50 @@ TEST( TestConstrainedAny, CanConstructWithCopyOnlyRvalue )
 	TestCopyOnlyType value( 42 );
 
 	// Act
-	yth::constrained_any sut( value );
+	yan::constrained_any sut( value );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( TestCopyOnlyType ) );
-	EXPECT_EQ( yth::constrained_any_cast<TestCopyOnlyType&>( sut ).v_, 42 );
+	EXPECT_EQ( yan::constrained_any_cast<TestCopyOnlyType&>( sut ).v_, 42 );
 }
 
 TEST( TestConstrainedAny, OnlyCopyType_CanCopyConstruct )
 {
 	// Arrange
 	TestCopyOnlyType     value( 42 );
-	yth::constrained_any src( value );
+	yan::constrained_any src( value );
 
 	// Act
-	yth::constrained_any sut( src );
+	yan::constrained_any sut( src );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( TestCopyOnlyType ) );
-	EXPECT_EQ( yth::constrained_any_cast<TestCopyOnlyType&>( sut ).v_, 42 );
+	EXPECT_EQ( yan::constrained_any_cast<TestCopyOnlyType&>( sut ).v_, 42 );
 }
 
 TEST( TestConstrainedAny, OnlyCopyType_CanMoveConstruct )
 {
 	// Arrange
 	TestCopyOnlyType     value( 42 );
-	yth::constrained_any src( value );
+	yan::constrained_any src( value );
 
 	// Act
-	yth::constrained_any sut( std::move( src ) );
+	yan::constrained_any sut( std::move( src ) );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( TestCopyOnlyType ) );
-	EXPECT_EQ( yth::constrained_any_cast<TestCopyOnlyType&>( sut ).v_, 42 );
+	EXPECT_EQ( yan::constrained_any_cast<TestCopyOnlyType&>( sut ).v_, 42 );
 }
 
 TEST( TestConstrainedAny, OnlyCopyType_CanCopyAssign )
 {
 	// Arrange
 	TestCopyOnlyType     value( 42 );
-	yth::constrained_any src( value );
-	yth::constrained_any sut;
+	yan::constrained_any src( value );
+	yan::constrained_any sut;
 
 	// Act
 	sut = src;
@@ -384,18 +384,18 @@ TEST( TestConstrainedAny, OnlyCopyType_CanCopyAssign )
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( TestCopyOnlyType ) );
-	EXPECT_EQ( yth::constrained_any_cast<TestCopyOnlyType&>( sut ).v_, 42 );
+	EXPECT_EQ( yan::constrained_any_cast<TestCopyOnlyType&>( sut ).v_, 42 );
 	EXPECT_TRUE( src.has_value() );
 	EXPECT_EQ( src.type(), typeid( TestCopyOnlyType ) );
-	EXPECT_EQ( yth::constrained_any_cast<TestCopyOnlyType&>( src ).v_, 42 );
+	EXPECT_EQ( yan::constrained_any_cast<TestCopyOnlyType&>( src ).v_, 42 );
 }
 
 TEST( TestConstrainedAny, OnlyCopyType_CanMoveAssign )
 {
 	// Arrange
 	TestCopyOnlyType     value( 42 );
-	yth::constrained_any src( value );
-	yth::constrained_any sut;
+	yan::constrained_any src( value );
+	yan::constrained_any sut;
 
 	// Act
 	sut = std::move( src );
@@ -403,10 +403,10 @@ TEST( TestConstrainedAny, OnlyCopyType_CanMoveAssign )
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( TestCopyOnlyType ) );
-	EXPECT_EQ( yth::constrained_any_cast<TestCopyOnlyType&>( sut ).v_, 42 );
+	EXPECT_EQ( yan::constrained_any_cast<TestCopyOnlyType&>( sut ).v_, 42 );
 	EXPECT_TRUE( src.has_value() );
 	EXPECT_EQ( src.type(), typeid( TestCopyOnlyType ) );
-	EXPECT_EQ( yth::constrained_any_cast<TestCopyOnlyType&>( src ).v_, 42 );
+	EXPECT_EQ( yan::constrained_any_cast<TestCopyOnlyType&>( src ).v_, 42 );
 }
 
 // ================================================================
@@ -438,44 +438,44 @@ TEST( TestConstrainedAny, CopyAndMoveType_CanCopyConstruct )
 {
 	// Arrange
 	TestCopyAndMoveType  value( 42 );
-	yth::constrained_any src( value );
+	yan::constrained_any src( value );
 
 	// Act
-	yth::constrained_any sut( src );
+	yan::constrained_any sut( src );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( TestCopyAndMoveType ) );
-	EXPECT_EQ( yth::constrained_any_cast<TestCopyAndMoveType&>( sut ).v_, 42 );
+	EXPECT_EQ( yan::constrained_any_cast<TestCopyAndMoveType&>( sut ).v_, 42 );
 	EXPECT_TRUE( src.has_value() );
 	EXPECT_EQ( src.type(), typeid( TestCopyAndMoveType ) );
-	EXPECT_EQ( yth::constrained_any_cast<TestCopyAndMoveType&>( src ).v_, 42 );
+	EXPECT_EQ( yan::constrained_any_cast<TestCopyAndMoveType&>( src ).v_, 42 );
 }
 
 TEST( TestConstrainedAny, CopyAndMoveType_CanMoveConstruct )
 {
 	// Arrange
 	TestCopyAndMoveType  value( 42 );
-	yth::constrained_any src( value );
+	yan::constrained_any src( value );
 
 	// Act
-	yth::constrained_any sut( std::move( src ) );
+	yan::constrained_any sut( std::move( src ) );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( TestCopyAndMoveType ) );
-	EXPECT_EQ( yth::constrained_any_cast<TestCopyAndMoveType&>( sut ).v_, 42 );
+	EXPECT_EQ( yan::constrained_any_cast<TestCopyAndMoveType&>( sut ).v_, 42 );
 	EXPECT_TRUE( src.has_value() );
 	EXPECT_EQ( src.type(), typeid( TestCopyAndMoveType ) );
-	EXPECT_EQ( yth::constrained_any_cast<TestCopyAndMoveType&>( src ).v_, 0 );
+	EXPECT_EQ( yan::constrained_any_cast<TestCopyAndMoveType&>( src ).v_, 0 );
 }
 
 TEST( TestConstrainedAny, CopyAndMoveType_CanCopyAssign )
 {
 	// Arrange
 	TestCopyAndMoveType  value( 42 );
-	yth::constrained_any src( value );
-	yth::constrained_any sut;
+	yan::constrained_any src( value );
+	yan::constrained_any sut;
 
 	// Act
 	sut = src;
@@ -483,18 +483,18 @@ TEST( TestConstrainedAny, CopyAndMoveType_CanCopyAssign )
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( TestCopyAndMoveType ) );
-	EXPECT_EQ( yth::constrained_any_cast<TestCopyAndMoveType&>( sut ).v_, 42 );
+	EXPECT_EQ( yan::constrained_any_cast<TestCopyAndMoveType&>( sut ).v_, 42 );
 	EXPECT_TRUE( src.has_value() );
 	EXPECT_EQ( src.type(), typeid( TestCopyAndMoveType ) );
-	EXPECT_EQ( yth::constrained_any_cast<TestCopyAndMoveType&>( src ).v_, 42 );
+	EXPECT_EQ( yan::constrained_any_cast<TestCopyAndMoveType&>( src ).v_, 42 );
 }
 
 TEST( TestConstrainedAny, CopyAndMoveType_CanMoveAssign )
 {
 	// Arrange
 	TestCopyAndMoveType  value( 42 );
-	yth::constrained_any src( value );
-	yth::constrained_any sut;
+	yan::constrained_any src( value );
+	yan::constrained_any sut;
 
 	// Act
 	sut = std::move( src );
@@ -502,10 +502,10 @@ TEST( TestConstrainedAny, CopyAndMoveType_CanMoveAssign )
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( TestCopyAndMoveType ) );
-	EXPECT_EQ( yth::constrained_any_cast<TestCopyAndMoveType&>( sut ).v_, 42 );
+	EXPECT_EQ( yan::constrained_any_cast<TestCopyAndMoveType&>( sut ).v_, 42 );
 	EXPECT_TRUE( src.has_value() );
 	EXPECT_EQ( src.type(), typeid( TestCopyAndMoveType ) );
-	EXPECT_EQ( yth::constrained_any_cast<TestCopyAndMoveType&>( src ).v_, 0 );
+	EXPECT_EQ( yan::constrained_any_cast<TestCopyAndMoveType&>( src ).v_, 0 );
 }
 
 // ================================================================
@@ -516,38 +516,38 @@ TEST( TestConstrainedAny_NowAllowCopy, CanConstruct )
 	std::unique_ptr<int> value = std::make_unique<int>( 42 );
 
 	// Act
-	yth::constrained_any<false> sut( std::move( value ) );
+	yan::constrained_any<false> sut( std::move( value ) );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( std::unique_ptr<int> ) );
-	EXPECT_EQ( *( yth::constrained_any_cast<std::unique_ptr<int>&>( sut ) ), 42 );
+	EXPECT_EQ( *( yan::constrained_any_cast<std::unique_ptr<int>&>( sut ) ), 42 );
 }
 
 TEST( TestConstrainedAny_NowAllowCopy, CanMoveConstruct )
 {
 	// Arrange
 	std::unique_ptr<int>        value = std::make_unique<int>( 42 );
-	yth::constrained_any<false> src( std::move( value ) );
+	yan::constrained_any<false> src( std::move( value ) );
 
 	// Act
-	yth::constrained_any<false> sut( std::move( src ) );
+	yan::constrained_any<false> sut( std::move( src ) );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( std::unique_ptr<int> ) );
-	EXPECT_EQ( *( yth::constrained_any_cast<std::unique_ptr<int>&>( sut ) ), 42 );
+	EXPECT_EQ( *( yan::constrained_any_cast<std::unique_ptr<int>&>( sut ) ), 42 );
 	EXPECT_TRUE( src.has_value() );
 	EXPECT_EQ( src.type(), typeid( std::unique_ptr<int> ) );
-	EXPECT_EQ( yth::constrained_any_cast<std::unique_ptr<int>&>( src ), nullptr );
+	EXPECT_EQ( yan::constrained_any_cast<std::unique_ptr<int>&>( src ), nullptr );
 }
 
 TEST( TestConstrainedAny_NowAllowCopy, CanMoveAssign )
 {
 	// Arrange
 	std::unique_ptr<int>        value = std::make_unique<int>( 42 );
-	yth::constrained_any<false> src( std::move( value ) );
-	yth::constrained_any<false> sut;
+	yan::constrained_any<false> src( std::move( value ) );
+	yan::constrained_any<false> sut;
 
 	// Act
 	sut = std::move( src );
@@ -555,24 +555,24 @@ TEST( TestConstrainedAny_NowAllowCopy, CanMoveAssign )
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( std::unique_ptr<int> ) );
-	EXPECT_EQ( *( yth::constrained_any_cast<std::unique_ptr<int>&>( sut ) ), 42 );
+	EXPECT_EQ( *( yan::constrained_any_cast<std::unique_ptr<int>&>( sut ) ), 42 );
 	EXPECT_TRUE( src.has_value() );
 	EXPECT_EQ( src.type(), typeid( std::unique_ptr<int> ) );
-	EXPECT_EQ( yth::constrained_any_cast<std::unique_ptr<int>&>( src ), nullptr );
+	EXPECT_EQ( yan::constrained_any_cast<std::unique_ptr<int>&>( src ), nullptr );
 }
 
 TEST( TestConstrainedAny_NowAllowCopy, CanGetValueByMoveCast )
 {
 	// Arrange
 	std::unique_ptr<int>        value = std::make_unique<int>( 42 );
-	yth::constrained_any<false> sut( std::move( value ) );
+	yan::constrained_any<false> sut( std::move( value ) );
 
 	// Act
-	auto up_ret = yth::constrained_any_cast<std::unique_ptr<int>&&>( std::move( sut ) );
+	auto up_ret = yan::constrained_any_cast<std::unique_ptr<int>&&>( std::move( sut ) );
 
 	// Assert
 	ASSERT_NE( up_ret, nullptr );
 	EXPECT_EQ( *up_ret, 42 );
 	EXPECT_EQ( sut.type(), typeid( std::unique_ptr<int> ) );
-	EXPECT_EQ( yth::constrained_any_cast<std::unique_ptr<int>&>( sut ), nullptr );
+	EXPECT_EQ( yan::constrained_any_cast<std::unique_ptr<int>&>( sut ), nullptr );
 }

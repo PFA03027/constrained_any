@@ -18,7 +18,7 @@
 #include <typeinfo>
 #include <utility>
 
-namespace yth {   // yet another
+namespace yan {   // yet another
 
 namespace impl {
 struct is_callable_ref_impl {
@@ -452,6 +452,6 @@ T* constrained_any_cast( constrained_any<AllowToUseCopy, Constraint, Specialized
 	return &( p->ref() );
 }
 
-}   // namespace yth
+}   // namespace yan
 
 #endif

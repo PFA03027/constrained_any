@@ -197,13 +197,13 @@ int main( void )
 	std::cout << "foo_any: " << foo_any.to_string() << std::endl;
 
 	// Create a list containter of constrained_any objects
-	std::vector<string_convertible_any> list;
-	list.push_back( int_value );
-	list.push_back( str_value );
-	list.push_back( double_value );
-	list.push_back( foo_any );
-	for ( const auto& item : list ) {
-		std::cout << "list item: " << item.to_string() << std::endl;
+	std::vector<string_convertible_any> vec;
+	vec.push_back( int_value );
+	vec.push_back( str_value );
+	vec.push_back( double_value );
+	vec.push_back( foo_any );
+	for ( const auto& item : vec ) {
+		std::cout << "vector item: " << item.to_string() << std::endl;
 	}
 
 	return 0;

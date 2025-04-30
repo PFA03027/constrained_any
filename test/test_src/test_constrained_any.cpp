@@ -9,6 +9,9 @@
  *
  */
 
+#include <map>
+#include <unordered_map>
+
 #include "constrained_any.hpp"
 
 #include <gtest/gtest.h>
@@ -575,4 +578,216 @@ TEST( TestConstrainedAny_NowAllowCopy, CanGetValueByMoveCast )
 	EXPECT_EQ( *up_ret, 42 );
 	EXPECT_EQ( sut.type(), typeid( std::unique_ptr<int> ) );
 	EXPECT_EQ( yan::constrained_any_cast<std::unique_ptr<int>&>( sut ), nullptr );
+}
+
+// ================================================
+
+TEST( TestWeakOrderingAny, CanConstruct )
+{
+	// Arrange
+
+	// Act
+	yan::weak_ordering_any sut;
+
+	// Assert
+	EXPECT_FALSE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( void ) );
+}
+
+TEST( TestWeakOrderingAny, CanConstructWithInt )
+{
+	// Arrange
+	int value = 42;
+
+	// Act
+	yan::weak_ordering_any sut( value );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( int ) );
+	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), value );
+}
+
+TEST( TestWeakOrderingAny, CanConstructWithString )
+{
+	// Arrange
+	std::string value = "Hello";
+
+	// Act
+	yan::weak_ordering_any sut( value );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( std::string ) );
+	EXPECT_EQ( yan::constrained_any_cast<std::string>( sut ), value );
+}
+TEST( TestWeakOrderingAny, CanConstructWithDouble )
+{
+	// Arrange
+	double value = 3.14;
+
+	// Act
+	yan::weak_ordering_any sut( value );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( double ) );
+	EXPECT_EQ( yan::constrained_any_cast<double>( sut ), value );
+}
+
+TEST( TestWeakOrderingAny, CanLessWithSameType )
+{
+	// Arrange
+	yan::weak_ordering_any a( 42 );
+	yan::weak_ordering_any b( 43 );
+
+	// Act
+	bool result = a < b;
+
+	// Assert
+	EXPECT_TRUE( result );
+}
+
+TEST( TestWeakOrderingAny, CanLessWithDifferentType )
+{
+	// Arrange
+	yan::weak_ordering_any a( 42 );
+	yan::weak_ordering_any b( std::string( "Hello" ) );
+
+	// Act
+	ASSERT_NO_THROW( a < b );
+
+	// Assert
+}
+
+TEST( TestWeakOrderingAny, CanUseMapWithWeakOrderingAny )
+{
+	// Arrange
+	std::map<yan::weak_ordering_any, int> map;
+	yan::weak_ordering_any                key1( 42 );
+	yan::weak_ordering_any                key2( 43 );
+
+	// Act
+	map[key1] = 1;
+	map[key2] = 2;
+
+	// Assert
+	EXPECT_EQ( map.size(), 2 );
+	EXPECT_EQ( map[key1], 1 );
+	EXPECT_EQ( map[key2], 2 );
+}
+
+// ================================================
+
+TEST( TestUnorderedKeyAny, CanConstruct )
+{
+	// Arrange
+
+	// Act
+	yan::unordered_key_any sut;
+
+	// Assert
+	EXPECT_FALSE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( void ) );
+}
+
+TEST( TestUnorderedKeyAny, CanConstructWithInt )
+{
+	// Arrange
+	int value = 42;
+
+	// Act
+	yan::unordered_key_any sut( value );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( int ) );
+	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), value );
+}
+
+TEST( TestUnorderedKeyAny, CanConstructWithString )
+{
+	// Arrange
+	std::string value = "Hello";
+
+	// Act
+	yan::unordered_key_any sut( value );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( std::string ) );
+	EXPECT_EQ( yan::constrained_any_cast<std::string>( sut ), value );
+}
+TEST( TestUnorderedKeyAny, CanConstructWithDouble )
+{
+	// Arrange
+	double value = 3.14;
+
+	// Act
+	yan::unordered_key_any sut( value );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( double ) );
+	EXPECT_EQ( yan::constrained_any_cast<double>( sut ), value );
+}
+
+TEST( TestUnorderedKeyAny, CanEqualToWithSameTypeSameValue )
+{
+	// Arrange
+	yan::unordered_key_any a( 42 );
+	yan::unordered_key_any b( 42 );
+
+	// Act
+	bool result = ( a == b );
+
+	// Assert
+	EXPECT_TRUE( result );
+}
+
+TEST( TestUnorderedKeyAny, CanEqualToWithSameTypeDifferentValue )
+{
+	// Arrange
+	yan::unordered_key_any a( 42 );
+	yan::unordered_key_any b( 43 );
+
+	// Act
+	bool result = ( a == b );
+
+	// Assert
+	EXPECT_FALSE( result );
+}
+
+TEST( TestUnorderedKeyAny, CanEqualToWithDifferentType )
+{
+	// Arrange
+	yan::unordered_key_any a( 42 );
+	yan::unordered_key_any b( std::string( "Hello" ) );
+	bool                   result = true;
+
+	// Act
+	ASSERT_NO_THROW( result = ( a == b ) );
+
+	// Assert
+	EXPECT_FALSE( result );
+}
+
+TEST( TestUnorderedKeyAny, CanUseUnorderedMapWithUnorderedKeyAny )
+{
+	// Arrange
+	std::unordered_map<yan::unordered_key_any, int> map;
+	yan::unordered_key_any                          key1( 42 );
+	yan::unordered_key_any                          key2( 43 );
+	yan::unordered_key_any                          key3( std::string( "Hello" ) );
+
+	// Act
+	map[key1] = 1;
+	map[key2] = 2;
+	map[key3] = 3;
+
+	// Assert
+	EXPECT_EQ( map.size(), 3 );
+	EXPECT_EQ( map[key1], 1 );
+	EXPECT_EQ( map[key2], 2 );
+	EXPECT_EQ( map[key3], 3 );
 }

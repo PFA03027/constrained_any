@@ -13,8 +13,10 @@
 #define INC_CONSTRAINED_ANY_HPP_
 
 #include <any>
+#include <functional>   // for std::hash
 #include <memory>
 #include <type_traits>
+#include <typeindex>
 #include <typeinfo>
 #include <utility>
 
@@ -34,6 +36,8 @@ template <typename T>
 struct is_callable_ref : public decltype( impl::is_callable_ref_impl::check<T>( nullptr ) ) {};
 
 struct special_operation_if {
+	virtual ~special_operation_if() = default;
+
 	virtual void specialized_operation_callback( void* )       = 0;
 	virtual void specialized_operation_callback( void* ) const = 0;
 };
@@ -452,6 +456,232 @@ T* constrained_any_cast( constrained_any<AllowToUseCopy, Constraint, Specialized
 	return &( p->ref() );
 }
 
+namespace impl {
+
+struct is_weak_orderable_impl {
+	template <typename T>
+	static auto check( T* ) -> decltype( std::declval<T>() < std::declval<T>(), std::true_type() );
+	template <typename T>
+	static auto check( ... ) -> std::false_type;
+};
+
+template <typename T>
+struct is_weak_orderable : public decltype( is_weak_orderable_impl::check<T>( nullptr ) ) {};
+
+template <typename Carrier>
+class special_operation_call_less : public special_operation_if {
+public:
+	void specialized_operation_callback( void* p_b ) override
+	{
+		argument_and_return_data* p_args_of_b = reinterpret_cast<argument_and_return_data*>( p_b );
+		p_args_of_b->result_                  = less( p_args_of_b->p_b_ );
+	}
+	void specialized_operation_callback( void* p_b ) const override
+	{
+		argument_and_return_data* p_args_of_b = reinterpret_cast<argument_and_return_data*>( p_b );
+		p_args_of_b->result_                  = less( p_args_of_b->p_b_ );
+	}
+
+	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
+	bool operator<( const Carrier& b ) const
+	{
+		// this I/F is expected that constranted_any calls this function.
+
+		const Carrier* p_a = static_cast<const Carrier*>( this );
+		const Carrier* p_b = static_cast<const Carrier*>( &b );
+
+		std::type_index ti_a = std::type_index( p_a->type() );
+		std::type_index ti_b = std::type_index( p_b->type() );
+		if ( ti_a != ti_b ) {
+			return ti_a < ti_b;
+		}
+
+		const special_operation_if* p_a_soi = p_a->get_special_operation_if();
+		const special_operation_if* p_b_soi = p_b->get_special_operation_if();
+		if ( p_a_soi == nullptr ) {
+			// this means both this and b have no value. Therefore *this == b.
+			// So, *this < b is false.
+			return false;
+		}
+
+		argument_and_return_data data { p_b_soi, false };
+		p_a_soi->specialized_operation_callback( &data );
+		return data.result_;
+	}
+
+private:
+	struct argument_and_return_data {
+		const special_operation_if* p_b_;
+		bool                        result_;
+	};
+
+	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
+	bool less( const special_operation_if* p_b_if ) const
+	{
+		throw std::logic_error( "less() is not implemented for constrained_any itself" );
+	}
+
+	template <typename U = Carrier, typename std::enable_if<yan::is_callable_ref<U>::value>::type* = nullptr>
+	bool less( const special_operation_if* p_b_if ) const
+	{
+		const Carrier* p_a_carrier = static_cast<const Carrier*>( this );
+		const Carrier* p_b_carrier = dynamic_cast<const Carrier*>( p_b_if );
+		if ( p_b_carrier == nullptr ) {
+			throw std::bad_any_cast();
+		}
+
+		return p_a_carrier->ref() < p_b_carrier->ref();
+	}
+};
+
+}   // namespace impl
+
+using weak_ordering_any = constrained_any<true, impl::is_weak_orderable, impl::special_operation_call_less>;
+
+namespace impl {
+
+struct is_hashable_impl {
+	template <typename T, typename RVCVR_T = typename std::remove_cvref<T>::type>
+	static auto check( T* ) -> decltype( std::hash<RVCVR_T>()( std::declval<RVCVR_T>() ), std::true_type() );
+	template <typename T, typename RVCVR_T = typename std::remove_cvref<T>::type>
+	static auto check( ... ) -> std::false_type;
+};
+template <typename T>
+struct is_hashable : public decltype( is_hashable_impl::check<T>( nullptr ) ) {};
+
+struct is_callable_equal_to_impl {
+	template <typename T>
+	static auto check( T* ) -> decltype( std::declval<T>() == std::declval<T>(), std::true_type() );
+	template <typename T>
+	static auto check( ... ) -> std::false_type;
+};
+template <typename T>
+struct is_callable_equal_to : public decltype( is_callable_equal_to_impl::check<T>( nullptr ) ) {};
+
+template <typename T>
+struct is_acceptable_as_unordered_key {
+	static constexpr bool value = is_hashable<T>::value && is_callable_equal_to<T>::value;
+};
+
+template <typename Carrier>
+class special_operation_call_unordered_key : public special_operation_if {
+public:
+	void specialized_operation_callback( void* p_b ) override
+	{
+		argument_and_return_data* p_args_of_b = reinterpret_cast<argument_and_return_data*>( p_b );
+		if ( p_args_of_b->p_b_ != nullptr ) {
+			p_args_of_b->equal_to_result_ = unordered_key_equal_to( p_args_of_b->p_b_ );
+		} else {
+			p_args_of_b->hash_value_ = hash_value();
+		}
+	}
+	void specialized_operation_callback( void* p_b ) const override
+	{
+		argument_and_return_data* p_args_of_b = reinterpret_cast<argument_and_return_data*>( p_b );
+		if ( p_args_of_b->p_b_ != nullptr ) {
+			p_args_of_b->equal_to_result_ = unordered_key_equal_to( p_args_of_b->p_b_ );
+		} else {
+			p_args_of_b->hash_value_ = hash_value();
+		}
+	}
+
+	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
+	bool equal_to( const Carrier& b ) const
+	{
+		const Carrier* p_a = static_cast<const Carrier*>( this );
+		const Carrier* p_b = static_cast<const Carrier*>( &b );
+
+		std::type_index ti_a = std::type_index( p_a->type() );
+		std::type_index ti_b = std::type_index( p_b->type() );
+		if ( ti_a != ti_b ) {
+			return false;
+		}
+
+		const special_operation_if* p_a_soi = p_a->get_special_operation_if();
+		const special_operation_if* p_b_soi = p_b->get_special_operation_if();
+		if ( p_a_soi == nullptr ) {
+			return false;
+		}
+
+		argument_and_return_data data { p_b_soi, false, 0 };
+		p_a_soi->specialized_operation_callback( &data );
+		return data.equal_to_result_;
+	}
+
+	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
+	size_t hash_value( void ) const
+	{
+		const Carrier* p_a = static_cast<const Carrier*>( this );
+
+		const special_operation_if* p_a_soi = p_a->get_special_operation_if();
+		if ( p_a_soi == nullptr ) {
+			return 0;
+		}
+
+		argument_and_return_data data { nullptr, false, 0 };
+		p_a_soi->specialized_operation_callback( &data );
+		return data.hash_value_;
+	}
+
+	template <typename U = Carrier, typename std::enable_if<yan::is_callable_ref<U>::value>::type* = nullptr>
+	size_t hash_value( void ) const
+	{
+		const Carrier* p_a_carrier = static_cast<const Carrier*>( this );
+
+		return std::hash<typename std::remove_cvref<typename Carrier::value_type>::type>()( p_a_carrier->ref() );
+	}
+
+private:
+	struct argument_and_return_data {
+		const special_operation_if* p_b_;
+		bool                        equal_to_result_;
+		size_t                      hash_value_;
+	};
+
+	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
+	bool unordered_key_equal_to( const special_operation_if* p_b_if ) const
+	{
+		throw std::logic_error( "unordered_key() is not implemented for constrained_any itself" );
+	}
+
+	template <typename U = Carrier, typename std::enable_if<yan::is_callable_ref<U>::value>::type* = nullptr>
+	bool unordered_key_equal_to( const special_operation_if* p_b_if ) const
+	{
+		const Carrier* p_a_carrier = static_cast<const Carrier*>( this );
+		const Carrier* p_b_carrier = dynamic_cast<const Carrier*>( p_b_if );
+		if ( p_b_carrier == nullptr ) {
+			throw std::bad_any_cast();
+		}
+
+		return p_a_carrier->ref() == p_b_carrier->ref();
+	}
+};
+
+}   // namespace impl
+
+using unordered_key_any = constrained_any<true, impl::is_acceptable_as_unordered_key, impl::special_operation_call_unordered_key>;
+inline bool operator==( const unordered_key_any& lhs, const unordered_key_any& rhs )
+{
+	return lhs.equal_to( rhs );
+}
+
 }   // namespace yan
+
+namespace std {
+template <>
+struct hash<yan::unordered_key_any> {
+	~hash()                        = default;
+	hash()                         = default;
+	hash( const hash& )            = default;
+	hash( hash&& )                 = default;
+	hash& operator=( const hash& ) = default;
+	hash& operator=( hash&& )      = default;
+
+	size_t operator()( const yan::unordered_key_any& key ) const
+	{
+		return key.hash_value();
+	}
+};
+}   // namespace std
 
 #endif

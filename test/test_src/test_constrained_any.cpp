@@ -587,6 +587,20 @@ TEST( TestConstrainedAny_NowAllowCopy, CanGetValueByMoveCast )
 	EXPECT_EQ( yan::constrained_any_cast<std::unique_ptr<int>&>( sut ), nullptr );
 }
 
+TEST( TestConstrainedAny_NonMemberFunction, CanMakeConstrainedAny )
+{
+	// Arrange
+	int value = 42;
+
+	// Act
+	auto sut = yan::make_constrained_any<int, true>( 42 );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( int ) );
+	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), value );
+}
+
 // ================================================
 
 TEST( TestWeakOrderingAny, CanConstruct )

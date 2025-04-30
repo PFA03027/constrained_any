@@ -175,7 +175,11 @@ const special_operation_if* get_special_operation_if() const noexcept;  // (7)
 ### Non member function
 ```cpp
 namespace yan {
-    template <class T, bool RequiresCopy, template <class> class Constraint = no_constrained, template <class> class SpecializedOperator = no_specialoperation, class... Args>
+    template <class T,
+              bool RequiresCopy,
+              template <class> class Constraint = no_constrained,
+              template <class> class SpecializedOperator = no_specialoperation,
+              class... Args>
     constrained_any<RequiresCopy, Constraint, SpecializedOperator> make_constrained_any( Args&&... args );  // (1)
 
     template <class T>

@@ -92,13 +92,14 @@ And also, you can use the key of std::unordered_set or std::unordered_map like b
     }
 ```
 
-## yan::constrained_any
+# yan::constrained_any
 yan::constrained_any is a generalized any type that has the constraint of the template parameter named Constraint. And also, it has the template parameter named SpecializedOperator for the specialized member functions.
-
 
 ```cpp
 namespace yan {
-    template <bool RequiresCopy = true, template <class> class Constraint = no_constrained, template <class> class SpecializedOperator = no_specialoperation>
+    template <bool RequiresCopy = true,
+              template <class> class Constraint = no_constrained,
+              template <class> class SpecializedOperator = no_specialoperation>
     class constrained_any;
 }
 ```
@@ -111,7 +112,7 @@ above is the definition of yan::constrained_any. And it has three template param
 ### additional constraints
 To avoid the circular template parameter dependency and unexpected acceptance for value type that is not satisfied by the constraint, yan::constrained_any does not accept std::any and the specialised type of yan::constrained_any.
 
-### Constructor
+## Constructor
 ```cpp
 constrained_any();                                      // (1)
 constrained_any(const constrained_any&);                // (2) 
@@ -123,21 +124,21 @@ constrained_any(T&& value);                             // (4)
 template <class T, class... Args>
 explicit constrained_any( std::in_place_type_t<T>, Args&&... args ) // (5)
 ```
-#### abstruction of constructor
+### abstruction of constructor
 1. default constructor. status becomes to have no value.
 2. copy constructor. if template parameter RequiresCopy is true, this copy constructor is enabled.
 3. move constructor. move the value from the other constrained_any.
 4. Type std::decay_t\<T\> that satisfies Constrain\<std::decay_t\<T\>\>::value == true does std::forward\<T\> to *this.
 5. constrained_any constructs the value of type T that satisfies Constrain\<T\>::value == true with  Args... args internally.
 
-### Destructor
+## Destructor
 ```cpp
 ~constrained_any();
 ```
-#### abstruction of destructor
+### abstruction of destructor
 destructor. if the value is not empty, it destructs the value.
 
-### Assignment operator
+## Assignment operator
 ```cpp
 constrained_any& operator=(const constrained_any&);    // (1)
 constrained_any& operator=(constrained_any&&);         // (2)
@@ -145,12 +146,12 @@ constrained_any& operator=(constrained_any&&);         // (2)
 template <typename T>
 constrained_any& operator=(T&& value);                // (3)
 ```
-#### abstruction of assignment operator
+### abstruction of assignment operator
 1. copy assignment operator. if template parameter RequiresCopy is true, this copy assignment operator is enabled.
 2. move assignment operator. move the value from the other constrained_any.
 3. Store the value as the type std::decay_t\<T\> that satisfies Constrain\<std::decay_t\<T\>\>::value == true by std::forward\<T\>.
 
-### Member function
+## Member function
 ```cpp
 void swap( constrained_any& src );                                      // (1)
 void reset() noexcept;                                                  // (2)
@@ -163,7 +164,7 @@ const std::type_info& type() const noexcept;                            // (5)
 special_operation_if* get_special_operation_if() noexcept;              // (6)
 const special_operation_if* get_special_operation_if() const noexcept;  // (7)
 ```
-#### abstruction of member function
+### abstruction of member function
 1. swap the value with src.
 2. reset the value. if the value is not empty, it destructs the value. then, the status becomes to have no value, this means has_value() == false.
 3. if the value is empty, it returns false. otherwise, it returns true.
@@ -172,7 +173,7 @@ const special_operation_if* get_special_operation_if() const noexcept;  // (7)
 6. return the pointer of the special_operation_if. if the value is empty, it returns nullptr.
 7. return the pointer of the const special_operation_if. if the value is empty, it returns nullptr.
 
-### Non member function
+## Non member function
 ```cpp
 namespace yan {
     template <class T,
@@ -198,7 +199,7 @@ namespace yan {
     T* constrained_any_cast( constrained_any* operand ) noexcept;   // (6)
 }
 ```
-#### abstruction of non member function
+### abstruction of non member function
 1. make_constrained_any constructs the value of type T that satisfies Constrain\<T\>::value == true with Args... args internally. and then, returns the constrained_any\<RequiresCopy, Constraint, SpecializedOperator\> that has the value.
 2. Specify the type held by the constrained_any object to get a copy or reference to the value.<br> To get a copy, use constrained_any _cast\<int\>(x),<br> and to get a reference, use constrained_any _cast\<int&\>(x).<br> If you specify an incorrect type, the exception std::bad_any_cast will be thrown.
 3. see (2)
@@ -206,7 +207,7 @@ namespace yan {
 5. Specify the type held by the constrained_any object to get a pointer to the value.<br> If you specify an incorrect type, it returns nullptr.
 6. see (5)
 
-#### Requirements
+### Requirements
 as the pre-condition, using U = remove_cv_t<remove_reference_t<T>>.
 
 2. std::is_constructible_v\<T, const U&\> == true.
@@ -232,7 +233,7 @@ yan::special_operation_if is an interface for template parameter SpecializedOper
 This interface has two pure virtual functions named specialized_operation_callback. The first one is for non-const and the second one is for const.<br>
 The derived class of this interface should implement these two functions.
 
-sample of yan::special_operation_if is in sample/sample_of_constrained_any.cpp.
+sample code that uses yan::special_operation_if as SpecializedOperator is in sample/sample_of_constrained_any.cpp.
 
 ### yan::is_callable_ref
 ```cpp

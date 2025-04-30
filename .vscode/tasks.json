@@ -1,0 +1,25 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "make test",
+			"type": "shell",
+			"command": "make test",
+			"problemMatcher": [],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+		{
+			"label": "make build-test with Debug",
+			"type": "shell",
+			"command": "make BUILDTYPE=Debug build-test",
+			"problemMatcher": [],
+			"group": {
+				"kind": "build",
+				// "isDefault": true
+			}
+		}
+	]
+}

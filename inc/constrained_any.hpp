@@ -472,7 +472,7 @@ template <typename Carrier>
 class special_operation_call_less : public special_operation_if {
 public:
 	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
-	bool operator<( const Carrier& b ) const
+	bool less( const Carrier& b ) const
 	{
 		// this I/F is expected that constranted_any calls this function.
 
@@ -507,36 +507,37 @@ private:
 	void specialized_operation_callback( void* p_b ) override
 	{
 		argument_and_return_data* p_args_of_b = reinterpret_cast<argument_and_return_data*>( p_b );
-		p_args_of_b->result_                  = less( p_args_of_b->p_b_ );
+		p_args_of_b->result_                  = less_by_value( p_args_of_b->p_b_ );
 	}
 	void specialized_operation_callback( void* p_b ) const override
 	{
 		argument_and_return_data* p_args_of_b = reinterpret_cast<argument_and_return_data*>( p_b );
-		p_args_of_b->result_                  = less( p_args_of_b->p_b_ );
+		p_args_of_b->result_                  = less_by_value( p_args_of_b->p_b_ );
 	}
 
-	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
-	bool less( const special_operation_if* p_b_if ) const
+	bool less_by_value( const special_operation_if* p_b_if ) const
 	{
-		throw std::logic_error( "less() is not implemented for constrained_any itself" );
-	}
+		if constexpr ( yan::is_callable_ref<Carrier>::value ) {
+			const Carrier* p_a_carrier = static_cast<const Carrier*>( this );
+			const Carrier* p_b_carrier = dynamic_cast<const Carrier*>( p_b_if );
+			if ( p_b_carrier == nullptr ) {
+				throw std::bad_any_cast();
+			}
 
-	template <typename U = Carrier, typename std::enable_if<yan::is_callable_ref<U>::value>::type* = nullptr>
-	bool less( const special_operation_if* p_b_if ) const
-	{
-		const Carrier* p_a_carrier = static_cast<const Carrier*>( this );
-		const Carrier* p_b_carrier = dynamic_cast<const Carrier*>( p_b_if );
-		if ( p_b_carrier == nullptr ) {
-			throw std::bad_any_cast();
+			return p_a_carrier->ref() < p_b_carrier->ref();
+		} else {
+			throw std::logic_error( "less_by_value() is not implemented for constrained_any itself" );
 		}
-
-		return p_a_carrier->ref() < p_b_carrier->ref();
 	}
 };
 
 }   // namespace impl
 
 using weak_ordering_any = constrained_any<true, impl::is_weak_orderable, impl::special_operation_call_less>;
+inline bool operator<( const weak_ordering_any& lhs, const weak_ordering_any& rhs )
+{
+	return lhs.less( rhs );
+}
 
 namespace impl {
 
@@ -638,22 +639,19 @@ private:
 		return std::hash<typename std::remove_cvref<typename Carrier::value_type>::type>()( p_a_carrier->ref() );
 	}
 
-	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
 	bool unordered_key_equal_to( const special_operation_if* p_b_if ) const
 	{
-		throw std::logic_error( "unordered_key() is not implemented for constrained_any itself" );
-	}
+		if constexpr ( yan::is_callable_ref<Carrier>::value ) {
+			const Carrier* p_a_carrier = static_cast<const Carrier*>( this );
+			const Carrier* p_b_carrier = dynamic_cast<const Carrier*>( p_b_if );
+			if ( p_b_carrier == nullptr ) {
+				throw std::bad_any_cast();
+			}
 
-	template <typename U = Carrier, typename std::enable_if<yan::is_callable_ref<U>::value>::type* = nullptr>
-	bool unordered_key_equal_to( const special_operation_if* p_b_if ) const
-	{
-		const Carrier* p_a_carrier = static_cast<const Carrier*>( this );
-		const Carrier* p_b_carrier = dynamic_cast<const Carrier*>( p_b_if );
-		if ( p_b_carrier == nullptr ) {
-			throw std::bad_any_cast();
+			return p_a_carrier->ref() == p_b_carrier->ref();
+		} else {
+			throw std::logic_error( "unordered_key_equal_to() is not implemented for constrained_any itself" );
 		}
-
-		return p_a_carrier->ref() == p_b_carrier->ref();
 	}
 };
 
@@ -670,18 +668,12 @@ inline bool operator==( const unordered_key_any& lhs, const unordered_key_any& r
 namespace std {
 template <>
 struct hash<yan::unordered_key_any> {
-	~hash()                        = default;
-	hash()                         = default;
-	hash( const hash& )            = default;
-	hash( hash&& )                 = default;
-	hash& operator=( const hash& ) = default;
-	hash& operator=( hash&& )      = default;
-
 	size_t operator()( const yan::unordered_key_any& key ) const
 	{
 		return key.hash_value();
 	}
 };
+
 }   // namespace std
 
 #endif

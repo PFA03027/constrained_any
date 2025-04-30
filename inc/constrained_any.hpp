@@ -471,17 +471,6 @@ struct is_weak_orderable : public decltype( is_weak_orderable_impl::check<T>( nu
 template <typename Carrier>
 class special_operation_call_less : public special_operation_if {
 public:
-	void specialized_operation_callback( void* p_b ) override
-	{
-		argument_and_return_data* p_args_of_b = reinterpret_cast<argument_and_return_data*>( p_b );
-		p_args_of_b->result_                  = less( p_args_of_b->p_b_ );
-	}
-	void specialized_operation_callback( void* p_b ) const override
-	{
-		argument_and_return_data* p_args_of_b = reinterpret_cast<argument_and_return_data*>( p_b );
-		p_args_of_b->result_                  = less( p_args_of_b->p_b_ );
-	}
-
 	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
 	bool operator<( const Carrier& b ) const
 	{
@@ -514,6 +503,17 @@ private:
 		const special_operation_if* p_b_;
 		bool                        result_;
 	};
+
+	void specialized_operation_callback( void* p_b ) override
+	{
+		argument_and_return_data* p_args_of_b = reinterpret_cast<argument_and_return_data*>( p_b );
+		p_args_of_b->result_                  = less( p_args_of_b->p_b_ );
+	}
+	void specialized_operation_callback( void* p_b ) const override
+	{
+		argument_and_return_data* p_args_of_b = reinterpret_cast<argument_and_return_data*>( p_b );
+		p_args_of_b->result_                  = less( p_args_of_b->p_b_ );
+	}
 
 	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
 	bool less( const special_operation_if* p_b_if ) const
@@ -566,23 +566,19 @@ struct is_acceptable_as_unordered_key {
 template <typename Carrier>
 class special_operation_call_unordered_key : public special_operation_if {
 public:
-	void specialized_operation_callback( void* p_b ) override
+	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
+	size_t hash_value( void ) const
 	{
-		argument_and_return_data* p_args_of_b = reinterpret_cast<argument_and_return_data*>( p_b );
-		if ( p_args_of_b->p_b_ != nullptr ) {
-			p_args_of_b->equal_to_result_ = unordered_key_equal_to( p_args_of_b->p_b_ );
-		} else {
-			p_args_of_b->hash_value_ = hash_value();
+		const Carrier* p_a = static_cast<const Carrier*>( this );
+
+		const special_operation_if* p_a_soi = p_a->get_special_operation_if();
+		if ( p_a_soi == nullptr ) {
+			return 0;
 		}
-	}
-	void specialized_operation_callback( void* p_b ) const override
-	{
-		argument_and_return_data* p_args_of_b = reinterpret_cast<argument_and_return_data*>( p_b );
-		if ( p_args_of_b->p_b_ != nullptr ) {
-			p_args_of_b->equal_to_result_ = unordered_key_equal_to( p_args_of_b->p_b_ );
-		} else {
-			p_args_of_b->hash_value_ = hash_value();
-		}
+
+		argument_and_return_data data { nullptr, false, 0 };
+		p_a_soi->specialized_operation_callback( &data );
+		return data.hash_value_;
 	}
 
 	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
@@ -608,19 +604,30 @@ public:
 		return data.equal_to_result_;
 	}
 
-	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
-	size_t hash_value( void ) const
+private:
+	struct argument_and_return_data {
+		const special_operation_if* p_b_;
+		bool                        equal_to_result_;
+		size_t                      hash_value_;
+	};
+
+	void specialized_operation_callback( void* p_b ) override
 	{
-		const Carrier* p_a = static_cast<const Carrier*>( this );
-
-		const special_operation_if* p_a_soi = p_a->get_special_operation_if();
-		if ( p_a_soi == nullptr ) {
-			return 0;
+		argument_and_return_data* p_args_of_b = reinterpret_cast<argument_and_return_data*>( p_b );
+		if ( p_args_of_b->p_b_ != nullptr ) {
+			p_args_of_b->equal_to_result_ = unordered_key_equal_to( p_args_of_b->p_b_ );
+		} else {
+			p_args_of_b->hash_value_ = hash_value();
 		}
-
-		argument_and_return_data data { nullptr, false, 0 };
-		p_a_soi->specialized_operation_callback( &data );
-		return data.hash_value_;
+	}
+	void specialized_operation_callback( void* p_b ) const override
+	{
+		argument_and_return_data* p_args_of_b = reinterpret_cast<argument_and_return_data*>( p_b );
+		if ( p_args_of_b->p_b_ != nullptr ) {
+			p_args_of_b->equal_to_result_ = unordered_key_equal_to( p_args_of_b->p_b_ );
+		} else {
+			p_args_of_b->hash_value_ = hash_value();
+		}
 	}
 
 	template <typename U = Carrier, typename std::enable_if<yan::is_callable_ref<U>::value>::type* = nullptr>
@@ -630,13 +637,6 @@ public:
 
 		return std::hash<typename std::remove_cvref<typename Carrier::value_type>::type>()( p_a_carrier->ref() );
 	}
-
-private:
-	struct argument_and_return_data {
-		const special_operation_if* p_b_;
-		bool                        equal_to_result_;
-		size_t                      hash_value_;
-	};
 
 	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
 	bool unordered_key_equal_to( const special_operation_if* p_b_if ) const

@@ -469,7 +469,7 @@ template <typename T>
 struct is_weak_orderable : public decltype( is_weak_orderable_impl::check<T>( nullptr ) ) {};
 
 template <typename Carrier>
-class special_operation_call_less : public special_operation_if {
+class special_operation_less : public special_operation_if {
 public:
 	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
 	bool less( const Carrier& b ) const
@@ -533,7 +533,7 @@ private:
 
 }   // namespace impl
 
-using weak_ordering_any = constrained_any<true, impl::is_weak_orderable, impl::special_operation_call_less>;
+using weak_ordering_any = constrained_any<true, impl::is_weak_orderable, impl::special_operation_less>;
 inline bool operator<( const weak_ordering_any& lhs, const weak_ordering_any& rhs )
 {
 	return lhs.less( rhs );
@@ -565,7 +565,7 @@ struct is_acceptable_as_unordered_key {
 };
 
 template <typename Carrier>
-class special_operation_call_unordered_key : public special_operation_if {
+class special_operation_unordered_key : public special_operation_if {
 public:
 	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
 	size_t hash_value( void ) const
@@ -657,7 +657,7 @@ private:
 
 }   // namespace impl
 
-using unordered_key_any = constrained_any<true, impl::is_acceptable_as_unordered_key, impl::special_operation_call_unordered_key>;
+using unordered_key_any = constrained_any<true, impl::is_acceptable_as_unordered_key, impl::special_operation_unordered_key>;
 inline bool operator==( const unordered_key_any& lhs, const unordered_key_any& rhs )
 {
 	return lhs.equal_to( rhs );

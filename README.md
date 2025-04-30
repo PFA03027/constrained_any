@@ -46,7 +46,7 @@ And also, you can use yan::weak_ordering_any as the key of std::set or std::map 
 ```
 
 ## yan::unordered_key_any
-yan::unordered_key_any is a type aliased from yan::constrained_any with the constraint of impl::is_acceptable_as_unordered_key\<T\>.
+yan::unordered_key_any is a type aliased from yan::constrained_any with the constraint of impl::is_acceptable_as_unordered_key\<T\>.<br>
 This constraint "impl::is_acceptable_as_unordered_key\<T\>" requires 2 constrains
 * T is comparable by operator==(T, T)
 * T is hashable by std::hash\<T\>
@@ -92,7 +92,46 @@ And also, you can use the key of std::unordered_set or std::unordered_map like b
     }
 ```
 
-# yan::constrained_any
+## yan::keyable_any
+yan::keyable_any is a type aliased from yan::constrained_any with the constraint of impl::is_keyable\<T\>.<br>
+This constraint "impl::is_acceptable_as_unordered_key\<T\>" requires 3 constrains;
+* T is comparable by operator<(T, T)
+* T is comparable by operator==(T, T)
+* T is hashable by std::hash\<T\>
+These constraints are the same as yan::unordered_key_any and yan::weak_ordering_any.<br>
+So, please refer to the above description of yan::unordered_key_any and yan::weak_ordering_any.<br>
+
+According to these constraints, yan::keyable_any is able to apply the comparison operator == and \< by the member function named "equal_to()" and "less()".
+And also, it is able to hash by the member function named "hash_value()".<br>
+Therefore, you can compare by operator== and \< and hash by std::hash like below;
+```cpp
+    yan::keyable_any a = 1;
+    yan::keyable_any b = 2;
+    if (a == b) {
+        // a is equal to b
+    } else {
+        // a is not equal to b
+    }
+    if (a < b) {
+        // a is less than b
+    } else {
+        // a is greater than or equal to b
+    }
+    std::hash<yan::keyable_any> h;
+    std::size_t hash = h(a);
+```
+And also, you can use the key of not only std::set, std::map but also std::unordered_set or std::unordered_map like below;
+```cpp
+    std::set<yan::keyable_any> s;
+    s.insert(1);
+    s.insert(2);
+    s.insert(3);
+    for (const auto& e : s) {
+        std::cout << e << std::endl;
+    }
+```
+
+# yan::constrained_any is fundamental type of constrained any
 yan::constrained_any is a generalized any type that has the constraint of the template parameter named Constraint. And also, it has the template parameter named SpecializedOperator for the specialized member functions.
 
 ```cpp

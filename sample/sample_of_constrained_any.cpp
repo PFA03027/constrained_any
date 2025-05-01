@@ -48,7 +48,7 @@ struct is_convertible_to_string {
 };
 
 // ---------------------------------------------------
-// Step 2: Define your own specialized operation
+// Step 2: Define the interface for specialized operation
 
 /**
  * @brief Specialized operation interface for converting to std::string
@@ -60,13 +60,14 @@ public:
 	/**
 	 * @brief Specialized operation callback function
 	 *
-	 * @param p_b pointer to the result of conversion
-	 *
 	 * @note
 	 * This function is called from constrained_any class.
 	 */
 	virtual std::string specialized_operation_convert_to_string_proxy( void ) const = 0;
 };
+
+// ---------------------------------------------------
+// Step 3: Define actual secialized operation class
 
 /**
  * @brief Specialized operation to_string member function that converts the value to std::string
@@ -76,6 +77,19 @@ public:
 template <typename Carrier>
 class special_operation_convert_to_string : public special_operation_convert_to_string_if {
 public:
+	// ---------------------------------------------------
+	// Step 4: implement the constraint check result variable with using step 1 constraint
+	/**
+	 * @brief Constraint check result
+	 *
+	 * @details
+	 * In case of this class of this sample code, input value type should support convertibility to std::string as the constraint.
+	 * So, this boolean value indicates the constraint check result.
+	 * @li true, if the Carrier type is convertible to std::string.
+	 * @li otherwise false.
+	 */
+	static constexpr bool constraint_check_result = is_convertible_to_string<Carrier>::value;
+
 	/**
 	 * @brief convert the value to std::string
 	 *
@@ -150,16 +164,23 @@ private:
 };
 
 // ---------------------------------------------------
-// Step 3: Define your own constrained_any class
+// Step 5: Define your own constrained_any class
 
 /**
  * @brief Constrained any class that has the constraint of convertible to std::string
  */
-using string_convertible_any = yan::constrained_any<true, is_convertible_to_string, special_operation_convert_to_string>;
+using string_convertible_any = yan::constrained_any<true, special_operation_convert_to_string>;
 
 // ---------------------------------------------------
-// Step 4: Use your own constrained_any class
+// implementation of the test class for the sample code
 
+/**
+ * @brief Test class that is convertible to std::string
+ *
+ * @details
+ * This class is used to test the constrained_any class.
+ * This class has a constructor that takes an int value and support the conversion operator to std::string.
+ */
 struct Foo_convertible_to_string {
 	int value_;
 

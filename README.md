@@ -3,17 +3,21 @@ std::any is very useful. But it is too free.<br>
 yan::constrained_any introduce the constrain. and then std::set, std::map and so on are able to store the instance of yan::constrained_any as the key value.
 
 yan::constrained_any has mostly same interface as std::any.<br>
-On the other hand, an acceptable type is limited by the template parameter named Constraint.
+On the other hand, an acceptable type is limited by the template parameter named ConstrainAndOperationArgs.
 
-Due to Constraint, yan::constrained_any is able to add specialized member functions by the template parameter named SpecializedOperator like mixin.
+Due to ConstrainAndOperationArgs, yan::constrained_any is able to add specialized member functions by the template parameter named ConstrainAndOperationArgs like mixin.
 
-constrained_any requires C++17 or later.
+And also, ConstrainAndOperationArgs is template parameter pack, so you can add multiple specialized member functions.<br>
+
+#### Remark
+* constrained_any requires C++17 or later.
+* constrained_any is provided by header only.
 
 # pre-defined type aliased from yan::constrained_any
 ## yan::weak_ordering_any
-yan::weak_ordering_any is a type aliased from yan::constrained_any with the constraint of impl::is_weak_orderable\<T\>.
+yan::weak_ordering_any is a type aliased from yan::constrained_any with the constraint of impl::special_operation_less\<T\>.
 
-This constraint "impl::is_weak_orderable\<T\>" requires the type T to be weakly orderable like blow;
+This constraint "impl::special_operation_less\<T\>" requires the type T to be weakly orderable like blow;
 ```cpp
     T a;
     T b;
@@ -46,10 +50,11 @@ And also, you can use yan::weak_ordering_any as the key of std::set or std::map 
 ```
 
 ## yan::unordered_key_any
-yan::unordered_key_any is a type aliased from yan::constrained_any with the constraint of impl::is_acceptable_as_unordered_key\<T\>.<br>
-This constraint "impl::is_acceptable_as_unordered_key\<T\>" requires 2 constrains
-* T is comparable by operator==(T, T)
-* T is hashable by std::hash\<T\>
+yan::unordered_key_any is a type aliased from yan::constrained_any with 2 constraints, impl::special_operation_equal_to\<T\>, impl::special_operation_hash_value\<T\>.<br>
+These constraints requires below;
+
+* T is comparable by operator==(T, T)<br> this constraint is required by impl::special_operation_equal_to\<T\>
+* T is hashable by std::hash\<T\><br> this constraint is required by impl::special_operation_hash_value\<T\>
 
 The first constraint requires the type T to be comparable like below;
 ```cpp
@@ -67,7 +72,7 @@ The second constraint requires the type T to be hashable like below;
     std::hash<T> h;
     std::size_t hash = h(a);
 ```
-According to these constraints, yan::unordered_key_any is able to apply the comparison operator == by the member function named "equal_to()" and also hash by the member function named "hash_value()".
+According to these constraints, yan::unordered_key_any is able to apply the comparison operator == by the member function named "equal_to()" and also std::hash\<yan::unordered_key_any\> by the member function named "hash_value()".
 
 Therefore, you can compare by operator== and hash by std::hash like below;
 ```cpp
@@ -93,11 +98,12 @@ And also, you can use the key of std::unordered_set or std::unordered_map like b
 ```
 
 ## yan::keyable_any
-yan::keyable_any is a type aliased from yan::constrained_any with the constraint of impl::is_keyable\<T\>.<br>
-This constraint "impl::is_acceptable_as_unordered_key\<T\>" requires 3 constrains;
-* T is comparable by operator<(T, T)
-* T is comparable by operator==(T, T)
-* T is hashable by std::hash\<T\>
+yan::keyable_any is a type aliased from yan::constrained_any with 3 constraints of below;<br>
+
+* T is comparable by operator<(T, T)<br> this constraint is required by impl::special_operation_less\<T\>
+* T is comparable by operator==(T, T)<br> this constraint is required by impl::special_operation_equal_to\<T\>
+* T is hashable by std::hash\<T\><br> this constraint is required by impl::special_operation_hash_value\<T\>
+
 These constraints are the same as yan::unordered_key_any and yan::weak_ordering_any.<br>
 So, please refer to the above description of yan::unordered_key_any and yan::weak_ordering_any.<br>
 
@@ -132,30 +138,36 @@ And also, you can use the key of not only std::set, std::map but also std::unord
 ```
 
 ## yan::no_constrained_any
-yan::no_constrained_any is a type aliased from yan::constrained_any without any constraint by impl::no_constrained\<T\>.<br>
+yan::no_constrained_any is a type aliased from yan::constrained_any without any constraint and any special operation.<br>
 This is mostly same as std::any.<br>
 
 
 # yan::constrained_any is fundamental type of constrained any
-yan::constrained_any is a generalized any type that has the constraint of the template parameter named Constraint.<br>
-And also, it has the template parameter pack named SpecializedOperatorArgs for the specialized member functions. This paramter pack SpecializedOperatorArgs supports to composite the multiple specialized operators mixin.
+yan::constrained_any is a generalized any type that has the template parameter pack named ConstrainAndOperationArgs for the multiple constraints and the specialized member functions.<br> This paramter pack ConstrainAndOperationArgs supports to composite the multiple specialized operators mixin.
 
 ```cpp
 namespace yan {
     template <bool RequiresCopy,
-              template <class> class Constraint,
-              template <class> class... SpecializedOperatorArgs>
+              template <class> class... ConstrainAndOperationArgs>
     class constrained_any;
 }
 ```
-above is the definition of yan::constrained_any. And it has three template paramters<br>
+above is the definition of yan::constrained_any. And it has 2 template paramters<br>
 
 1. RequiresCopy: if true, input type is requires copy constructible and copy assignable.<br> And, the copy constructor and copy assignment operator of constrained_any are enabled. Otherwise, they are deleted from constrained_any.
-2. Constraint: the constraint of the input type. Constraint\<T\>::value should be available.<br> If Constraint\<T\>::value == true, T is acceptable type, otherwise constrained_any does not accept.<br>
-3. SpecializedOperatorArgs: this template parameter pack adds the specialized member functions to yan::constrained_any.
+2. ConstrainAndOperationArgs: this template parameter pack adds the multiple constrains and the specialized member functions to yan::constrained_any.<br>
+    The each type in ConstrainAndOperationArgs requires 2 rules;
+    1. Each type in ConstrainAndOperationArgs should support one template parameter T.
+        * Case 1: T is the type of the concrete constrained_any type.
+        * Case 2: T is the type of internal value carrier class of constrained_any. This case, T has the member function named "ref()" that returns the reference of the actual stored type of constrained_any.
+        * Case 3: T is the type of input value type. This case expect to test that type is satisfied by the constraint or not. and that test result is stored in the static constexper bool member variable named "constraint_check_result".
+    2. The type of ConstrainAndOperationArgs should have static constexper bool member variable named "constraint_check_result". and it should be true if the type is acceptable by the constraint.<br>
+
+Sample implementation of ConstrainAndOperationArgs is in sample/sample_of_constrained_any.cpp.<br>
+impl::special_operation_less\<T\> and impl::special_operation_equal_to\<T\> is also the reference to implement your own constraint and specialized operation.
 
 ### additional constraints
-To avoid the circular template parameter dependency and unexpected acceptance for value type that is not satisfied by the constraint, yan::constrained_any does not accept std::any and the specialised type of yan::constrained_any.
+To avoid the circular template parameter dependency, implicit type conversion loop infinitely and unexpected acceptance for value type that is not satisfied by the constraint, yan::constrained_any does not accept std::any and the different specialised type of yan::constrained_any.
 
 ## Constructor
 ```cpp
@@ -198,16 +210,20 @@ constrained_any& operator=(T&& value);                // (3)
 
 ## Member function
 ```cpp
-void swap( constrained_any& src );                                      // (1)
-void reset() noexcept;                                                  // (2)
-bool has_value() const;                                                 // (3)
+void swap( constrained_any& src );                   // (1)
+void reset() noexcept;                               // (2)
+bool has_value() const;                              // (3)
 
 template <class T, class... Args>
-std::decay_t<T>& emplace( Args&&... args );                             // (4)
+std::decay_t<T>& emplace( Args&&... args );          // (4)
 
-const std::type_info& type() const noexcept;                            // (5)
-special_operation_if* get_special_operation_if() noexcept;              // (6)
-const special_operation_if* get_special_operation_if() const noexcept;  // (7)
+const std::type_info& type() const noexcept;         // (5)
+
+template <class T>
+T* get_special_operation_if() noexcept;              // (6)
+
+template <class T>
+const T* get_special_operation_if() const noexcept;  // (7)
 ```
 ### abstruction of member function
 1. swap the value with src.
@@ -215,18 +231,17 @@ const special_operation_if* get_special_operation_if() const noexcept;  // (7)
 3. if the value is empty, it returns false. otherwise, it returns true.
 4. construct the value of type T that satisfies Constrain\<T\>::value == true with Args... args directly. and then, the status becomes to have value.<br> If *this has value, it destructs the value, and then constructs the new value.
 5. return the type info of the value. if the value is empty, it returns typeid(void).
-6. return the pointer of the special_operation_if. if the value is empty, it returns nullptr.
-7. return the pointer of the const special_operation_if. if the value is empty, it returns nullptr.
+6. return the pointer of the T. if the value is empty, it returns nullptr.<br> This function is used to get interface class of one of ConstrainAndOperationArgs. This interface class is able to communicate constrained_any and the stored actual value type via internal carrier class that has member type "value_type" and member function "ref()".
+7. return the pointer of the const T. if the value is empty, it returns nullptr. please see (6) for the puprpose of this function.
 
 ## Non member function
 ```cpp
 namespace yan {
     template <class T,
               bool RequiresCopy,
-              template <class> class Constraint,
-              template <class> class... SpecializedOperator,
+              template <class> class... ConstrainAndOperationArgs,
               class... Args>
-    constrained_any<RequiresCopy, Constraint, SpecializedOperator...> make_constrained_any( Args&&... args );  // (1)
+    constrained_any<RequiresCopy, ConstrainAndOperationArgs...> make_constrained_any( Args&&... args );  // (1)
 
     template <class T,
               class SpecializedConstraintAny,
@@ -250,7 +265,7 @@ namespace yan {
 }
 ```
 ### abstruction of non member function
-1. make_constrained_any constructs the value of type T that satisfies Constrain\<T\>::value == true with Args... args internally. and then, returns the constrained_any\<RequiresCopy, Constraint, SpecializedOperator\> that has the value.
+1. make_constrained_any constructs the value of type T with Args... args internally. and then, returns the constrained_any\<RequiresCopy, ConstrainAndOperationArgs...\> that has the value.
 2. make_constrained_any constructs the value of type T that satisfies Constrain of SpecializedConstraintAny with Args... args internally. and then, returns the SpecializedConstraintAny that has the value.<br> The type of SpecializedConstraintAny should be the specialized class of constrained_any.
 3. Specify the type held by the constrained_any object to get a copy or reference to the value.<br> To get a copy, use constrained_any _cast\<int\>(x),<br> and to get a reference, use constrained_any _cast\<int&\>(x).<br> If you specify an incorrect type, the exception std::bad_any_cast will be thrown.
 4. see (3)
@@ -285,9 +300,13 @@ If false, the derived class is not value carrier of yan::constrained_any and thi
 ## How to implement your own constraint any
 please refer to the sample/sample_of_constrained_any.cpp.<br>
 besically you need to implement the following three things;
-1. implement your own constraint
-2. implement your own specialized operator<br> the derived class of yan::special_operation_if accepts one template parameter. and it is used by CRTP to get actual value type and indentify it is base class of constrained_any or not. 
-3. implement your own constrainted_any
+1. implement your own constraint to make easy to implement the constraint check in (4)
+2. prepare the interface class of the ConstrainAndOperation. This interface class help to communicate between constrained_any and the actual value type.
+3. implement your own ConstrainAndOperation class accepting one template parameter that is used by CRTP to get actual value type and indentify it is base class of constrained_any or not.
+4. implement static constexpr bool member variable named "constraint_check_result" in the class of (2).<br>
+   This member variable should be true if the type is acceptable by the constraint.<br>
+   And also, this member variable should be false if the type is not acceptable by the constraint. 
+5. implement your own constrainted_any
 
 ## ToDo
 * use concept to adapt the constraint and specialized operator

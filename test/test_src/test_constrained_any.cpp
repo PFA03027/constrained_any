@@ -17,9 +17,13 @@
 #include <gtest/gtest.h>
 
 // ================================================
+template <typename T>
+struct no_specialoperation {
+	static constexpr bool constraint_check_result = true;
+};
 
 static_assert( yan::impl::is_specialized_of_constrained_any<int>::value == false, "int is not a constrained_any" );
-static_assert( yan::impl::is_specialized_of_constrained_any<yan::constrained_any<true, yan::no_constrained, yan::no_specialoperation, yan::no_specialoperation>>::value, "constrained_any is specialized type of constrained_any" );
+static_assert( yan::impl::is_specialized_of_constrained_any<yan::constrained_any<true, no_specialoperation, no_specialoperation>>::value, "constrained_any is specialized type of constrained_any" );
 
 // ================================================
 
@@ -205,55 +209,6 @@ struct is_callable_print_impl {
 template <typename T>
 struct is_callable_print : public is_callable_print_impl::type<T> {};
 
-class Foo_has_print {
-public:
-	int value_;
-
-	Foo_has_print()
-	  : value_( 0 ) {}
-	Foo_has_print( int value )
-	  : value_( value ) {}
-	Foo_has_print( const Foo_has_print& )            = default;
-	Foo_has_print( Foo_has_print&& )                 = default;
-	Foo_has_print& operator=( const Foo_has_print& ) = default;
-	Foo_has_print& operator=( Foo_has_print&& )      = default;
-
-	// This function is used to check if the class has a print
-	void print() const
-	{
-		std::cout << "Success to call print() of Foo_has_print: " << value_ << std::endl;
-	}
-};
-
-TEST( TestConstrainedAny, WithConstraint_CanCopyConstructFromLvalue )
-{
-	// Arrange
-	Foo_has_print value( 42 );
-
-	// Act
-	yan::constrained_any<true, is_callable_print, yan::no_specialoperation> sut( value );
-
-	// Assert
-	EXPECT_TRUE( sut.has_value() );
-	EXPECT_EQ( sut.type(), typeid( Foo_has_print ) );
-	EXPECT_EQ( yan::constrained_any_cast<Foo_has_print&>( sut ).value_, 42 );
-}
-
-TEST( TestConstrainedAny, WithConstraint_CanCopyConstructFromLvalueInt )
-{
-	// Arrange
-	Foo_has_print value( 42 );
-
-	// Act
-	yan::constrained_any<true, is_callable_print, yan::no_specialoperation> sut( value );
-
-	// Assert
-	EXPECT_TRUE( sut.has_value() );
-	EXPECT_EQ( sut.type(), typeid( Foo_has_print ) );
-	EXPECT_EQ( yan::constrained_any_cast<Foo_has_print&>( sut ).value_, 42 );
-}
-
-#if 1
 struct special_operation_adapter_call_print_if {
 	virtual ~special_operation_adapter_call_print_if() = default;
 
@@ -263,6 +218,8 @@ struct special_operation_adapter_call_print_if {
 template <typename Carrier>
 class special_operation_adapter_call_print : public special_operation_adapter_call_print_if {
 public:
+	static constexpr bool constraint_check_result = is_callable_print<Carrier>::value;
+
 	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
 	bool call_print( void ) const
 	{
@@ -293,13 +250,61 @@ private:
 	}
 };
 
+class Foo_has_print {
+public:
+	int value_;
+
+	Foo_has_print()
+	  : value_( 0 ) {}
+	Foo_has_print( int value )
+	  : value_( value ) {}
+	Foo_has_print( const Foo_has_print& )            = default;
+	Foo_has_print( Foo_has_print&& )                 = default;
+	Foo_has_print& operator=( const Foo_has_print& ) = default;
+	Foo_has_print& operator=( Foo_has_print&& )      = default;
+
+	// This function is used to check if the class has a print
+	void print() const
+	{
+		std::cout << "Success to call print() of Foo_has_print: " << value_ << std::endl;
+	}
+};
+
+TEST( TestConstrainedAny, WithConstraint_CanCopyConstructFromLvalue )
+{
+	// Arrange
+	Foo_has_print value( 42 );
+
+	// Act
+	yan::constrained_any<true, special_operation_adapter_call_print> sut( value );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( Foo_has_print ) );
+	EXPECT_EQ( yan::constrained_any_cast<Foo_has_print&>( sut ).value_, 42 );
+}
+
+TEST( TestConstrainedAny, WithConstraint_CanCopyConstructFromLvalueInt )
+{
+	// Arrange
+	Foo_has_print value( 42 );
+
+	// Act
+	yan::constrained_any<true, special_operation_adapter_call_print> sut( value );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( Foo_has_print ) );
+	EXPECT_EQ( yan::constrained_any_cast<Foo_has_print&>( sut ).value_, 42 );
+}
+
 TEST( TestConstrainedAny, WithConstraintAndSpecialOperator_CanConstruct )
 {
 	// Arrange
 	Foo_has_print value( 42 );
 
 	// Act
-	yan::constrained_any<true, is_callable_print, special_operation_adapter_call_print> sut( value );
+	yan::constrained_any<true, special_operation_adapter_call_print> sut( value );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -310,8 +315,8 @@ TEST( TestConstrainedAny, WithConstraintAndSpecialOperator_CanConstruct )
 TEST( TestConstrainedAny, WithConstraintAndSpecialOperator_CanCallPrint )
 {
 	// Arrange
-	Foo_has_print                                                                       value( 42 );
-	yan::constrained_any<true, is_callable_print, special_operation_adapter_call_print> sut( value );
+	Foo_has_print                                                    value( 42 );
+	yan::constrained_any<true, special_operation_adapter_call_print> sut( value );
 
 	// Act
 	bool result = sut.call_print();
@@ -322,7 +327,6 @@ TEST( TestConstrainedAny, WithConstraintAndSpecialOperator_CanCallPrint )
 	EXPECT_EQ( yan::constrained_any_cast<Foo_has_print&>( sut ).value_, 42 );
 	EXPECT_TRUE( result );
 }
-#endif
 
 // ================================================================
 
@@ -529,7 +533,7 @@ TEST( TestConstrainedAny_NowAllowCopy, CanConstruct )
 	std::unique_ptr<int> value = std::make_unique<int>( 42 );
 
 	// Act
-	yan::constrained_any<false, yan::no_constrained, yan::no_specialoperation> sut( std::move( value ) );
+	yan::constrained_any<false> sut( std::move( value ) );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -540,11 +544,11 @@ TEST( TestConstrainedAny_NowAllowCopy, CanConstruct )
 TEST( TestConstrainedAny_NowAllowCopy, CanMoveConstruct )
 {
 	// Arrange
-	std::unique_ptr<int>                                                       value = std::make_unique<int>( 42 );
-	yan::constrained_any<false, yan::no_constrained, yan::no_specialoperation> src( std::move( value ) );
+	std::unique_ptr<int>        value = std::make_unique<int>( 42 );
+	yan::constrained_any<false> src( std::move( value ) );
 
 	// Act
-	yan::constrained_any<false, yan::no_constrained, yan::no_specialoperation> sut( std::move( src ) );
+	yan::constrained_any<false> sut( std::move( src ) );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -558,9 +562,9 @@ TEST( TestConstrainedAny_NowAllowCopy, CanMoveConstruct )
 TEST( TestConstrainedAny_NowAllowCopy, CanMoveAssign )
 {
 	// Arrange
-	std::unique_ptr<int>                                                       value = std::make_unique<int>( 42 );
-	yan::constrained_any<false, yan::no_constrained, yan::no_specialoperation> src( std::move( value ) );
-	yan::constrained_any<false, yan::no_constrained, yan::no_specialoperation> sut;
+	std::unique_ptr<int>        value = std::make_unique<int>( 42 );
+	yan::constrained_any<false> src( std::move( value ) );
+	yan::constrained_any<false> sut;
 
 	// Act
 	sut = std::move( src );
@@ -577,8 +581,8 @@ TEST( TestConstrainedAny_NowAllowCopy, CanMoveAssign )
 TEST( TestConstrainedAny_NowAllowCopy, CanGetValueByMoveCast )
 {
 	// Arrange
-	std::unique_ptr<int>                                                       value = std::make_unique<int>( 42 );
-	yan::constrained_any<false, yan::no_constrained, yan::no_specialoperation> sut( std::move( value ) );
+	std::unique_ptr<int>        value = std::make_unique<int>( 42 );
+	yan::constrained_any<false> sut( std::move( value ) );
 
 	// Act
 	auto up_ret = yan::constrained_any_cast<std::unique_ptr<int>&&>( std::move( sut ) );
@@ -596,7 +600,7 @@ TEST( TestConstrainedAny_NonMemberFunction, CanMakeConstrainedAny )
 	int value = 42;
 
 	// Act
-	auto sut = yan::make_constrained_any<int, true, yan::no_constrained, yan::no_specialoperation>( 42 );
+	auto sut = yan::make_constrained_any<int, true>( 42 );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );

@@ -49,12 +49,14 @@ struct is_callable_ref_impl {
 template <typename T>
 struct is_callable_ref : public decltype( impl::is_callable_ref_impl::check<T>( nullptr ) ) {};
 
+#if 0
 struct special_operation_if {
 	virtual ~special_operation_if() = default;
 
 	virtual void specialized_operation_callback( void* )       = 0;
 	virtual void specialized_operation_callback( void* ) const = 0;
 };
+#endif
 
 template <bool RequiresCopy, template <class> class Constraint, template <class> class... SpecializedOperatorArgs>
 class constrained_any_base;
@@ -215,16 +217,10 @@ private:
 template <typename T>
 struct no_constrained : std::true_type {};
 template <typename T>
-struct no_specialoperation : special_operation_if {
-	void specialized_operation_callback( void* ) override {}
-	void specialized_operation_callback( void* ) const override {}
-};
+struct no_specialoperation {};
 
 template <bool RequiresCopy, template <class> class Constraint, template <class> class... SpecializedOperatorArgs>
 class constrained_any_base : public SpecializedOperatorArgs<constrained_any_base<RequiresCopy, Constraint, SpecializedOperatorArgs>>... {
-	// static_assert( std::is_base_of<special_operation_if, SpecializedOperatorArgs<constrained_any_base>>::value, "SpecializedOperatorArgs must be derived from special_operation_if" );
-	// static_assert( std::is_convertible<SpecializedOperatorArgs<constrained_any_base>*, special_operation_if*>::value, "SpecializedOperatorArgs must be convertible to special_operation_if. Therefore SpecializedOperatorArgs should be PUBLIC derived type from special_operation_if." );
-
 public:
 	constrained_any_base()
 	  : up_carrier_() {}
@@ -347,17 +343,19 @@ public:
 		return up_carrier_->get_type_info();
 	}
 
-	special_operation_if* get_special_operation_if() noexcept
+	template <typename SpecializedOperatorIF>
+	SpecializedOperatorIF* get_special_operation_if() noexcept
 	{
 		if ( up_carrier_ == nullptr ) return nullptr;
 
-		return dynamic_cast<special_operation_if*>( up_carrier_.get() );
+		return dynamic_cast<SpecializedOperatorIF*>( up_carrier_.get() );
 	}
-	const special_operation_if* get_special_operation_if() const noexcept
+	template <typename SpecializedOperatorIF>
+	const SpecializedOperatorIF* get_special_operation_if() const noexcept
 	{
 		if ( up_carrier_ == nullptr ) return nullptr;
 
-		return dynamic_cast<const special_operation_if*>( up_carrier_.get() );
+		return dynamic_cast<const SpecializedOperatorIF*>( up_carrier_.get() );
 	}
 
 private:
@@ -497,8 +495,15 @@ struct is_weak_orderable_impl {
 template <typename T>
 struct is_weak_orderable : public decltype( is_weak_orderable_impl::check<T>( nullptr ) ) {};
 
+class special_operation_less_if {
+public:
+	virtual ~special_operation_less_if() = default;
+
+	virtual void specialized_operation_callback( void* ) const = 0;
+};
+
 template <typename Carrier>
-class special_operation_less : public special_operation_if {
+class special_operation_less : public special_operation_less_if {
 public:
 	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
 	bool less( const Carrier& b ) const
@@ -514,8 +519,8 @@ public:
 			return ti_a < ti_b;
 		}
 
-		const special_operation_if* p_a_soi = p_a->get_special_operation_if();
-		const special_operation_if* p_b_soi = p_b->get_special_operation_if();
+		const special_operation_less_if* p_a_soi = p_a->template get_special_operation_if<special_operation_less_if>();
+		const special_operation_less_if* p_b_soi = p_b->template get_special_operation_if<special_operation_less_if>();
 		if ( p_a_soi == nullptr ) {
 			// this means both this and b have no value. Therefore *this == b.
 			// So, *this < b is false.
@@ -529,22 +534,17 @@ public:
 
 private:
 	struct argument_and_return_data {
-		const special_operation_if* p_b_;
-		bool                        result_;
+		const special_operation_less_if* p_b_;
+		bool                             result_;
 	};
 
-	void specialized_operation_callback( void* p_b ) override
-	{
-		argument_and_return_data* p_args_of_b = reinterpret_cast<argument_and_return_data*>( p_b );
-		p_args_of_b->result_                  = less_by_value( p_args_of_b->p_b_ );
-	}
 	void specialized_operation_callback( void* p_b ) const override
 	{
 		argument_and_return_data* p_args_of_b = reinterpret_cast<argument_and_return_data*>( p_b );
 		p_args_of_b->result_                  = less_by_value( p_args_of_b->p_b_ );
 	}
 
-	bool less_by_value( const special_operation_if* p_b_if ) const
+	bool less_by_value( const special_operation_less_if* p_b_if ) const
 	{
 		if constexpr ( yan::is_callable_ref<Carrier>::value ) {
 			const Carrier* p_a_carrier = static_cast<const Carrier*>( this );
@@ -593,15 +593,23 @@ struct is_acceptable_as_unordered_key {
 	static constexpr bool value = is_hashable<T>::value && is_callable_equal_to<T>::value;
 };
 
+class special_operation_unordered_key_if {
+public:
+	virtual ~special_operation_unordered_key_if() = default;
+
+	virtual void specialized_operation_callback( void* )       = 0;
+	virtual void specialized_operation_callback( void* ) const = 0;
+};
+
 template <typename Carrier>
-class special_operation_unordered_key : public special_operation_if {
+class special_operation_unordered_key : public special_operation_unordered_key_if {
 public:
 	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
 	size_t hash_value( void ) const
 	{
 		const Carrier* p_a = static_cast<const Carrier*>( this );
 
-		const special_operation_if* p_a_soi = p_a->get_special_operation_if();
+		const special_operation_unordered_key_if* p_a_soi = p_a->template get_special_operation_if<special_operation_unordered_key_if>();
 		if ( p_a_soi == nullptr ) {
 			return 0;
 		}
@@ -623,8 +631,8 @@ public:
 			return false;
 		}
 
-		const special_operation_if* p_a_soi = p_a->get_special_operation_if();
-		const special_operation_if* p_b_soi = p_b->get_special_operation_if();
+		const special_operation_unordered_key_if* p_a_soi = p_a->template get_special_operation_if<special_operation_unordered_key_if>();
+		const special_operation_unordered_key_if* p_b_soi = p_b->template get_special_operation_if<special_operation_unordered_key_if>();
 		if ( p_a_soi == nullptr ) {
 			return false;
 		}
@@ -636,9 +644,9 @@ public:
 
 private:
 	struct argument_and_return_data {
-		const special_operation_if* p_b_;
-		bool                        equal_to_result_;
-		size_t                      hash_value_;
+		const special_operation_unordered_key_if* p_b_;
+		bool                                      equal_to_result_;
+		size_t                                    hash_value_;
 	};
 
 	void specialized_operation_callback( void* p_b ) override
@@ -668,7 +676,7 @@ private:
 		return std::hash<typename impl::remove_cvref<typename Carrier::value_type>::type>()( p_a_carrier->ref() );
 	}
 
-	bool unordered_key_equal_to( const special_operation_if* p_b_if ) const
+	bool unordered_key_equal_to( const special_operation_unordered_key_if* p_b_if ) const
 	{
 		if constexpr ( yan::is_callable_ref<Carrier>::value ) {
 			const Carrier* p_a_carrier = static_cast<const Carrier*>( this );

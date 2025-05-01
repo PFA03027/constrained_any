@@ -49,15 +49,6 @@ struct is_callable_ref_impl {
 template <typename T>
 struct is_callable_ref : public decltype( impl::is_callable_ref_impl::check<T>( nullptr ) ) {};
 
-#if 0
-struct special_operation_if {
-	virtual ~special_operation_if() = default;
-
-	virtual void specialized_operation_callback( void* )       = 0;
-	virtual void specialized_operation_callback( void* ) const = 0;
-};
-#endif
-
 template <bool RequiresCopy, template <class> class Constraint, template <class> class... SpecializedOperatorArgs>
 class constrained_any_base;
 
@@ -499,7 +490,7 @@ class special_operation_less_if {
 public:
 	virtual ~special_operation_less_if() = default;
 
-	virtual void specialized_operation_callback( void* ) const = 0;
+	virtual bool specialized_operation_less_proxy( const special_operation_less_if* ) const = 0;
 };
 
 template <typename Carrier>
@@ -527,21 +518,13 @@ public:
 			return false;
 		}
 
-		argument_and_return_data data { p_b_soi, false };
-		p_a_soi->specialized_operation_callback( &data );
-		return data.result_;
+		return p_a_soi->specialized_operation_less_proxy( p_b_soi );
 	}
 
 private:
-	struct argument_and_return_data {
-		const special_operation_less_if* p_b_;
-		bool                             result_;
-	};
-
-	void specialized_operation_callback( void* p_b ) const override
+	bool specialized_operation_less_proxy( const special_operation_less_if* p_b_if ) const override
 	{
-		argument_and_return_data* p_args_of_b = reinterpret_cast<argument_and_return_data*>( p_b );
-		p_args_of_b->result_                  = less_by_value( p_args_of_b->p_b_ );
+		return less_by_value( p_b_if );
 	}
 
 	bool less_by_value( const special_operation_less_if* p_b_if ) const
@@ -597,8 +580,8 @@ class special_operation_unordered_key_if {
 public:
 	virtual ~special_operation_unordered_key_if() = default;
 
-	virtual void specialized_operation_callback( void* )       = 0;
-	virtual void specialized_operation_callback( void* ) const = 0;
+	virtual bool   specialized_operation_equal_to_proxy( const special_operation_unordered_key_if* ) const = 0;
+	virtual size_t specialized_operation_hash_value_proxy( void ) const                                    = 0;
 };
 
 template <typename Carrier>
@@ -614,9 +597,7 @@ public:
 			return 0;
 		}
 
-		argument_and_return_data data { nullptr, false, 0 };
-		p_a_soi->specialized_operation_callback( &data );
-		return data.hash_value_;
+		return p_a_soi->specialized_operation_hash_value_proxy();
 	}
 
 	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
@@ -637,35 +618,17 @@ public:
 			return false;
 		}
 
-		argument_and_return_data data { p_b_soi, false, 0 };
-		p_a_soi->specialized_operation_callback( &data );
-		return data.equal_to_result_;
+		return p_a_soi->specialized_operation_equal_to_proxy( p_b_soi );
 	}
 
 private:
-	struct argument_and_return_data {
-		const special_operation_unordered_key_if* p_b_;
-		bool                                      equal_to_result_;
-		size_t                                    hash_value_;
-	};
-
-	void specialized_operation_callback( void* p_b ) override
+	bool specialized_operation_equal_to_proxy( const special_operation_unordered_key_if* p_b_if ) const override
 	{
-		argument_and_return_data* p_args_of_b = reinterpret_cast<argument_and_return_data*>( p_b );
-		if ( p_args_of_b->p_b_ != nullptr ) {
-			p_args_of_b->equal_to_result_ = unordered_key_equal_to( p_args_of_b->p_b_ );
-		} else {
-			p_args_of_b->hash_value_ = hash_value();
-		}
+		return unordered_key_equal_to( p_b_if );
 	}
-	void specialized_operation_callback( void* p_b ) const override
+	size_t specialized_operation_hash_value_proxy( void ) const override
 	{
-		argument_and_return_data* p_args_of_b = reinterpret_cast<argument_and_return_data*>( p_b );
-		if ( p_args_of_b->p_b_ != nullptr ) {
-			p_args_of_b->equal_to_result_ = unordered_key_equal_to( p_args_of_b->p_b_ );
-		} else {
-			p_args_of_b->hash_value_ = hash_value();
-		}
+		return hash_value();
 	}
 
 	template <typename U = Carrier, typename std::enable_if<yan::is_callable_ref<U>::value>::type* = nullptr>

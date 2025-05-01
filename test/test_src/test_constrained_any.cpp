@@ -604,6 +604,36 @@ TEST( TestConstrainedAny_NonMemberFunction, CanMakeConstrainedAny )
 	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), value );
 }
 
+TEST( TestConstrainedAny_NonMemberFunction, CanMakeConstrainedAnyWithKeyableAny )
+{
+	// Arrange
+	int value = 42;
+
+	// Act
+	auto sut = yan::make_constrained_any<int, yan::keyable_any>( 42 );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( int ) );
+	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), value );
+}
+
+#if 0
+TEST( TestConstrainedAny_NonMemberFunction, CanNotMakeConstrainedAnyWithKeyableAny )
+{
+	// Arrange
+	Foo_has_print value = 42;
+
+	// Act
+	auto sut = yan::make_constrained_any<int, yan::keyable_any>( value );	// compile error is expected
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( int ) );
+	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), value );
+}
+#endif
+
 // ================================================
 
 TEST( TestWeakOrderingAny, CanConstruct )

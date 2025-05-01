@@ -223,63 +223,51 @@ const special_operation_if* get_special_operation_if() const noexcept;  // (7)
 namespace yan {
     template <class T,
               bool RequiresCopy,
-              template <class> class Constraint = no_constrained,
-              template <class> class SpecializedOperator = no_specialoperation,
+              template <class> class Constraint,
+              template <class> class... SpecializedOperator,
               class... Args>
-    constrained_any<RequiresCopy, Constraint, SpecializedOperator> make_constrained_any( Args&&... args );  // (1)
+    constrained_any<RequiresCopy, Constraint, SpecializedOperator...> make_constrained_any( Args&&... args );  // (1)
+
+    template <class T,
+              class SpecializedConstraintAny,
+              class... Args>
+    SpecializedConstraintAny make_constrained_any( Args&&... args );  // (2)
 
     template <class T>
-    T constrained_any_cast( const constrained_any& operand );    // (2)
+    T constrained_any_cast( const constrained_any& operand );    // (3)
 
     template <class T>
-    T constrained_any_cast( constrained_any& operand );          // (3)
+    T constrained_any_cast( constrained_any& operand );          // (4)
 
     template <class T>
-    T constrained_any_cast( constrained_any&& operand );         // (4)
+    T constrained_any_cast( constrained_any&& operand );         // (5)
 
     template <class T>
-    const T* constrained_any_cast( const constrained_any* operand ) noexcept;   // (5)
+    const T* constrained_any_cast( const constrained_any* operand ) noexcept;   // (6)
 
     template <class T>
-    T* constrained_any_cast( constrained_any* operand ) noexcept;   // (6)
+    T* constrained_any_cast( constrained_any* operand ) noexcept;   // (7)
 }
 ```
 ### abstruction of non member function
 1. make_constrained_any constructs the value of type T that satisfies Constrain\<T\>::value == true with Args... args internally. and then, returns the constrained_any\<RequiresCopy, Constraint, SpecializedOperator\> that has the value.
-2. Specify the type held by the constrained_any object to get a copy or reference to the value.<br> To get a copy, use constrained_any _cast\<int\>(x),<br> and to get a reference, use constrained_any _cast\<int&\>(x).<br> If you specify an incorrect type, the exception std::bad_any_cast will be thrown.
-3. see (2)
-4. see (2)
-5. Specify the type held by the constrained_any object to get a pointer to the value.<br> If you specify an incorrect type, it returns nullptr.
-6. see (5)
+2. make_constrained_any constructs the value of type T that satisfies Constrain of SpecializedConstraintAny with Args... args internally. and then, returns the SpecializedConstraintAny that has the value.<br> The type of SpecializedConstraintAny should be the specialized class of constrained_any.
+3. Specify the type held by the constrained_any object to get a copy or reference to the value.<br> To get a copy, use constrained_any _cast\<int\>(x),<br> and to get a reference, use constrained_any _cast\<int&\>(x).<br> If you specify an incorrect type, the exception std::bad_any_cast will be thrown.
+4. see (3)
+5. see (3)
+6. Specify the type held by the constrained_any object to get a pointer to the value.<br> If you specify an incorrect type, it returns nullptr.
+7. see (6)
 
 ### Requirements
 as the pre-condition, using U = remove_cv_t<remove_reference_t<T>>.
 
-2. std::is_constructible_v\<T, const U&\> == true.
-3. std::is_constructible_v\<T, U&\> == true.
-4. std::is_constructible_v\<T, U\> == true.
-5. std::is_void_v\<T\> == false
-6. see (5)
+3. std::is_constructible_v\<T, const U&\> == true.
+4. std::is_constructible_v\<T, U&\> == true.
+5. std::is_constructible_v\<T, U\> == true.
+6. std::is_void_v\<T\> == false
+7. see (6)
 
 ## Utility
-### yan::special_operation_if
-```cpp
-namespace yan {
-    struct special_operation_if {
-        virtual ~special_operation_if() = default;
-
-        virtual void specialized_operation_callback( void* )       = 0;
-        virtual void specialized_operation_callback( void* ) const = 0;
-    };
-}
-```
-#### abstruction of yan::special_operation_if
-yan::special_operation_if is an interface for template parameter SpecializedOperator of yan::constrained_any.<br>
-This interface has two pure virtual functions named specialized_operation_callback. The first one is for non-const and the second one is for const.<br>
-The derived class of this interface should implement these two functions.
-
-sample code that uses yan::special_operation_if as SpecializedOperator is in sample/sample_of_constrained_any.cpp.
-
 ### yan::is_callable_ref
 ```cpp
 namespace yan {

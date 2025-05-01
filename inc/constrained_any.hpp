@@ -514,16 +514,6 @@ struct is_callable_equal_to_impl {
 template <typename T>
 struct is_callable_equal_to : public decltype( is_callable_equal_to_impl::check<T>( nullptr ) ) {};
 
-template <typename T>
-struct is_acceptable_as_unordered_key {
-	static constexpr bool value = is_hashable<T>::value && is_callable_equal_to<T>::value;
-};
-
-template <typename T>
-struct is_keyable {
-	static constexpr bool value = is_weak_orderable<T>::value && is_callable_equal_to<T>::value && is_hashable<T>::value;
-};
-
 // -----------------------------------------
 // Special Operation implementation section
 

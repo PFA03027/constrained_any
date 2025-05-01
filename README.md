@@ -138,13 +138,13 @@ This is mostly same as std::any.<br>
 
 # yan::constrained_any is fundamental type of constrained any
 yan::constrained_any is a generalized any type that has the constraint of the template parameter named Constraint.<br>
-And also, it has the template parameter pack named SpecializedOperatorArgs for the specialized member functions. This paramter pack SpecializedOperatorArgs supports to composite the multiple specialized operators mixin.
+And also, it has the template parameter pack named ConstrainAndOperationArgs for the specialized member functions. This paramter pack ConstrainAndOperationArgs supports to composite the multiple specialized operators mixin.
 
 ```cpp
 namespace yan {
     template <bool RequiresCopy,
               template <class> class Constraint,
-              template <class> class... SpecializedOperatorArgs>
+              template <class> class... ConstrainAndOperationArgs>
     class constrained_any;
 }
 ```
@@ -152,7 +152,7 @@ above is the definition of yan::constrained_any. And it has three template param
 
 1. RequiresCopy: if true, input type is requires copy constructible and copy assignable.<br> And, the copy constructor and copy assignment operator of constrained_any are enabled. Otherwise, they are deleted from constrained_any.
 2. Constraint: the constraint of the input type. Constraint\<T\>::value should be available.<br> If Constraint\<T\>::value == true, T is acceptable type, otherwise constrained_any does not accept.<br>
-3. SpecializedOperatorArgs: this template parameter pack adds the specialized member functions to yan::constrained_any.
+3. ConstrainAndOperationArgs: this template parameter pack adds the specialized member functions to yan::constrained_any.
 
 ### additional constraints
 To avoid the circular template parameter dependency and unexpected acceptance for value type that is not satisfied by the constraint, yan::constrained_any does not accept std::any and the specialised type of yan::constrained_any.

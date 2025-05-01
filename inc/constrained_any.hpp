@@ -476,6 +476,9 @@ using constrained_any = constrained_any_base<true, no_constrained, no_specialope
 
 namespace impl {
 
+// -----------------------------------------
+// Constraint implementation section
+
 struct is_weak_orderable_impl {
 	template <typename T>
 	static auto check( T* ) -> decltype( std::declval<T>() < std::declval<T>(), std::true_type() );
@@ -485,6 +488,32 @@ struct is_weak_orderable_impl {
 
 template <typename T>
 struct is_weak_orderable : public decltype( is_weak_orderable_impl::check<T>( nullptr ) ) {};
+
+struct is_hashable_impl {
+	template <typename T, typename RVCVR_T = typename impl::remove_cvref<T>::type>
+	static auto check( T* ) -> decltype( std::hash<RVCVR_T>()( std::declval<RVCVR_T>() ), std::true_type() );
+	template <typename T, typename RVCVR_T = typename impl::remove_cvref<T>::type>
+	static auto check( ... ) -> std::false_type;
+};
+template <typename T>
+struct is_hashable : public decltype( is_hashable_impl::check<T>( nullptr ) ) {};
+
+struct is_callable_equal_to_impl {
+	template <typename T>
+	static auto check( T* ) -> decltype( std::declval<T>() == std::declval<T>(), std::true_type() );
+	template <typename T>
+	static auto check( ... ) -> std::false_type;
+};
+template <typename T>
+struct is_callable_equal_to : public decltype( is_callable_equal_to_impl::check<T>( nullptr ) ) {};
+
+template <typename T>
+struct is_acceptable_as_unordered_key {
+	static constexpr bool value = is_hashable<T>::value && is_callable_equal_to<T>::value;
+};
+
+// -----------------------------------------
+// Special Operation implementation section
 
 class special_operation_less_if {
 public:
@@ -541,39 +570,6 @@ private:
 			throw std::logic_error( "less_by_value() is not implemented for constrained_any itself" );
 		}
 	}
-};
-
-}   // namespace impl
-
-using weak_ordering_any = constrained_any_base<true, impl::is_weak_orderable, impl::special_operation_less>;
-inline bool operator<( const weak_ordering_any& lhs, const weak_ordering_any& rhs )
-{
-	return lhs.less( rhs );
-}
-
-namespace impl {
-
-struct is_hashable_impl {
-	template <typename T, typename RVCVR_T = typename impl::remove_cvref<T>::type>
-	static auto check( T* ) -> decltype( std::hash<RVCVR_T>()( std::declval<RVCVR_T>() ), std::true_type() );
-	template <typename T, typename RVCVR_T = typename impl::remove_cvref<T>::type>
-	static auto check( ... ) -> std::false_type;
-};
-template <typename T>
-struct is_hashable : public decltype( is_hashable_impl::check<T>( nullptr ) ) {};
-
-struct is_callable_equal_to_impl {
-	template <typename T>
-	static auto check( T* ) -> decltype( std::declval<T>() == std::declval<T>(), std::true_type() );
-	template <typename T>
-	static auto check( ... ) -> std::false_type;
-};
-template <typename T>
-struct is_callable_equal_to : public decltype( is_callable_equal_to_impl::check<T>( nullptr ) ) {};
-
-template <typename T>
-struct is_acceptable_as_unordered_key {
-	static constexpr bool value = is_hashable<T>::value && is_callable_equal_to<T>::value;
 };
 
 class special_operation_equal_to_if {
@@ -668,6 +664,12 @@ private:
 };
 
 }   // namespace impl
+
+using weak_ordering_any = constrained_any_base<true, impl::is_weak_orderable, impl::special_operation_less>;
+inline bool operator<( const weak_ordering_any& lhs, const weak_ordering_any& rhs )
+{
+	return lhs.less( rhs );
+}
 
 using unordered_key_any = constrained_any_base<true, impl::is_acceptable_as_unordered_key, impl::special_operation_hash_value, impl::special_operation_equal_to>;
 inline bool operator==( const unordered_key_any& lhs, const unordered_key_any& rhs )

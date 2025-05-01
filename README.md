@@ -131,22 +131,28 @@ And also, you can use the key of not only std::set, std::map but also std::unord
     }
 ```
 
+## yan::no_constrained_any
+yan::no_constrained_any is a type aliased from yan::constrained_any without any constraint by impl::no_constrained\<T\>.<br>
+This is mostly same as std::any.<br>
+
+
 # yan::constrained_any is fundamental type of constrained any
-yan::constrained_any is a generalized any type that has the constraint of the template parameter named Constraint. And also, it has the template parameter named SpecializedOperator for the specialized member functions.
+yan::constrained_any is a generalized any type that has the constraint of the template parameter named Constraint.<br>
+And also, it has the template parameter pack named SpecializedOperatorArgs for the specialized member functions. This paramter pack SpecializedOperatorArgs supports to composite the multiple specialized operators mixin.
 
 ```cpp
 namespace yan {
-    template <bool RequiresCopy = true,
-              template <class> class Constraint = no_constrained,
-              template <class> class SpecializedOperator = no_specialoperation>
+    template <bool RequiresCopy,
+              template <class> class Constraint,
+              template <class> class... SpecializedOperatorArgs>
     class constrained_any;
 }
 ```
 above is the definition of yan::constrained_any. And it has three template paramters<br>
 
 1. RequiresCopy: if true, input type is requires copy constructible and copy assignable.<br> And, the copy constructor and copy assignment operator of constrained_any are enabled. Otherwise, they are deleted from constrained_any.
-2. Constraint: the constraint of the input type. Constraint\<T\>::value should be available.<br> If Constraint\<T\>::value == true, T is acceptable type, otherwise constrained_any does not accept.<br> The default is yan::no_constrained, which means no constraint like std::any.
-3. SpecializedOperator: this type adds the specialized member functions to yan::constrained_any.<br> SpecializedOperator should be the derived class of yan::special_operation_if.<br> The default is yan::no_specialoperation, which means no specialized member functions like std::any.
+2. Constraint: the constraint of the input type. Constraint\<T\>::value should be available.<br> If Constraint\<T\>::value == true, T is acceptable type, otherwise constrained_any does not accept.<br>
+3. SpecializedOperatorArgs: this template parameter pack adds the specialized member functions to yan::constrained_any.
 
 ### additional constraints
 To avoid the circular template parameter dependency and unexpected acceptance for value type that is not satisfied by the constraint, yan::constrained_any does not accept std::any and the specialised type of yan::constrained_any.

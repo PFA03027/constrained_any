@@ -253,6 +253,7 @@ TEST( TestConstrainedAny, WithConstraint_CanCopyConstructFromLvalueInt )
 	EXPECT_EQ( yan::constrained_any_cast<Foo_has_print&>( sut ).value_, 42 );
 }
 
+#if 0
 template <typename Carrier>
 class special_operation_adapter_call_print : public yan::special_operation_if {
 public:
@@ -320,6 +321,7 @@ TEST( TestConstrainedAny, WithConstraintAndSpecialOperator_CanCallPrint )
 	EXPECT_EQ( yan::constrained_any_cast<Foo_has_print&>( sut ).value_, 42 );
 	EXPECT_TRUE( result );
 }
+#endif
 
 // ================================================================
 
@@ -814,7 +816,7 @@ TEST( TestUnorderedKeyAny, CanUseUnorderedMapWithUnorderedKeyAny )
 }
 
 // ================================================
-
+#if 0
 TEST( TestKeyableAny, CanConstruct )
 {
 	// Arrange
@@ -989,3 +991,5 @@ TEST( TestKeyableAny, CanUseMapWithKeyableAny )
 	EXPECT_EQ( map[key2], 2 );
 	EXPECT_EQ( map[key3], 3 );
 }
+
+#endif

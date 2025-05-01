@@ -704,6 +704,7 @@ struct hash<yan::unordered_key_any> {
 };
 }   // namespace std
 
+#if 0
 namespace yan {
 
 namespace impl {
@@ -910,5 +911,7 @@ struct hash<yan::keyable_any> {
 	}
 };
 }   // namespace std
+
+#endif
 
 #endif

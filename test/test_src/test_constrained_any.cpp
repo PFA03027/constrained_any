@@ -817,7 +817,7 @@ TEST( TestUnorderedKeyAny, CanUseUnorderedMapWithUnorderedKeyAny )
 }
 
 // ================================================
-#if 0
+
 TEST( TestKeyableAny, CanConstruct )
 {
 	// Arrange
@@ -992,5 +992,3 @@ TEST( TestKeyableAny, CanUseMapWithKeyableAny )
 	EXPECT_EQ( map[key2], 2 );
 	EXPECT_EQ( map[key3], 3 );
 }
-
-#endif

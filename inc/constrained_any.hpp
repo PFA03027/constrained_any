@@ -56,7 +56,7 @@ struct special_operation_if {
 	virtual void specialized_operation_callback( void* ) const = 0;
 };
 
-template <bool RequiresCopy, template <class> class Constraint, template <class> class SpecializedOperatorArgs>
+template <bool RequiresCopy, template <class> class Constraint, template <class> class... SpecializedOperatorArgs>
 class constrained_any_base;
 
 namespace impl {
@@ -98,11 +98,11 @@ struct value_carrier_if<false> : public value_carrier_if_common {
 	virtual void                     move_value( value_carrier_if<false>& ) = 0;
 };
 
-template <typename T, bool AllowCopyConstructAndAssign, template <class> class SpecializedOperatorArgs>
+template <typename T, bool AllowCopyConstructAndAssign, template <class> class... SpecializedOperatorArgs>
 struct value_carrier;
 
-template <typename T, template <class> class SpecializedOperatorArgs>
-struct value_carrier<T, true, SpecializedOperatorArgs> : public value_carrier_if<true>, public SpecializedOperatorArgs<value_carrier<T, true, SpecializedOperatorArgs>> {
+template <typename T, template <class> class... SpecializedOperatorArgs>
+struct value_carrier<T, true, SpecializedOperatorArgs...> : public value_carrier_if<true>, public SpecializedOperatorArgs<value_carrier<T, true, SpecializedOperatorArgs>>... {
 	using abst_if_t  = value_carrier_if<true>;
 	using value_type = T;
 
@@ -161,8 +161,8 @@ private:
 	value_type value_;
 };
 
-template <typename T, template <class> class SpecializedOperatorArgs>
-struct value_carrier<T, false, SpecializedOperatorArgs> : public value_carrier_if<false>, public SpecializedOperatorArgs<value_carrier<T, false, SpecializedOperatorArgs>> {
+template <typename T, template <class> class... SpecializedOperatorArgs>
+struct value_carrier<T, false, SpecializedOperatorArgs...> : public value_carrier_if<false>, public SpecializedOperatorArgs<value_carrier<T, false, SpecializedOperatorArgs>>... {
 	using abst_if_t  = value_carrier_if<false>;
 	using value_type = T;
 
@@ -220,10 +220,10 @@ struct no_specialoperation : special_operation_if {
 	void specialized_operation_callback( void* ) const override {}
 };
 
-template <bool RequiresCopy, template <class> class Constraint, template <class> class SpecializedOperatorArgs>
-class constrained_any_base : public SpecializedOperatorArgs<constrained_any_base<RequiresCopy, Constraint, SpecializedOperatorArgs>> {
-	static_assert( std::is_base_of<special_operation_if, SpecializedOperatorArgs<constrained_any_base>>::value, "SpecializedOperatorArgs must be derived from special_operation_if" );
-	static_assert( std::is_convertible<SpecializedOperatorArgs<constrained_any_base>*, special_operation_if*>::value, "SpecializedOperatorArgs must be convertible to special_operation_if. Therefore SpecializedOperatorArgs should be PUBLIC derived type from special_operation_if." );
+template <bool RequiresCopy, template <class> class Constraint, template <class> class... SpecializedOperatorArgs>
+class constrained_any_base : public SpecializedOperatorArgs<constrained_any_base<RequiresCopy, Constraint, SpecializedOperatorArgs>>... {
+	// static_assert( std::is_base_of<special_operation_if, SpecializedOperatorArgs<constrained_any_base>>::value, "SpecializedOperatorArgs must be derived from special_operation_if" );
+	// static_assert( std::is_convertible<SpecializedOperatorArgs<constrained_any_base>*, special_operation_if*>::value, "SpecializedOperatorArgs must be convertible to special_operation_if. Therefore SpecializedOperatorArgs should be PUBLIC derived type from special_operation_if." );
 
 public:
 	constrained_any_base()
@@ -320,7 +320,7 @@ public:
 	          typename std::enable_if<impl::is_acceptable_value_type<VT, RequiresCopy, Constraint>::value>::type* = nullptr>
 	constrained_any_base& operator=( T&& rhs )
 	{
-		using carrier_t = impl::value_carrier<VT, RequiresCopy, SpecializedOperatorArgs>;
+		using carrier_t = impl::value_carrier<VT, RequiresCopy, SpecializedOperatorArgs...>;
 
 		if ( up_carrier_ != nullptr ) {
 			if ( up_carrier_->get_type_info() == typeid( VT ) ) {
@@ -362,57 +362,57 @@ public:
 
 private:
 	template <typename T, class... Args>
-	static auto make_impl_value_carrier( Args&&... args ) -> std::unique_ptr<impl::value_carrier<T, RequiresCopy, SpecializedOperatorArgs>>
+	static auto make_impl_value_carrier( Args&&... args ) -> std::unique_ptr<impl::value_carrier<T, RequiresCopy, SpecializedOperatorArgs...>>
 	{
-		return std::make_unique<impl::value_carrier<T, RequiresCopy, SpecializedOperatorArgs>>( std::in_place_type_t<T> {}, std::forward<Args>( args )... );
+		return std::make_unique<impl::value_carrier<T, RequiresCopy, SpecializedOperatorArgs...>>( std::in_place_type_t<T> {}, std::forward<Args>( args )... );
 	}
 
 	template <typename T>
-	auto static_cast_T_carrier() const -> const impl::value_carrier<T, RequiresCopy, SpecializedOperatorArgs>*
+	auto static_cast_T_carrier() const -> const impl::value_carrier<T, RequiresCopy, SpecializedOperatorArgs...>*
 	{
 		if ( this->type() != typeid( T ) ) {
 			return nullptr;
 		}
 
-		return static_cast<const impl::value_carrier<T, RequiresCopy, SpecializedOperatorArgs>*>( up_carrier_.get() );
+		return static_cast<const impl::value_carrier<T, RequiresCopy, SpecializedOperatorArgs...>*>( up_carrier_.get() );
 	}
 
 	template <typename T>
-	auto static_cast_T_carrier() -> impl::value_carrier<T, RequiresCopy, SpecializedOperatorArgs>*
+	auto static_cast_T_carrier() -> impl::value_carrier<T, RequiresCopy, SpecializedOperatorArgs...>*
 	{
 		if ( this->type() != typeid( T ) ) {
 			return nullptr;
 		}
 
-		return static_cast<impl::value_carrier<T, RequiresCopy, SpecializedOperatorArgs>*>( up_carrier_.get() );
+		return static_cast<impl::value_carrier<T, RequiresCopy, SpecializedOperatorArgs...>*>( up_carrier_.get() );
 	}
 
 	std::unique_ptr<impl::value_carrier_if<RequiresCopy>> up_carrier_;
 
-	template <class T, bool URequiresCopy, template <class> class UConstraint, template <class> class USpecializedOperator>
-	friend T constrained_any_cast( const constrained_any_base<URequiresCopy, UConstraint, USpecializedOperator>& operand );
+	template <class T, bool URequiresCopy, template <class> class UConstraint, template <class> class... USpecializedOperator>
+	friend T constrained_any_cast( const constrained_any_base<URequiresCopy, UConstraint, USpecializedOperator...>& operand );
 
-	template <class T, bool URequiresCopy, template <class> class UConstraint, template <class> class USpecializedOperator>
-	friend T constrained_any_cast( constrained_any_base<URequiresCopy, UConstraint, USpecializedOperator>& operand );
+	template <class T, bool URequiresCopy, template <class> class UConstraint, template <class> class... USpecializedOperator>
+	friend T constrained_any_cast( constrained_any_base<URequiresCopy, UConstraint, USpecializedOperator...>& operand );
 
-	template <class T, bool URequiresCopy, template <class> class UConstraint, template <class> class USpecializedOperator>
-	friend T constrained_any_cast( constrained_any_base<URequiresCopy, UConstraint, USpecializedOperator>&& operand );
+	template <class T, bool URequiresCopy, template <class> class UConstraint, template <class> class... USpecializedOperator>
+	friend T constrained_any_cast( constrained_any_base<URequiresCopy, UConstraint, USpecializedOperator...>&& operand );
 
-	template <class T, bool URequiresCopy, template <class> class UConstraint, template <class> class USpecializedOperator>
-	friend const T* constrained_any_cast( const constrained_any_base<URequiresCopy, UConstraint, USpecializedOperator>* operand ) noexcept;
+	template <class T, bool URequiresCopy, template <class> class UConstraint, template <class> class... USpecializedOperator>
+	friend const T* constrained_any_cast( const constrained_any_base<URequiresCopy, UConstraint, USpecializedOperator...>* operand ) noexcept;
 
-	template <class T, bool URequiresCopy, template <class> class UConstraint, template <class> class USpecializedOperator>
-	friend T* constrained_any_cast( constrained_any_base<URequiresCopy, UConstraint, USpecializedOperator>* operand ) noexcept;
+	template <class T, bool URequiresCopy, template <class> class UConstraint, template <class> class... USpecializedOperator>
+	friend T* constrained_any_cast( constrained_any_base<URequiresCopy, UConstraint, USpecializedOperator...>* operand ) noexcept;
 };
 
-template <class T, bool RequiresCopy, template <class> class Constraint = no_constrained, template <class> class SpecializedOperatorArgs = no_specialoperation, class... Args>
-constrained_any_base<RequiresCopy, Constraint, SpecializedOperatorArgs> make_constrained_any( Args&&... args )
+template <class T, bool RequiresCopy, template <class> class Constraint, template <class> class... SpecializedOperatorArgs, class... Args>
+constrained_any_base<RequiresCopy, Constraint, SpecializedOperatorArgs...> make_constrained_any( Args&&... args )
 {
-	return constrained_any_base<RequiresCopy, Constraint, SpecializedOperatorArgs>( std::in_place_type<T>, std::forward<Args>( args )... );
+	return constrained_any_base<RequiresCopy, Constraint, SpecializedOperatorArgs...>( std::in_place_type<T>, std::forward<Args>( args )... );
 }
 
-template <class T, bool RequiresCopy, template <class> class Constraint, template <class> class SpecializedOperatorArgs>
-T constrained_any_cast( const constrained_any_base<RequiresCopy, Constraint, SpecializedOperatorArgs>& operand )
+template <class T, bool RequiresCopy, template <class> class Constraint, template <class> class... SpecializedOperatorArgs>
+T constrained_any_cast( const constrained_any_base<RequiresCopy, Constraint, SpecializedOperatorArgs...>& operand )
 {
 	using U = typename std::remove_cv_t<std::remove_reference_t<T>>;
 	static_assert( std::is_constructible<T, const U&>::value, "T must be constructible" );
@@ -425,8 +425,8 @@ T constrained_any_cast( const constrained_any_base<RequiresCopy, Constraint, Spe
 	return p->ref();
 }
 
-template <class T, bool RequiresCopy, template <class> class Constraint, template <class> class SpecializedOperatorArgs>
-T constrained_any_cast( constrained_any_base<RequiresCopy, Constraint, SpecializedOperatorArgs>& operand )
+template <class T, bool RequiresCopy, template <class> class Constraint, template <class> class... SpecializedOperatorArgs>
+T constrained_any_cast( constrained_any_base<RequiresCopy, Constraint, SpecializedOperatorArgs...>& operand )
 {
 	using U = typename std::remove_cv_t<std::remove_reference_t<T>>;
 	static_assert( std::is_constructible<T, U&>::value, "T must be constructible" );
@@ -439,8 +439,8 @@ T constrained_any_cast( constrained_any_base<RequiresCopy, Constraint, Specializ
 	return p->ref();
 }
 
-template <class T, bool RequiresCopy, template <class> class Constraint, template <class> class SpecializedOperatorArgs>
-T constrained_any_cast( constrained_any_base<RequiresCopy, Constraint, SpecializedOperatorArgs>&& operand )
+template <class T, bool RequiresCopy, template <class> class Constraint, template <class> class... SpecializedOperatorArgs>
+T constrained_any_cast( constrained_any_base<RequiresCopy, Constraint, SpecializedOperatorArgs...>&& operand )
 {
 	using U = typename std::remove_cv_t<std::remove_reference_t<T>>;
 	static_assert( std::is_constructible<T, U>::value, "T must be constructible" );
@@ -453,8 +453,8 @@ T constrained_any_cast( constrained_any_base<RequiresCopy, Constraint, Specializ
 	return std::move( p->ref() );
 }
 
-template <class T, bool RequiresCopy, template <class> class Constraint, template <class> class SpecializedOperatorArgs>
-const T* constrained_any_cast( const constrained_any_base<RequiresCopy, Constraint, SpecializedOperatorArgs>* operand ) noexcept
+template <class T, bool RequiresCopy, template <class> class Constraint, template <class> class... SpecializedOperatorArgs>
+const T* constrained_any_cast( const constrained_any_base<RequiresCopy, Constraint, SpecializedOperatorArgs...>* operand ) noexcept
 {
 	static_assert( !std::is_void_v<T>, "T should not be void" );
 
@@ -468,8 +468,8 @@ const T* constrained_any_cast( const constrained_any_base<RequiresCopy, Constrai
 	return &( p->ref() );
 }
 
-template <class T, bool RequiresCopy, template <class> class Constraint, template <class> class SpecializedOperatorArgs>
-T* constrained_any_cast( constrained_any_base<RequiresCopy, Constraint, SpecializedOperatorArgs>* operand ) noexcept
+template <class T, bool RequiresCopy, template <class> class Constraint, template <class> class... SpecializedOperatorArgs>
+T* constrained_any_cast( constrained_any_base<RequiresCopy, Constraint, SpecializedOperatorArgs...>* operand ) noexcept
 {
 	static_assert( !std::is_void_v<T>, "T should not be void" );
 

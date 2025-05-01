@@ -593,7 +593,7 @@ TEST( TestConstrainedAny_NonMemberFunction, CanMakeConstrainedAny )
 	int value = 42;
 
 	// Act
-	auto sut = yan::make_constrained_any<int, true>( 42 );
+	auto sut = yan::make_constrained_any<int, true, yan::no_constrained, yan::no_specialoperation>( 42 );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );

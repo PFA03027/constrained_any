@@ -402,6 +402,12 @@ constrained_any<RequiresCopy, Constraint, SpecializedOperatorArgs...> make_const
 	return constrained_any<RequiresCopy, Constraint, SpecializedOperatorArgs...>( std::in_place_type<T>, std::forward<Args>( args )... );
 }
 
+template <class T, typename SpecializedConstraintAny, class... Args, typename std::enable_if<impl::is_specialized_of_constrained_any<SpecializedConstraintAny>::value>::type* = nullptr>
+SpecializedConstraintAny make_constrained_any( Args&&... args )
+{
+	return SpecializedConstraintAny( std::in_place_type<T>, std::forward<Args>( args )... );
+}
+
 template <class T, bool RequiresCopy, template <class> class Constraint, template <class> class... SpecializedOperatorArgs>
 T constrained_any_cast( const constrained_any<RequiresCopy, Constraint, SpecializedOperatorArgs...>& operand )
 {

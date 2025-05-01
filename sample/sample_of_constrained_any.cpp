@@ -127,7 +127,7 @@ private:
 	std::string call_to_string( void ) const
 	{
 		if constexpr ( yan::is_callable_ref<Carrier>::value ) {
-			using value_type   = typename std::remove_cvref<typename Carrier::value_type>::type;
+			using value_type   = typename std::remove_reference<typename std::remove_cv<typename Carrier::value_type>::type>::type;
 			const Carrier* p_a = static_cast<const Carrier*>( this );
 
 			if constexpr ( std::is_same_v<value_type, std::string> ) {
@@ -155,7 +155,7 @@ private:
 /**
  * @brief Constrained any class that has the constraint of convertible to std::string
  */
-using string_convertible_any = yan::constrained_any_base<true, is_convertible_to_string, special_operation_convert_to_string>;
+using string_convertible_any = yan::constrained_any<true, is_convertible_to_string, special_operation_convert_to_string>;
 
 // ---------------------------------------------------
 // Step 4: Use your own constrained_any class

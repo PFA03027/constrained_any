@@ -262,24 +262,6 @@ as the pre-condition, using U = remove_cv_t<remove_reference_t<T>>.
 6. see (5)
 
 ## Utility
-### yan::special_operation_if
-```cpp
-namespace yan {
-    struct special_operation_if {
-        virtual ~special_operation_if() = default;
-
-        virtual void specialized_operation_callback( void* )       = 0;
-        virtual void specialized_operation_callback( void* ) const = 0;
-    };
-}
-```
-#### abstruction of yan::special_operation_if
-yan::special_operation_if is an interface for template parameter SpecializedOperator of yan::constrained_any.<br>
-This interface has two pure virtual functions named specialized_operation_callback. The first one is for non-const and the second one is for const.<br>
-The derived class of this interface should implement these two functions.
-
-sample code that uses yan::special_operation_if as SpecializedOperator is in sample/sample_of_constrained_any.cpp.
-
 ### yan::is_callable_ref
 ```cpp
 namespace yan {

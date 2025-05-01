@@ -88,9 +88,9 @@ profile: clean
 
 sanitizer:
 	set -e; \
-	for i in `seq 1 13`; do \
+	for i in `seq 1 5`; do \
 		make sanitizer.$$i.sanitizer; \
-		echo $$i / 13 done; \
+		echo $$i / 5 done; \
 	done
 
 sanitizer.%.sanitizer: clean

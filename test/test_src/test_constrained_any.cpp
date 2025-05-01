@@ -19,7 +19,7 @@
 // ================================================
 
 static_assert( yan::impl::is_specialized_of_constrained_any<int>::value == false, "int is not a constrained_any" );
-static_assert( yan::impl::is_specialized_of_constrained_any<yan::constrained_any_base<true, yan::no_constrained, yan::no_specialoperation>>::value, "constrained_any is specialized type of constrained_any" );
+static_assert( yan::impl::is_specialized_of_constrained_any<yan::constrained_any_base<true, yan::no_constrained, yan::no_specialoperation, yan::no_specialoperation>>::value, "constrained_any is specialized type of constrained_any" );
 
 // ================================================
 

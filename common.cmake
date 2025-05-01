@@ -18,23 +18,7 @@ elseif("${SANITIZER_TYPE}" EQUAL "3")
 elseif("${SANITIZER_TYPE}" EQUAL "4")
  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTEST_ENABLE_THREADSANITIZER -O2 -fno-omit-frame-pointer -fsanitize=thread")	# for test purpose. thread sanitizer needs -O1/-O2. Unfortunately this finds false positive.
 elseif("${SANITIZER_TYPE}" EQUAL "5")
- set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -fsanitize-address-use-after-scope")	# for test purpose
-elseif("${SANITIZER_TYPE}" EQUAL "6")
- set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fsanitize=null")	# for test purpose
-elseif("${SANITIZER_TYPE}" EQUAL "7")
- set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fsanitize=signed-integer-overflow")	# for test purpose
-elseif("${SANITIZER_TYPE}" EQUAL "8")
- set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fsanitize=alignment")	# for test purpose
-elseif("${SANITIZER_TYPE}" EQUAL "9")
- set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fsanitize=bool")	# for test purpose
-elseif("${SANITIZER_TYPE}" EQUAL "10")
- set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fsanitize=enum")	# for test purpose
-elseif("${SANITIZER_TYPE}" EQUAL "11")
- set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fsanitize=bounds")	# for test purpose
-elseif("${SANITIZER_TYPE}" EQUAL "12")
- set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fsanitize=shift -fsanitize=shift-exponent")	# for test purpose
-elseif("${SANITIZER_TYPE}" EQUAL "13")
- set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fsanitize=shift -fsanitize=shift-base")	# for test purpose
+ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -DTEST_ENABLE_UBSANITIZER -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=all")	# for test purpose
 else()
  # no sanitizer option
  message("[Sanitizer] No Sanitizer")

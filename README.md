@@ -297,5 +297,4 @@ besically you need to implement the following three things;
 
 ## ToDo
 * use concept to adapt the constraint and specialized operator
-* To make it easier to realize composition of constraints.
   

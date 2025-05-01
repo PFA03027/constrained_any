@@ -60,8 +60,6 @@ public:
 	/**
 	 * @brief Specialized operation callback function
 	 *
-	 * @param p_b pointer to the result of conversion
-	 *
 	 * @note
 	 * This function is called from constrained_any class.
 	 */
@@ -76,6 +74,17 @@ public:
 template <typename Carrier>
 class special_operation_convert_to_string : public special_operation_convert_to_string_if {
 public:
+	/**
+	 * @brief Constraint check result
+	 *
+	 * @details
+	 * In case of this class of this sample code, input value type should support convertibility to std::string as the constraint.
+	 * So, this boolean value indicates the constraint check result.
+	 * @li true, if the Carrier type is convertible to std::string.
+	 * @li otherwise false.
+	 */
+	static constexpr bool constraint_check_result = is_convertible_to_string<Carrier>::value;
+
 	/**
 	 * @brief convert the value to std::string
 	 *
@@ -155,7 +164,7 @@ private:
 /**
  * @brief Constrained any class that has the constraint of convertible to std::string
  */
-using string_convertible_any = yan::constrained_any<true, is_convertible_to_string, special_operation_convert_to_string>;
+using string_convertible_any = yan::constrained_any<true, special_operation_convert_to_string>;
 
 // ---------------------------------------------------
 // Step 4: Use your own constrained_any class

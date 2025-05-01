@@ -132,7 +132,7 @@ And also, you can use the key of not only std::set, std::map but also std::unord
 ```
 
 ## yan::no_constrained_any
-yan::no_constrained_any is a type aliased from yan::constrained_any without any constraint by impl::no_constrained\<T\>.<br>
+yan::no_constrained_any is a type aliased from yan::constrained_any without any constraint and any special operation.<br>
 This is mostly same as std::any.<br>
 
 

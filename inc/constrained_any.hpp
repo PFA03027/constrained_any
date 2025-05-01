@@ -60,11 +60,12 @@ struct is_specialized_of_constrained_any : public std::false_type {};
 template <bool RequiresCopy, template <class> class... ConstrainAndOperationArgs>
 struct is_specialized_of_constrained_any<constrained_any<RequiresCopy, ConstrainAndOperationArgs...>> : public std::true_type {};
 
-template <typename T, bool AllowUseCopy>
+template <typename T, bool AllowUseCopy, template <class> class... ConstrainAndOperationArgs>
 struct is_acceptable_value_type {
 	static constexpr bool value = ( AllowUseCopy ? ( std::is_copy_constructible<T>::value && std::is_copy_assignable<T>::value ) : true ) &&
 	                              !( is_specialized_of_constrained_any<T>::value ) &&
-	                              !( std::is_same<T, std::any>::value );
+	                              !( std::is_same<T, std::any>::value ) &&
+	                              ( ... && ConstrainAndOperationArgs<T>::constraint_check_result );
 };
 
 struct value_carrier_if_common {
@@ -264,7 +265,7 @@ public:
 
 	template <class T, class... Args, typename VT = std::decay_t<T>,
 	          typename std::enable_if<
-				  impl::is_acceptable_value_type<VT, RequiresCopy>::value &&
+				  impl::is_acceptable_value_type<VT, RequiresCopy, ConstrainAndOperationArgs...>::value &&
 				  std::is_constructible<VT, Args...>::value>::type* = nullptr>
 	explicit constrained_any( std::in_place_type_t<T>, Args&&... args )
 	  : up_carrier_( make_impl_value_carrier<VT>( std::forward<Args>( args )... ) )
@@ -291,7 +292,7 @@ public:
 	template <class T, class... Args,
 	          typename VT = std::decay_t<T>,
 	          typename std::enable_if<
-				  impl::is_acceptable_value_type<VT, RequiresCopy>::value &&
+				  impl::is_acceptable_value_type<VT, RequiresCopy, ConstrainAndOperationArgs...>::value &&
 				  std::is_constructible<VT, Args...>::value>::type* = nullptr>
 	std::decay_t<T>& emplace( Args&&... args )
 	{
@@ -304,7 +305,7 @@ public:
 	}
 
 	template <class T, typename VT = std::decay_t<T>,
-	          typename std::enable_if<impl::is_acceptable_value_type<VT, RequiresCopy>::value>::type* = nullptr>
+	          typename std::enable_if<impl::is_acceptable_value_type<VT, RequiresCopy, ConstrainAndOperationArgs...>::value>::type* = nullptr>
 	constrained_any& operator=( T&& rhs )
 	{
 		using carrier_t = impl::value_carrier<VT, RequiresCopy, ConstrainAndOperationArgs...>;
@@ -478,12 +479,7 @@ T* constrained_any_cast( constrained_any<RequiresCopy, ConstrainAndOperationArgs
 	return &( p->ref() );
 }
 
-template <typename T>
-struct no_constrained : std::true_type {};
-template <typename T>
-struct no_specialoperation {};
-
-using no_constrained_any = constrained_any<true, no_specialoperation>;   //!< @brief no special operation. this is same to std::any.
+using no_constrained_any = constrained_any<true>;   //!< @brief no special operation. this is same to std::any.
 
 namespace impl {
 
@@ -541,6 +537,8 @@ public:
 template <typename Carrier>
 class special_operation_less : public special_operation_less_if {
 public:
+	static constexpr bool constraint_check_result = is_weak_orderable<Carrier>::value;
+
 	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
 	bool less( const Carrier& b ) const
 	{
@@ -598,6 +596,8 @@ public:
 template <typename Carrier>
 class special_operation_equal_to : public special_operation_equal_to_if {
 public:
+	static constexpr bool constraint_check_result = is_callable_equal_to<Carrier>::value;
+
 	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
 	bool equal_to( const Carrier& b ) const
 	{
@@ -651,6 +651,8 @@ public:
 template <typename Carrier>
 class special_operation_hash_value : public special_operation_hash_value_if {
 public:
+	static constexpr bool constraint_check_result = is_hashable<Carrier>::value;
+
 	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
 	size_t hash_value( void ) const
 	{
@@ -688,7 +690,7 @@ private:
  * This class is used to create a constrained_any type that supports weak ordering.
  * Therefore, this class can be used as a key type in std::map or std::set.
  */
-using weak_ordering_any = constrained_any<true, impl::is_weak_orderable, impl::special_operation_less>;
+using weak_ordering_any = constrained_any<true, impl::special_operation_less>;
 inline bool operator<( const weak_ordering_any& lhs, const weak_ordering_any& rhs )
 {
 	return lhs.less( rhs );
@@ -701,7 +703,7 @@ inline bool operator<( const weak_ordering_any& lhs, const weak_ordering_any& rh
  * This class is used to create a constrained_any type that supports operator== and std::hash<unordered_key_any>.
  * Therefore, this class can be used as a key type in std::unordered_set or std::unordered_map.
  */
-using unordered_key_any = constrained_any<true, impl::is_acceptable_as_unordered_key, impl::special_operation_hash_value, impl::special_operation_equal_to>;
+using unordered_key_any = constrained_any<true, impl::special_operation_hash_value, impl::special_operation_equal_to>;
 inline bool operator==( const unordered_key_any& lhs, const unordered_key_any& rhs )
 {
 	return lhs.equal_to( rhs );
@@ -715,7 +717,7 @@ inline bool operator==( const unordered_key_any& lhs, const unordered_key_any& r
  * Therefore, this class can be used as a key type in std::unordered_set or std::unordered_map.
  * This class can also be used as a key type in std::set or std::map.
  */
-using keyable_any = constrained_any<true, impl::is_keyable, impl::special_operation_less, impl::special_operation_hash_value, impl::special_operation_equal_to>;
+using keyable_any = constrained_any<true, impl::special_operation_less, impl::special_operation_hash_value, impl::special_operation_equal_to>;
 inline bool operator<( const keyable_any& lhs, const keyable_any& rhs )
 {
 	return lhs.less( rhs );

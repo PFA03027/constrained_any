@@ -51,12 +51,30 @@ struct is_convertible_to_string {
 // Step 2: Define your own specialized operation
 
 /**
+ * @brief Specialized operation interface for converting to std::string
+ */
+class special_operation_convert_to_string_if {
+public:
+	virtual ~special_operation_convert_to_string_if() = default;
+
+	/**
+	 * @brief Specialized operation callback function
+	 *
+	 * @param p_b pointer to the result of conversion
+	 *
+	 * @note
+	 * This function is called from constrained_any class.
+	 */
+	virtual std::string specialized_operation_convert_to_string_proxy( void ) const = 0;
+};
+
+/**
  * @brief Specialized operation to_string member function that converts the value to std::string
  *
  * @tparam Carrier Type of the carrier
  */
 template <typename Carrier>
-class special_operation_convert_to_string : public yan::special_operation_if {
+class special_operation_convert_to_string : public special_operation_convert_to_string_if {
 public:
 	/**
 	 * @brief convert the value to std::string
@@ -77,42 +95,24 @@ public:
 
 		const Carrier* p_a = static_cast<const Carrier*>( this );
 
-		const special_operation_if* p_a_soi = p_a->get_special_operation_if();
+		const special_operation_convert_to_string_if* p_a_soi = p_a->template get_special_operation_if<special_operation_convert_to_string_if>();
 		if ( p_a_soi == nullptr ) {
 			return 0;
 		}
 
-		std::string result;
-		p_a_soi->specialized_operation_callback( &result );
-		return result;
+		return p_a_soi->specialized_operation_convert_to_string_proxy();
 	}
 
 private:
 	/**
-	 * @brief specialized_operation_callback is proxy I/F to communicate b/w constrained_any and actual value.
-	 *
-	 * @param p_b pointer to the result of conversion
-	 *
-	 * @note
-	 * This function is called from non-const constrained_any class.
-	 */
-	void specialized_operation_callback( void* p_b ) override
-	{
-		std::string* p_result = static_cast<std::string*>( p_b );
-		*p_result             = call_to_string();
-	}
-	/**
-	 * @brief specialized_operation_callback is proxy I/F to communicate b/w constrained_any and actual value.
-	 *
-	 * @param p_b pointer to the result of conversion
+	 * @brief proxy I/F to communicate b/w constrained_any and actual value.
 	 *
 	 * @note
 	 * This function is called from const constrained_any class.
 	 */
-	void specialized_operation_callback( void* p_b ) const override
+	std::string specialized_operation_convert_to_string_proxy( void ) const override
 	{
-		std::string* p_result = static_cast<std::string*>( p_b );
-		*p_result             = call_to_string();
+		return call_to_string();
 	}
 
 	/**
@@ -124,31 +124,28 @@ private:
 	 * @details
 	 * This function is called from specialized_operation_callback.
 	 */
-	template <typename U = Carrier, typename std::enable_if<yan::is_callable_ref<U>::value>::type* = nullptr>
 	std::string call_to_string( void ) const
 	{
-		using value_type   = typename std::remove_cvref<typename Carrier::value_type>::type;
-		const Carrier* p_a = static_cast<const Carrier*>( this );
+		if constexpr ( yan::is_callable_ref<Carrier>::value ) {
+			using value_type   = typename std::remove_cvref<typename Carrier::value_type>::type;
+			const Carrier* p_a = static_cast<const Carrier*>( this );
 
-		if constexpr ( std::is_same_v<value_type, std::string> ) {
-			return p_a->ref();
-		} else if constexpr ( std::is_same_v<value_type, std::string_view> ) {
-			return std::string( p_a->ref() );
-		} else if constexpr ( std::is_same_v<value_type, char*> ) {
-			return std::string( p_a->ref() );
-		} else if constexpr ( std::is_convertible_v<value_type, std::string> ) {
-			return std::string( p_a->ref() );
-		} else if constexpr ( std::is_same<std::string, decltype( std::to_string( std::declval<value_type>() ) )>::value ) {
-			return std::to_string( p_a->ref() );
+			if constexpr ( std::is_same_v<value_type, std::string> ) {
+				return p_a->ref();
+			} else if constexpr ( std::is_same_v<value_type, std::string_view> ) {
+				return std::string( p_a->ref() );
+			} else if constexpr ( std::is_same_v<value_type, char*> ) {
+				return std::string( p_a->ref() );
+			} else if constexpr ( std::is_convertible_v<value_type, std::string> ) {
+				return std::string( p_a->ref() );
+			} else if constexpr ( std::is_same<std::string, decltype( std::to_string( std::declval<value_type>() ) )>::value ) {
+				return std::to_string( p_a->ref() );
+			} else {
+				static_assert( false, "to_string() is not implemented for this type" );
+			}
 		} else {
-			static_assert( false, "to_string() is not implemented for this type" );
+			throw std::logic_error( "call_to_string() is not implemented for constrained_any itself" );
 		}
-	}
-
-	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
-	std::string call_to_string( void ) const
-	{
-		throw std::logic_error( "call_to_string() is not implemented for constrained_any itself" );
 	}
 };
 

@@ -253,17 +253,34 @@ TEST( TestConstrainedAny, WithConstraint_CanCopyConstructFromLvalueInt )
 	EXPECT_EQ( yan::constrained_any_cast<Foo_has_print&>( sut ).value_, 42 );
 }
 
-#if 0
+#if 1
+struct special_operation_adapter_call_print_if {
+	virtual ~special_operation_adapter_call_print_if() = default;
+
+	virtual bool specialized_operation_print_proxy( void ) const = 0;
+};
+
 template <typename Carrier>
-class special_operation_adapter_call_print : public yan::special_operation_if {
+class special_operation_adapter_call_print : public special_operation_adapter_call_print_if {
 public:
-	void specialized_operation_callback( void* p_com_data ) override
+	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
+	bool call_print( void ) const
 	{
-		*reinterpret_cast<bool*>( p_com_data ) = call_print();
+		const Carrier* p = static_cast<const Carrier*>( this );
+
+		const special_operation_adapter_call_print_if* p_soi = p->template get_special_operation_if<special_operation_adapter_call_print_if>();
+		if ( p_soi == nullptr ) {
+			std::cout << "constrained_any has no value" << std::endl;
+			return false;
+		}
+
+		return p_soi->specialized_operation_print_proxy();
 	}
-	void specialized_operation_callback( void* p_com_data ) const override
+
+private:
+	bool specialized_operation_print_proxy( void ) const override
 	{
-		*reinterpret_cast<bool*>( p_com_data ) = call_print();
+		return call_print();
 	}
 
 	template <typename U = Carrier, typename std::enable_if<yan::is_callable_ref<U>::value>::type* = nullptr>
@@ -273,22 +290,6 @@ public:
 
 		p->ref().print();
 		return true;
-	}
-
-	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
-	bool call_print( void ) const
-	{
-		const Carrier* p = static_cast<const Carrier*>( this );
-
-		const yan::special_operation_if* p_soi = p->get_special_operation_if();
-		if ( p_soi == nullptr ) {
-			std::cout << "constrained_any has no value" << std::endl;
-			return false;
-		}
-
-		bool result = false;
-		p_soi->specialized_operation_callback( &result );
-		return result;
 	}
 };
 

@@ -231,7 +231,7 @@ TEST( TestConstrainedAny, WithConstraint_CanCopyConstructFromLvalue )
 	Foo_has_print value( 42 );
 
 	// Act
-	yan::constrained_any_base<true, is_callable_print> sut( value );
+	yan::constrained_any_base<true, is_callable_print, yan::no_specialoperation> sut( value );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -245,7 +245,7 @@ TEST( TestConstrainedAny, WithConstraint_CanCopyConstructFromLvalueInt )
 	Foo_has_print value( 42 );
 
 	// Act
-	yan::constrained_any_base<true, is_callable_print> sut( value );
+	yan::constrained_any_base<true, is_callable_print, yan::no_specialoperation> sut( value );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -526,7 +526,7 @@ TEST( TestConstrainedAny_NowAllowCopy, CanConstruct )
 	std::unique_ptr<int> value = std::make_unique<int>( 42 );
 
 	// Act
-	yan::constrained_any_base<false> sut( std::move( value ) );
+	yan::constrained_any_base<false, yan::no_constrained, yan::no_specialoperation> sut( std::move( value ) );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -537,11 +537,11 @@ TEST( TestConstrainedAny_NowAllowCopy, CanConstruct )
 TEST( TestConstrainedAny_NowAllowCopy, CanMoveConstruct )
 {
 	// Arrange
-	std::unique_ptr<int>             value = std::make_unique<int>( 42 );
-	yan::constrained_any_base<false> src( std::move( value ) );
+	std::unique_ptr<int>                                                            value = std::make_unique<int>( 42 );
+	yan::constrained_any_base<false, yan::no_constrained, yan::no_specialoperation> src( std::move( value ) );
 
 	// Act
-	yan::constrained_any_base<false> sut( std::move( src ) );
+	yan::constrained_any_base<false, yan::no_constrained, yan::no_specialoperation> sut( std::move( src ) );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -555,9 +555,9 @@ TEST( TestConstrainedAny_NowAllowCopy, CanMoveConstruct )
 TEST( TestConstrainedAny_NowAllowCopy, CanMoveAssign )
 {
 	// Arrange
-	std::unique_ptr<int>             value = std::make_unique<int>( 42 );
-	yan::constrained_any_base<false> src( std::move( value ) );
-	yan::constrained_any_base<false> sut;
+	std::unique_ptr<int>                                                            value = std::make_unique<int>( 42 );
+	yan::constrained_any_base<false, yan::no_constrained, yan::no_specialoperation> src( std::move( value ) );
+	yan::constrained_any_base<false, yan::no_constrained, yan::no_specialoperation> sut;
 
 	// Act
 	sut = std::move( src );
@@ -574,8 +574,8 @@ TEST( TestConstrainedAny_NowAllowCopy, CanMoveAssign )
 TEST( TestConstrainedAny_NowAllowCopy, CanGetValueByMoveCast )
 {
 	// Arrange
-	std::unique_ptr<int>             value = std::make_unique<int>( 42 );
-	yan::constrained_any_base<false> sut( std::move( value ) );
+	std::unique_ptr<int>                                                            value = std::make_unique<int>( 42 );
+	yan::constrained_any_base<false, yan::no_constrained, yan::no_specialoperation> sut( std::move( value ) );
 
 	// Act
 	auto up_ret = yan::constrained_any_cast<std::unique_ptr<int>&&>( std::move( sut ) );

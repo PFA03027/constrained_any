@@ -220,7 +220,7 @@ struct no_specialoperation : special_operation_if {
 	void specialized_operation_callback( void* ) const override {}
 };
 
-template <bool RequiresCopy = true, template <class> class Constraint = no_constrained, template <class> class SpecializedOperator = no_specialoperation>
+template <bool RequiresCopy, template <class> class Constraint, template <class> class SpecializedOperator>
 class constrained_any_base : public SpecializedOperator<constrained_any_base<RequiresCopy, Constraint, SpecializedOperator>> {
 	static_assert( std::is_base_of<special_operation_if, SpecializedOperator<constrained_any_base>>::value, "SpecializedOperator must be derived from special_operation_if" );
 	static_assert( std::is_convertible<SpecializedOperator<constrained_any_base>*, special_operation_if*>::value, "SpecializedOperator must be convertible to special_operation_if. Therefore SpecializedOperator should be PUBLIC derived type from special_operation_if." );

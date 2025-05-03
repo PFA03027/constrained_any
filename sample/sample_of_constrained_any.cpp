@@ -88,7 +88,7 @@ public:
 	 * @li true, if the Carrier type is convertible to std::string.
 	 * @li otherwise false.
 	 */
-	static constexpr bool constraint_check_result = yan::is_not_related_type_of_constrained_any<Carrier>::value &&
+	static constexpr bool constraint_check_result = !yan::is_related_type_of_constrained_any<Carrier>::value &&
 	                                                is_convertible_to_string<Carrier>::value;
 
 	/**

@@ -231,6 +231,33 @@ struct is_defined_value_type : public decltype( is_defined_value_type_impl::chec
 }   // namespace impl
 
 /**
+ * @brief meta function to check if T is specialized type of value_carrier class in constrained_any
+ *
+ * this class is the helper class to implement constrained and operation class.
+ *
+ * @tparam T type to check
+ */
+template <typename T>
+struct is_value_carrier_of_constrained_any {
+	static constexpr bool value = !is_specialized_of_constrained_any<T>::value &&
+	                              std::is_base_of<impl::value_carrier_if_common, T>::value &&
+	                              impl::is_defined_value_type<T>::value &&
+	                              impl::is_callable_ref<T>::value;
+};
+
+/**
+ * @brief meta function to check if T is not specialized type of constrained_any and not value_carrier class in constrained_any
+ *
+ * this class is the helper class to implement constrained and operation class.
+ *
+ * @tparam T type to check
+ */
+template <typename T>
+struct is_related_type_of_constrained_any {
+	static constexpr bool value = is_specialized_of_constrained_any<T>::value || is_value_carrier_of_constrained_any<T>::value;
+};
+
+/**
  * @brief Constrained any type
  *
  * @tparam RequiresCopy if true, copy constructible and copy assignable are requires for input type, and constrained_any itself supports copy constructor and copy assignment operator.
@@ -421,33 +448,6 @@ private:
 };
 
 /**
- * @brief meta function to check if T is specialized type of value_carrier class in constrained_any
- *
- * this class is the helper class to implement constrained and operation class.
- *
- * @tparam T type to check
- */
-template <typename T>
-struct is_value_carrier_of_constrained_any {
-	static constexpr bool value = !is_specialized_of_constrained_any<T>::value &&
-	                              std::is_base_of<impl::value_carrier_if_common, T>::value &&
-	                              impl::is_defined_value_type<T>::value &&
-	                              impl::is_callable_ref<T>::value;
-};
-
-/**
- * @brief meta function to check if T is not specialized type of constrained_any and not value_carrier class in constrained_any
- *
- * this class is the helper class to implement constrained and operation class.
- *
- * @tparam T type to check
- */
-template <typename T>
-struct is_not_related_type_of_constrained_any {
-	static constexpr bool value = !is_specialized_of_constrained_any<T>::value && !is_value_carrier_of_constrained_any<T>::value;
-};
-
-/**
  * @brief helper function to create constrained_any object
  *
  * @tparam T type of the value which you want to store in constrained_any
@@ -598,7 +598,7 @@ public:
 template <typename Carrier>
 class special_operation_less : public special_operation_less_if {
 public:
-	static constexpr bool constraint_check_result = is_not_related_type_of_constrained_any<Carrier>::value &&
+	static constexpr bool constraint_check_result = !is_related_type_of_constrained_any<Carrier>::value &&
 	                                                is_weak_orderable<Carrier>::value;
 
 	template <typename U = Carrier, typename std::enable_if<is_specialized_of_constrained_any<U>::value>::type* = nullptr>
@@ -658,7 +658,7 @@ public:
 template <typename Carrier>
 class special_operation_equal_to : public special_operation_equal_to_if {
 public:
-	static constexpr bool constraint_check_result = is_not_related_type_of_constrained_any<Carrier>::value &&
+	static constexpr bool constraint_check_result = !is_related_type_of_constrained_any<Carrier>::value &&
 	                                                is_callable_equal_to<Carrier>::value;
 
 	template <typename U = Carrier, typename std::enable_if<is_specialized_of_constrained_any<U>::value>::type* = nullptr>
@@ -714,7 +714,7 @@ public:
 template <typename Carrier>
 class special_operation_hash_value : public special_operation_hash_value_if {
 public:
-	static constexpr bool constraint_check_result = is_not_related_type_of_constrained_any<Carrier>::value &&
+	static constexpr bool constraint_check_result = !is_related_type_of_constrained_any<Carrier>::value &&
 	                                                is_hashable<Carrier>::value;
 
 	template <typename U = Carrier, typename std::enable_if<is_specialized_of_constrained_any<U>::value>::type* = nullptr>

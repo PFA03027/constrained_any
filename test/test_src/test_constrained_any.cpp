@@ -17,13 +17,50 @@
 #include <gtest/gtest.h>
 
 // ================================================
+
 template <typename T>
 struct no_specialoperation {
 	static constexpr bool constraint_check_result = true;
 };
 
+template <typename T>
+struct no_specialoperation2 {
+	static constexpr bool constraint_check_result = true;
+};
+
+template <typename T>
+struct constrained_alway_false {
+	static constexpr bool constraint_check_result = false;
+};
+
 static_assert( yan::is_specialized_of_constrained_any<int>::value == false, "int is not a constrained_any" );
-static_assert( yan::is_specialized_of_constrained_any<yan::constrained_any<true, no_specialoperation, no_specialoperation>>::value, "constrained_any is specialized type of constrained_any" );
+static_assert( yan::is_specialized_of_constrained_any<yan::constrained_any<true>>::value, "constrained_any is specialized type of constrained_any" );
+static_assert( yan::is_specialized_of_constrained_any<yan::constrained_any<true, no_specialoperation>>::value, "constrained_any is specialized type of constrained_any" );
+static_assert( yan::is_specialized_of_constrained_any<yan::constrained_any<true, no_specialoperation, no_specialoperation2>>::value, "constrained_any is specialized type of constrained_any" );
+static_assert( yan::is_specialized_of_constrained_any<yan::constrained_any<true, no_specialoperation, no_specialoperation2, constrained_alway_false>>::value, "constrained_any is specialized type of constrained_any" );
+
+static_assert( yan::is_value_carrier_of_constrained_any<int>::value == false, "int is not a constrained_any" );
+static_assert( yan::is_value_carrier_of_constrained_any<yan::impl::value_carrier<int, true>>::value == true, "yan::impl::value_carrier<int,true> is a value carrier type of constrained_any" );
+static_assert( yan::is_value_carrier_of_constrained_any<yan::impl::value_carrier<int, true, no_specialoperation>>::value == true, "yan::impl::value_carrier<int,true,no_specialoperation> is a value carrier type of constrained_any" );
+
+static_assert( yan::is_related_type_of_constrained_any<int>::value == false, "int should not be constrained_any related type" );
+static_assert( yan::is_related_type_of_constrained_any<yan::impl::value_carrier<int, true>>::value == true, "yan::impl::value_carrier<int, true> should be constrained_any related type" );
+static_assert( yan::is_related_type_of_constrained_any<yan::impl::value_carrier<int, true, no_specialoperation>>::value == true, "yan::impl::value_carrier<int, true, no_specialoperation> should be constrained_any related type" );
+static_assert( yan::is_related_type_of_constrained_any<yan::constrained_any<true>>::value == true, "constrained_any should be constrained_any related type" );
+static_assert( yan::is_related_type_of_constrained_any<yan::constrained_any<true, no_specialoperation>>::value == true, "constrained_any should be constrained_any related type" );
+static_assert( yan::is_related_type_of_constrained_any<yan::constrained_any<true, no_specialoperation, no_specialoperation2>>::value == true, "constrained_any should be constrained_any related type" );
+static_assert( yan::is_related_type_of_constrained_any<yan::constrained_any<true, no_specialoperation, no_specialoperation2, constrained_alway_false>>::value == true, "constrained_any should be constrained_any related type" );
+
+static_assert( yan::impl::is_acceptable_value_type<yan::constrained_any<true>, true>::value == false, "constrained_any should not be acceptable type" );
+static_assert( yan::impl::is_acceptable_value_type<yan::constrained_any<true, no_specialoperation>, true>::value == false, "constrained_any should not be acceptable type" );
+static_assert( yan::impl::is_acceptable_value_type<yan::constrained_any<true, no_specialoperation, no_specialoperation2>, true>::value == false, "constrained_any should not be acceptable type" );
+static_assert( yan::impl::is_acceptable_value_type<yan::constrained_any<true, no_specialoperation, no_specialoperation2, constrained_alway_false>, true>::value == false, "constrained_any should not be acceptable type" );
+// static_assert( yan::impl::is_acceptable_value_type<yan::impl::value_carrier<int, true>, true>::value == false, "value carrier of constrained_any should not be acceptable type" );
+
+static_assert( yan::impl::is_acceptable_value_type<int, true>::value == true, "int should be acceptable type" );
+static_assert( yan::impl::is_acceptable_value_type<int, true, no_specialoperation>::value == true, "int should be acceptable type" );
+static_assert( yan::impl::is_acceptable_value_type<int, true, no_specialoperation, no_specialoperation2>::value == true, "int should be acceptable type" );
+static_assert( yan::impl::is_acceptable_value_type<int, true, no_specialoperation, no_specialoperation2, constrained_alway_false>::value == false, "int should be acceptable type" );
 
 // ================================================
 
@@ -218,7 +255,7 @@ struct special_operation_adapter_call_print_if {
 template <typename Carrier>
 class special_operation_adapter_call_print : public special_operation_adapter_call_print_if {
 public:
-	static constexpr bool constraint_check_result = yan::is_not_related_type_of_constrained_any<Carrier>::value &&
+	static constexpr bool constraint_check_result = !yan::is_related_type_of_constrained_any<Carrier>::value &&
 	                                                is_callable_print<Carrier>::value;
 
 	template <typename U = Carrier, typename std::enable_if<yan::is_specialized_of_constrained_any<U>::value>::type* = nullptr>

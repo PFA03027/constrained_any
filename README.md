@@ -311,18 +311,19 @@ yan::is_value_carrier_of_constrained_any is a type trait that checks whether the
 If T is value carrier of constrained_any, static member variable "value" is true, otherwise  false.<br>
 This helps to implement ConstrainAndOperationArgs class.
 
-### yan::is_not_related_type_of_constrained_any
+### yan::is_related_type_of_constrained_any
 ```cpp
 namespace yan {
     template <typename T>
-    struct is_not_related_type_of_constrained_any<T> {
-        static constexpr bool value = if true, T is not related type of constrained_any.;
+    struct is_related_type_of_constrained_any<T> {
+        static constexpr bool value = is_specialized_of_constrained_any<T>::value ||
+                                      is_value_carrier_of_constrained_any<T>::value;
     };
 }
 ```
-#### abstruction of yan::is_not_related_type_of_constrained_any
-yan::is_not_related_type_of_constrained_any is a type trait that checks whether the type T is not related type of constrained_any or not.<br>
-If T is not related type of constrained_any, static member variable "value" is true, otherwise  false.<br>
+#### abstruction of yan::is_related_type_of_constrained_any
+yan::is_related_type_of_constrained_any is a type trait that checks whether the type T is related type of constrained_any or not.<br>
+If T is a related type of constrained_any, static member variable "value" is true, otherwise  false.<br>
 This helps to implement ConstrainAndOperationArgs class.
 
 ## How to implement your own constraint any

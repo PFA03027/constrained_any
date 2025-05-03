@@ -27,8 +27,35 @@
 
 namespace yan {   // yet another
 
+template <bool RequiresCopy, template <class> class... ConstrainAndOperationArgs>
+class constrained_any;
+
+/**
+ * @brief primary template to check if T is specialized type of constrained_any
+ *
+ * @tparam T
+ */
+template <typename T>
+struct is_specialized_of_constrained_any : public std::false_type {};
+
+/**
+ * @brief specialization of is_specialized_of_constrained_any for constrained_any
+ *
+ * In case that T is specialized constrained_any like below:
+ * @code {.cpp}
+ * bool ret = yan::is_specialized_of_constrained_any<constrained_any<true, special_operation_adapter_call_print>>::value;
+ * @endcode
+ * this class is derived from std::true_type. and then, class static member variable "value" is true.
+ *
+ * @tparam RequiresCopy compiler deduces this parameter.
+ * @tparam ConstrainAndOperationArgs compiler deduces this parameter.
+ */
+template <bool RequiresCopy, template <class> class... ConstrainAndOperationArgs>
+struct is_specialized_of_constrained_any<constrained_any<RequiresCopy, ConstrainAndOperationArgs...>> : public std::true_type {};
+
 namespace impl {
 
+// helper metafunction like std::remove cvref for C++17
 #if __cpp_lib_remove_cvref >= 201711L
 template <typename T>
 using remove_cvref = std::remove_cvref<T>;
@@ -37,29 +64,7 @@ template <typename T>
 using remove_cvref = std::remove_reference<typename std::remove_cv<T>::type>;
 #endif
 
-struct is_callable_ref_impl {
-	template <typename T>
-	static auto check( T* ) -> decltype( std::declval<T>().ref(), std::true_type() );
-	template <typename T>
-	static auto check( ... ) -> std::false_type;
-};
-
-}   // namespace impl
-
-template <typename T>
-struct is_callable_ref : public decltype( impl::is_callable_ref_impl::check<T>( nullptr ) ) {};
-
-template <bool RequiresCopy, template <class> class... ConstrainAndOperationArgs>
-class constrained_any;
-
-template <typename T>
-struct is_specialized_of_constrained_any : public std::false_type {};
-
-template <bool RequiresCopy, template <class> class... ConstrainAndOperationArgs>
-struct is_specialized_of_constrained_any<constrained_any<RequiresCopy, ConstrainAndOperationArgs...>> : public std::true_type {};
-
-namespace impl {
-
+// helper metafunction to check T is acceptable value type or not
 template <typename T, bool AllowUseCopy, template <class> class... ConstrainAndOperationArgs>
 struct is_acceptable_value_type {
 	static constexpr bool value = ( AllowUseCopy ? ( std::is_copy_constructible<T>::value && std::is_copy_assignable<T>::value ) : true ) &&
@@ -202,6 +207,26 @@ struct value_carrier<T, false, ConstrainAndOperationArgs...> : public value_carr
 private:
 	value_type value_;
 };
+
+struct is_callable_ref_impl {
+	template <typename T>
+	static auto check( T* ) -> decltype( std::declval<T>().ref(), std::true_type() );
+	template <typename T>
+	static auto check( ... ) -> std::false_type;
+};
+
+template <typename T>
+struct is_callable_ref : public decltype( impl::is_callable_ref_impl::check<T>( nullptr ) ) {};
+
+struct is_defined_value_type_impl {
+	template <typename T, typename VT = typename impl::remove_cvref<T>::type, typename VT::value_type* = nullptr>
+	static auto check( T* ) -> std::true_type;
+	template <typename T>
+	static auto check( ... ) -> std::false_type;
+};
+
+template <typename T>
+struct is_defined_value_type : public decltype( impl::is_defined_value_type_impl::check<T>( nullptr ) ) {};
 
 }   // namespace impl
 
@@ -395,6 +420,19 @@ private:
 	friend T* constrained_any_cast( constrained_any<URequiresCopy, USpecializedOperator...>* operand ) noexcept;
 };
 
+template <typename T>
+struct is_value_carrier_of_constrained_any {
+	static constexpr bool value = !is_specialized_of_constrained_any<T>::value &&
+	                              std::is_base_of<impl::value_carrier_if_common, T>::value &&
+	                              impl::is_defined_value_type<T>::value &&
+	                              impl::is_callable_ref<T>::value;
+};
+
+template <typename T>
+struct is_not_related_type_of_constrained_any {
+	static constexpr bool value = !is_specialized_of_constrained_any<T>::value && !is_value_carrier_of_constrained_any<T>::value;
+};
+
 template <class T, bool RequiresCopy, template <class> class... ConstrainAndOperationArgs, class... Args>
 constrained_any<RequiresCopy, ConstrainAndOperationArgs...> make_constrained_any( Args&&... args )
 {
@@ -529,7 +567,7 @@ class special_operation_less : public special_operation_less_if {
 public:
 	static constexpr bool constraint_check_result = is_weak_orderable<Carrier>::value;
 
-	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
+	template <typename U = Carrier, typename std::enable_if<is_specialized_of_constrained_any<U>::value>::type* = nullptr>
 	bool less( const Carrier& b ) const
 	{
 		// this I/F is expected that constranted_any calls this function.
@@ -562,7 +600,7 @@ private:
 
 	bool less_by_value( const special_operation_less_if* p_b_if ) const
 	{
-		if constexpr ( yan::is_callable_ref<Carrier>::value ) {
+		if constexpr ( is_value_carrier_of_constrained_any<Carrier>::value ) {
 			const Carrier* p_a_carrier = static_cast<const Carrier*>( this );
 			const Carrier* p_b_carrier = dynamic_cast<const Carrier*>( p_b_if );
 			if ( p_b_carrier == nullptr ) {
@@ -588,7 +626,7 @@ class special_operation_equal_to : public special_operation_equal_to_if {
 public:
 	static constexpr bool constraint_check_result = is_callable_equal_to<Carrier>::value;
 
-	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
+	template <typename U = Carrier, typename std::enable_if<is_specialized_of_constrained_any<U>::value>::type* = nullptr>
 	bool equal_to( const Carrier& b ) const
 	{
 		const Carrier* p_a = static_cast<const Carrier*>( this );
@@ -617,7 +655,7 @@ private:
 
 	bool unordered_key_equal_to( const special_operation_equal_to_if* p_b_if ) const
 	{
-		if constexpr ( yan::is_callable_ref<Carrier>::value ) {
+		if constexpr ( is_value_carrier_of_constrained_any<Carrier>::value ) {
 			const Carrier* p_a_carrier = static_cast<const Carrier*>( this );
 			const Carrier* p_b_carrier = dynamic_cast<const Carrier*>( p_b_if );
 			if ( p_b_carrier == nullptr ) {
@@ -643,7 +681,7 @@ class special_operation_hash_value : public special_operation_hash_value_if {
 public:
 	static constexpr bool constraint_check_result = is_hashable<Carrier>::value;
 
-	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
+	template <typename U = Carrier, typename std::enable_if<is_specialized_of_constrained_any<U>::value>::type* = nullptr>
 	size_t hash_value( void ) const
 	{
 		const Carrier* p_a = static_cast<const Carrier*>( this );
@@ -662,7 +700,7 @@ private:
 		return hash_value();
 	}
 
-	template <typename U = Carrier, typename std::enable_if<yan::is_callable_ref<U>::value>::type* = nullptr>
+	template <typename U = Carrier, typename std::enable_if<is_value_carrier_of_constrained_any<U>::value>::type* = nullptr>
 	size_t hash_value( void ) const
 	{
 		const Carrier* p_a_carrier = static_cast<const Carrier*>( this );

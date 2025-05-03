@@ -102,7 +102,7 @@ public:
 	 * @note
 	 * Although this I/F definition use SFINAE to define this function in case of only Concrete constrained_any class, it is not mandatory to use SFINAE.
 	 */
-	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
+	template <typename U = Carrier, typename std::enable_if<yan::is_specialized_of_constrained_any<U>::value>::type* = nullptr>
 	std::string to_string( void ) const
 	{
 		// this I/F expects to be called as the member function of constranted_any.
@@ -140,7 +140,7 @@ private:
 	 */
 	std::string call_to_string( void ) const
 	{
-		if constexpr ( yan::is_callable_ref<Carrier>::value ) {
+		if constexpr ( yan::is_value_carrier_of_constrained_any<Carrier>::value ) {
 			using value_type   = typename std::remove_reference<typename std::remove_cv<typename Carrier::value_type>::type>::type;
 			const Carrier* p_a = static_cast<const Carrier*>( this );
 

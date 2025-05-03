@@ -220,7 +220,7 @@ class special_operation_adapter_call_print : public special_operation_adapter_ca
 public:
 	static constexpr bool constraint_check_result = is_callable_print<Carrier>::value;
 
-	template <typename U = Carrier, typename std::enable_if<!yan::is_callable_ref<U>::value>::type* = nullptr>
+	template <typename U = Carrier, typename std::enable_if<yan::is_specialized_of_constrained_any<U>::value>::type* = nullptr>
 	bool call_print( void ) const
 	{
 		const Carrier* p = static_cast<const Carrier*>( this );
@@ -240,7 +240,7 @@ private:
 		return call_print();
 	}
 
-	template <typename U = Carrier, typename std::enable_if<yan::is_callable_ref<U>::value>::type* = nullptr>
+	template <typename U = Carrier, typename std::enable_if<yan::is_value_carrier_of_constrained_any<U>::value>::type* = nullptr>
 	bool call_print( void ) const
 	{
 		const Carrier* p = static_cast<const Carrier*>( this );

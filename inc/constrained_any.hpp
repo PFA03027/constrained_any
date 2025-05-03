@@ -52,13 +52,13 @@ struct is_callable_ref : public decltype( impl::is_callable_ref_impl::check<T>( 
 template <bool RequiresCopy, template <class> class... ConstrainAndOperationArgs>
 class constrained_any;
 
-namespace impl {
-
 template <typename T>
 struct is_specialized_of_constrained_any : public std::false_type {};
 
 template <bool RequiresCopy, template <class> class... ConstrainAndOperationArgs>
 struct is_specialized_of_constrained_any<constrained_any<RequiresCopy, ConstrainAndOperationArgs...>> : public std::true_type {};
+
+namespace impl {
 
 template <typename T, bool AllowUseCopy, template <class> class... ConstrainAndOperationArgs>
 struct is_acceptable_value_type {
@@ -273,7 +273,7 @@ public:
 	}
 
 	template <typename T,
-	          typename std::enable_if<!impl::is_specialized_of_constrained_any<typename impl::remove_cvref<T>::type>::value>::type* = nullptr>
+	          typename std::enable_if<!is_specialized_of_constrained_any<typename impl::remove_cvref<T>::type>::value>::type* = nullptr>
 	constrained_any( T&& v )
 	  : constrained_any( std::in_place_type<std::decay_t<T>>, std::forward<T>( v ) )
 	{
@@ -401,7 +401,7 @@ constrained_any<RequiresCopy, ConstrainAndOperationArgs...> make_constrained_any
 	return constrained_any<RequiresCopy, ConstrainAndOperationArgs...>( std::in_place_type<T>, std::forward<Args>( args )... );
 }
 
-template <class T, typename SpecializedConstraintAny, class... Args, typename std::enable_if<impl::is_specialized_of_constrained_any<SpecializedConstraintAny>::value>::type* = nullptr>
+template <class T, typename SpecializedConstraintAny, class... Args, typename std::enable_if<is_specialized_of_constrained_any<SpecializedConstraintAny>::value>::type* = nullptr>
 SpecializedConstraintAny make_constrained_any( Args&&... args )
 {
 	return SpecializedConstraintAny( std::in_place_type<T>, std::forward<Args>( args )... );

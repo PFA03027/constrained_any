@@ -22,8 +22,8 @@ struct no_specialoperation {
 	static constexpr bool constraint_check_result = true;
 };
 
-static_assert( yan::impl::is_specialized_of_constrained_any<int>::value == false, "int is not a constrained_any" );
-static_assert( yan::impl::is_specialized_of_constrained_any<yan::constrained_any<true, no_specialoperation, no_specialoperation>>::value, "constrained_any is specialized type of constrained_any" );
+static_assert( yan::is_specialized_of_constrained_any<int>::value == false, "int is not a constrained_any" );
+static_assert( yan::is_specialized_of_constrained_any<yan::constrained_any<true, no_specialoperation, no_specialoperation>>::value, "constrained_any is specialized type of constrained_any" );
 
 // ================================================
 

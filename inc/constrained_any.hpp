@@ -226,7 +226,7 @@ struct is_defined_value_type_impl {
 };
 
 template <typename T>
-struct is_defined_value_type : public decltype( impl::is_defined_value_type_impl::check<T>( nullptr ) ) {};
+struct is_defined_value_type : public decltype( is_defined_value_type_impl::check<T>( nullptr ) ) {};
 
 }   // namespace impl
 
@@ -420,6 +420,13 @@ private:
 	friend T* constrained_any_cast( constrained_any<URequiresCopy, USpecializedOperator...>* operand ) noexcept;
 };
 
+/**
+ * @brief meta function to check if T is specialized type of value_carrier class in constrained_any
+ *
+ * this class is the helper class to implement constrained and operation class.
+ *
+ * @tparam T type to check
+ */
 template <typename T>
 struct is_value_carrier_of_constrained_any {
 	static constexpr bool value = !is_specialized_of_constrained_any<T>::value &&
@@ -428,17 +435,43 @@ struct is_value_carrier_of_constrained_any {
 	                              impl::is_callable_ref<T>::value;
 };
 
+/**
+ * @brief meta function to check if T is not specialized type of constrained_any and not value_carrier class in constrained_any
+ *
+ * this class is the helper class to implement constrained and operation class.
+ *
+ * @tparam T type to check
+ */
 template <typename T>
 struct is_not_related_type_of_constrained_any {
 	static constexpr bool value = !is_specialized_of_constrained_any<T>::value && !is_value_carrier_of_constrained_any<T>::value;
 };
 
+/**
+ * @brief helper function to create constrained_any object
+ *
+ * @tparam T type of the value which you want to store in constrained_any
+ * @tparam RequiresCopy if true, created constrained_any object supports copy constructor and copy assignment operator.
+ * @tparam ConstrainAndOperationArgs template parameter packs for multiple constrained and specialized operator classes.
+ * @tparam Args constructor argument types for the value type
+ * @param args constructor arguments for the value type
+ * @return constrained_any<RequiresCopy, ConstrainAndOperationArgs...> created constrained_any object
+ */
 template <class T, bool RequiresCopy, template <class> class... ConstrainAndOperationArgs, class... Args>
 constrained_any<RequiresCopy, ConstrainAndOperationArgs...> make_constrained_any( Args&&... args )
 {
 	return constrained_any<RequiresCopy, ConstrainAndOperationArgs...>( std::in_place_type<T>, std::forward<Args>( args )... );
 }
 
+/**
+ * @brief helper function to create specialized constrained_any object
+ *
+ * @tparam T type of the value which you want to store in constrained_any
+ * @tparam SpecializedConstraintAny specialized constrained_any class what you want to create.
+ * @tparam Args constructor argument types for the value type
+ * @param args constructor arguments for the value type
+ * @return SpecializedConstraintAny created specialized constrained_any object
+ */
 template <class T, typename SpecializedConstraintAny, class... Args, typename std::enable_if<is_specialized_of_constrained_any<SpecializedConstraintAny>::value>::type* = nullptr>
 SpecializedConstraintAny make_constrained_any( Args&&... args )
 {
@@ -449,7 +482,7 @@ template <class T, bool RequiresCopy, template <class> class... ConstrainAndOper
 T constrained_any_cast( const constrained_any<RequiresCopy, ConstrainAndOperationArgs...>& operand )
 {
 	using U = typename std::remove_cv_t<std::remove_reference_t<T>>;
-	static_assert( std::is_constructible<T, const U&>::value, "T must be constructible" );
+	static_assert( std::is_constructible<T, const U&>::value, "T must be constructible from const U&(=std::remove_cvref<T>::type&)" );
 
 	auto p = operand.template static_cast_T_carrier<U>();
 	if ( p == nullptr ) {
@@ -463,7 +496,7 @@ template <class T, bool RequiresCopy, template <class> class... ConstrainAndOper
 T constrained_any_cast( constrained_any<RequiresCopy, ConstrainAndOperationArgs...>& operand )
 {
 	using U = typename std::remove_cv_t<std::remove_reference_t<T>>;
-	static_assert( std::is_constructible<T, U&>::value, "T must be constructible" );
+	static_assert( std::is_constructible<T, U&>::value, "T must be constructible from U&(=std::remove_cvref<T>::type&)" );
 
 	auto p = operand.template static_cast_T_carrier<U>();
 	if ( p == nullptr ) {
@@ -477,7 +510,7 @@ template <class T, bool RequiresCopy, template <class> class... ConstrainAndOper
 T constrained_any_cast( constrained_any<RequiresCopy, ConstrainAndOperationArgs...>&& operand )
 {
 	using U = typename std::remove_cv_t<std::remove_reference_t<T>>;
-	static_assert( std::is_constructible<T, U>::value, "T must be constructible" );
+	static_assert( std::is_constructible<T, U>::value, "T must be constructible from U(=std::remove_cvref<T>::type)" );
 
 	auto p = operand.template static_cast_T_carrier<U>();
 	if ( p == nullptr ) {
@@ -565,7 +598,8 @@ public:
 template <typename Carrier>
 class special_operation_less : public special_operation_less_if {
 public:
-	static constexpr bool constraint_check_result = is_weak_orderable<Carrier>::value;
+	static constexpr bool constraint_check_result = is_not_related_type_of_constrained_any<Carrier>::value &&
+	                                                is_weak_orderable<Carrier>::value;
 
 	template <typename U = Carrier, typename std::enable_if<is_specialized_of_constrained_any<U>::value>::type* = nullptr>
 	bool less( const Carrier& b ) const
@@ -624,7 +658,8 @@ public:
 template <typename Carrier>
 class special_operation_equal_to : public special_operation_equal_to_if {
 public:
-	static constexpr bool constraint_check_result = is_callable_equal_to<Carrier>::value;
+	static constexpr bool constraint_check_result = is_not_related_type_of_constrained_any<Carrier>::value &&
+	                                                is_callable_equal_to<Carrier>::value;
 
 	template <typename U = Carrier, typename std::enable_if<is_specialized_of_constrained_any<U>::value>::type* = nullptr>
 	bool equal_to( const Carrier& b ) const
@@ -679,7 +714,8 @@ public:
 template <typename Carrier>
 class special_operation_hash_value : public special_operation_hash_value_if {
 public:
-	static constexpr bool constraint_check_result = is_hashable<Carrier>::value;
+	static constexpr bool constraint_check_result = is_not_related_type_of_constrained_any<Carrier>::value &&
+	                                                is_hashable<Carrier>::value;
 
 	template <typename U = Carrier, typename std::enable_if<is_specialized_of_constrained_any<U>::value>::type* = nullptr>
 	size_t hash_value( void ) const

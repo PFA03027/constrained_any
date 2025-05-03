@@ -157,7 +157,7 @@ above is the definition of yan::constrained_any. And it has 2 template paramters
 1. RequiresCopy: if true, input type is requires copy constructible and copy assignable.<br> And, the copy constructor and copy assignment operator of constrained_any are enabled. Otherwise, they are deleted from constrained_any.
 2. ConstrainAndOperationArgs: this template parameter pack adds the multiple constrains and the specialized member functions to yan::constrained_any.<br>
     The each type in ConstrainAndOperationArgs requires 2 rules;
-    1. Each type in ConstrainAndOperationArgs should support one template parameter T.
+    1. Each type in ConstrainAndOperationArgs should support one template parameter T.<br>(There is 3 meta function classes are prepared. Please see the section "Utility" for the detail.)
         * Case 1: T is the type of the concrete constrained_any type.
         * Case 2: T is the type of internal value carrier class of constrained_any. This case, T has the member function named "ref()" that returns the reference of the actual stored type of constrained_any.
         * Case 3: T is the type of input value type. This case expect to test that type is satisfied by the constraint or not. and that test result is stored in the static constexper bool member variable named "constraint_check_result".
@@ -283,19 +283,47 @@ as the pre-condition, using U = remove_cv_t<remove_reference_t<T>>.
 7. see (6)
 
 ## Utility
-### yan::is_callable_ref
+### yan::is_specialized_of_constrained_any
 ```cpp
 namespace yan {
     template <typename T>
-    struct is_callable_ref;
+    struct is_specialized_of_constrained_any<T> {
+        static constexpr bool value = if true, T is specialized type of constrained_any.;
+    };
 }
 ```
+#### abstruction of yan::is_specialized_of_constrained_any
+yan::is_specialized_of_constrained_any is a type trait that checks whether the type T is specialized type of constrained_any or not.<br>
+If T is specialized type of constrained_any, static member variable "value" is true, otherwise  false.<br>
+This helps to implement ConstrainAndOperationArgs class.
 
-#### abstruction of utility
-yan::is_callable_ref is a type trait that checks whether the type T is callable ref() or not. If T is callable ref(), it returns true, otherwise it returns false.<br>
-The purpose of this type trait is to check derived class of yan::special_operation_if is callable ref() or not.<br>
-If true, the derived class is value carrier of yan::constrained_any and it is possible to get actual type of the value.<br>
-If false, the derived class is not value carrier of yan::constrained_any and this means T is concrete type of yan::constrained_any.
+### yan::is_value_carrier_of_constrained_any
+```cpp
+namespace yan {
+    template <typename T>
+    struct is_value_carrier_of_constrained_any<T> {
+        static constexpr bool value = if true, T is value carrier of constrained_any.;
+    };
+}
+```
+#### abstruction of yan::is_value_carrier_of_constrained_any
+yan::is_value_carrier_of_constrained_any is a type trait that checks whether the type T is value carrier of constrained_any or not.<br>
+If T is value carrier of constrained_any, static member variable "value" is true, otherwise  false.<br>
+This helps to implement ConstrainAndOperationArgs class.
+
+### yan::is_not_related_type_of_constrained_any
+```cpp
+namespace yan {
+    template <typename T>
+    struct is_not_related_type_of_constrained_any<T> {
+        static constexpr bool value = if true, T is not related type of constrained_any.;
+    };
+}
+```
+#### abstruction of yan::is_not_related_type_of_constrained_any
+yan::is_not_related_type_of_constrained_any is a type trait that checks whether the type T is not related type of constrained_any or not.<br>
+If T is not related type of constrained_any, static member variable "value" is true, otherwise  false.<br>
+This helps to implement ConstrainAndOperationArgs class.
 
 ## How to implement your own constraint any
 please refer to the sample/sample_of_constrained_any.cpp.<br>

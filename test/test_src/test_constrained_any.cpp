@@ -218,7 +218,8 @@ struct special_operation_adapter_call_print_if {
 template <typename Carrier>
 class special_operation_adapter_call_print : public special_operation_adapter_call_print_if {
 public:
-	static constexpr bool constraint_check_result = is_callable_print<Carrier>::value;
+	static constexpr bool constraint_check_result = yan::is_not_related_type_of_constrained_any<Carrier>::value &&
+	                                                is_callable_print<Carrier>::value;
 
 	template <typename U = Carrier, typename std::enable_if<yan::is_specialized_of_constrained_any<U>::value>::type* = nullptr>
 	bool call_print( void ) const

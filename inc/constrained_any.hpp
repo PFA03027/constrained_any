@@ -813,12 +813,6 @@ private:
 
 		return std::hash<typename impl::remove_cvref<typename Carrier::value_type>::type>()( p_a_carrier->ref() );
 	}
-
-	template <typename U = Carrier, typename std::enable_if<!is_related_type_of_constrained_any<U>::value>::type* = nullptr>
-	size_t hash_value( void ) const
-	{
-		return 0;
-	}
 };
 
 }   // namespace impl

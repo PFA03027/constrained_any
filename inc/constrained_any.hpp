@@ -96,8 +96,84 @@ struct value_carrier_if<false> : public value_carrier_if_common {
 	virtual void                     move_value( value_carrier_if<false>& ) = 0;
 };
 
+// primary template for value_carrier
 template <typename T, bool AllowCopyConstructAndAssign, template <class> class... ConstrainAndOperationArgs>
 struct value_carrier;
+
+// specialization for void
+template <template <class> class... ConstrainAndOperationArgs>
+struct value_carrier<void, true, ConstrainAndOperationArgs...> : public value_carrier_if<true> {
+	using abst_if_t = value_carrier_if<true>;
+
+	~value_carrier()                                 = default;
+	value_carrier()                                  = default;
+	value_carrier( const value_carrier& )            = default;
+	value_carrier( value_carrier&& )                 = default;
+	value_carrier& operator=( const value_carrier& ) = default;
+	value_carrier& operator=( value_carrier&& )      = default;
+
+	template <typename... Args>
+	value_carrier( std::in_place_type_t<void>, Args&&... args )
+	{
+	}
+
+	const std::type_info& get_type_info() const noexcept override
+	{
+		return typeid( void );
+	}
+
+	abst_if_t* mk_clone_by_copy_construction() const override
+	{
+		value_carrier* p = new value_carrier( *this );
+		return p;
+	}
+
+	abst_if_t* mk_clone_by_move_construction() override
+	{
+		value_carrier* p = new value_carrier( std::move( *this ) );
+		return p;
+	}
+
+	void copy_value( const abst_if_t& src ) override
+	{
+	}
+	void move_value( abst_if_t& src ) override
+	{
+	}
+};
+
+// specialization for void
+template <template <class> class... ConstrainAndOperationArgs>
+struct value_carrier<void, false, ConstrainAndOperationArgs...> : public value_carrier_if<false> {
+	using abst_if_t = value_carrier_if<false>;
+
+	~value_carrier()                                 = default;
+	value_carrier()                                  = default;
+	value_carrier( const value_carrier& )            = default;
+	value_carrier( value_carrier&& )                 = default;
+	value_carrier& operator=( const value_carrier& ) = default;
+	value_carrier& operator=( value_carrier&& )      = default;
+
+	template <typename... Args>
+	value_carrier( std::in_place_type_t<void>, Args&&... args )
+	{
+	}
+
+	const std::type_info& get_type_info() const noexcept override
+	{
+		return typeid( void );
+	}
+
+	abst_if_t* mk_clone_by_move_construction() override
+	{
+		value_carrier* p = new value_carrier( std::move( *this ) );
+		return p;
+	}
+
+	void move_value( abst_if_t& src ) override
+	{
+	}
+};
 
 template <typename T, template <class> class... ConstrainAndOperationArgs>
 struct value_carrier<T, true, ConstrainAndOperationArgs...> : public value_carrier_if<true>, public ConstrainAndOperationArgs<value_carrier<T, true, ConstrainAndOperationArgs...>>... {
@@ -129,7 +205,7 @@ struct value_carrier<T, true, ConstrainAndOperationArgs...> : public value_carri
 
 	const std::type_info& get_type_info() const noexcept override
 	{
-		return typeid( T );
+		return typeid( value_type );
 	}
 
 	abst_if_t* mk_clone_by_copy_construction() const override
@@ -189,7 +265,7 @@ struct value_carrier<T, false, ConstrainAndOperationArgs...> : public value_carr
 
 	const std::type_info& get_type_info() const noexcept override
 	{
-		return typeid( T );
+		return typeid( value_type );
 	}
 
 	abst_if_t* mk_clone_by_move_construction() override
@@ -267,18 +343,18 @@ template <bool RequiresCopy, template <class> class... ConstrainAndOperationArgs
 class constrained_any : public ConstrainAndOperationArgs<constrained_any<RequiresCopy, ConstrainAndOperationArgs...>>... {
 public:
 	constrained_any()
-	  : up_carrier_() {}
+	  : up_carrier_( make_impl_value_carrier<void>() ) {}
 
 	constrained_any( const constrained_any& src )
 #if __cpp_concepts >= 201907L
 		requires RequiresCopy
 #endif
-	  : up_carrier_( src.up_carrier_ == nullptr ? nullptr : src.up_carrier_->mk_clone_by_copy_construction() )
+	  : up_carrier_( src.up_carrier_->mk_clone_by_copy_construction() )
 	{
 	}
 
 	constrained_any( constrained_any&& src )
-	  : up_carrier_( src.up_carrier_ == nullptr ? nullptr : src.up_carrier_->mk_clone_by_move_construction() ) {}
+	  : up_carrier_( src.up_carrier_->mk_clone_by_move_construction() ) {}
 
 	constrained_any& operator=( const constrained_any& rhs )
 #if __cpp_concepts >= 201907L
@@ -287,8 +363,8 @@ public:
 	{
 		if ( this == &rhs ) return *this;
 
-		if ( ( up_carrier_ != nullptr ) && ( rhs.up_carrier_ != nullptr ) ) {
-			if ( up_carrier_->get_type_info() == rhs.up_carrier_->get_type_info() ) {
+		if ( ( this->has_value() ) && ( rhs.has_value() ) ) {
+			if ( this->type() == rhs.type() ) {
 				up_carrier_->copy_value( *rhs.up_carrier_ );
 				return *this;
 			}
@@ -303,8 +379,8 @@ public:
 	{
 		if ( this == &rhs ) return *this;
 
-		if ( ( up_carrier_ != nullptr ) && ( rhs.up_carrier_ != nullptr ) ) {
-			if ( up_carrier_->get_type_info() == rhs.up_carrier_->get_type_info() ) {
+		if ( ( this->has_value() ) && ( rhs.has_value() ) ) {
+			if ( this->type() == rhs.type() ) {
 				up_carrier_->move_value( *rhs.up_carrier_ );
 				return *this;
 			}
@@ -333,12 +409,12 @@ public:
 
 	void swap( constrained_any& src )
 	{
-		std::swap( up_carrier_, src.up_carrier_ );
+		up_carrier_.swap( src.up_carrier_ );
 	}
 
 	void reset() noexcept
 	{
-		up_carrier_.reset();
+		constrained_any().swap( *this );
 	}
 
 	template <class T, class... Args,
@@ -360,10 +436,10 @@ public:
 	          typename std::enable_if<impl::is_acceptable_value_type<VT, RequiresCopy, ConstrainAndOperationArgs...>::value>::type* = nullptr>
 	constrained_any& operator=( T&& rhs )
 	{
-		using carrier_t = impl::value_carrier<VT, RequiresCopy, ConstrainAndOperationArgs...>;
 
-		if ( up_carrier_ != nullptr ) {
-			if ( up_carrier_->get_type_info() == typeid( VT ) ) {
+		if ( this->has_value() ) {
+			if ( this->type() == typeid( VT ) ) {
+				using carrier_t    = impl::value_carrier<VT, RequiresCopy, ConstrainAndOperationArgs...>;
 				carrier_t& ref_src = dynamic_cast<carrier_t&>( *( up_carrier_.get() ) );   // TODO: should be static_cast
 				ref_src.ref()      = std::forward<T>( rhs );
 				return *this;
@@ -377,28 +453,22 @@ public:
 
 	bool has_value() const noexcept
 	{
-		return up_carrier_ != nullptr;
+		return ( this->type() != typeid( void ) );
 	}
 
 	const std::type_info& type() const noexcept
 	{
-		if ( up_carrier_ == nullptr ) return typeid( void );
-
 		return up_carrier_->get_type_info();
 	}
 
 	template <typename SpecializedOperatorIF>
 	SpecializedOperatorIF* get_special_operation_if() noexcept
 	{
-		if ( up_carrier_ == nullptr ) return nullptr;
-
 		return dynamic_cast<SpecializedOperatorIF*>( up_carrier_.get() );
 	}
 	template <typename SpecializedOperatorIF>
 	const SpecializedOperatorIF* get_special_operation_if() const noexcept
 	{
-		if ( up_carrier_ == nullptr ) return nullptr;
-
 		return dynamic_cast<const SpecializedOperatorIF*>( up_carrier_.get() );
 	}
 

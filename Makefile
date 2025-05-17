@@ -74,11 +74,8 @@ coverage: clean
 	set -e; \
 	make BUILDTARGET=codecoverage BUILDTYPE=Debug test;  \
 	cd ${BUILD_DIR}; \
-	find . -type f -name "*.gcda" | xargs -P${JOBS} -I@ gcov -l -b @; \
-	lcov --rc lcov_branch_coverage=1 -c -d . -o tmp.info; \
-	lcov --rc lcov_branch_coverage=1 -b -c -d . -r tmp.info  '/usr/include/*' -o tmp2.info; \
-	lcov --rc lcov_branch_coverage=1 -b -c -d . -r tmp2.info  '*/test/*' -o output.info; \
-	genhtml --branch-coverage -o OUTPUT -p . -f output.info
+	lcov -c -d . --include 'inc/*' --branch-coverage -o tmp.info; \
+	genhtml --branch-coverage -o OUTPUT -p . -f tmp.info
 
 profile: clean
 	set -e; \

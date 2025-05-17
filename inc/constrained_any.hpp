@@ -87,8 +87,10 @@ constexpr bool is_required_copy_constructible( void )
 }
 
 template <typename T, template <class> class... ConstrainAndOperationArgs>
-struct are_constrains_required_copy_constructible {
-	static constexpr bool value = ( ... || is_required_copy_constructible<ConstrainAndOperationArgs<T>>() );
+struct is_satisfy_required_copy_constructible_constraint {
+	static constexpr bool are_constrains_required_copy_constructible = ( ... || is_required_copy_constructible<ConstrainAndOperationArgs<T>>() );
+
+	static constexpr bool value = ( are_constrains_required_copy_constructible ? ( std::is_copy_constructible<T>::value && std::is_copy_assignable<T>::value ) : true );
 };
 
 // =====================
@@ -114,8 +116,40 @@ constexpr bool is_required_move_constructible( void )
 }
 
 template <typename T, template <class> class... ConstrainAndOperationArgs>
-struct are_constrains_required_move_constructible {
-	static constexpr bool value = ( ... || is_required_move_constructible<ConstrainAndOperationArgs<T>>() );
+struct is_satisfy_required_move_constructible_constraint {
+	static constexpr bool are_constrains_required_copy_constructible = is_satisfy_required_copy_constructible_constraint<T, ConstrainAndOperationArgs...>::are_constrains_required_copy_constructible;
+
+	// コピー構築を要求されている場合、ムーブ構築をサポートしていない型であってもムーブ構築をコピー構築で代用できるため、ムーブ構築の要求を無効化する。
+	static constexpr bool are_constrains_required_move_constructible = are_constrains_required_copy_constructible ? false : ( ... || is_required_move_constructible<ConstrainAndOperationArgs<T>>() );
+
+	static constexpr bool value = ( are_constrains_required_move_constructible ? ( std::is_move_constructible<T>::value && std::is_move_assignable<T>::value ) : true );
+};
+
+// =====================
+
+struct is_defined_constraint_check_result_impl {
+	template <typename T, typename VT = typename impl::remove_cvref<T>::type>
+	static auto check( T* ) -> decltype( VT::constraint_check_result == true, std::true_type {} );
+	template <typename T>
+	static auto check( ... ) -> std::false_type;
+};
+
+template <typename T>
+struct is_defined_constraint_check_result : public decltype( is_defined_constraint_check_result_impl::check<T>( nullptr ) ) {};
+
+template <typename T>
+constexpr bool is_required_constraint_check_result( void )
+{
+	if constexpr ( is_defined_constraint_check_result<T>::value ) {
+		return T::constraint_check_result;
+	} else {
+		return true;
+	}
+}
+
+template <typename T, template <class> class... ConstrainAndOperationArgs>
+struct is_satisfy_constraints {
+	static constexpr bool value = ( ... && is_required_constraint_check_result<ConstrainAndOperationArgs<T>>() );
 };
 
 // =====================
@@ -123,11 +157,14 @@ struct are_constrains_required_move_constructible {
 // helper metafunction to check T is acceptable value type or not
 template <typename T, bool AllowUseCopy, template <class> class... ConstrainAndOperationArgs>
 struct is_acceptable_value_type {
-	static constexpr bool value = ( AllowUseCopy ? ( std::is_copy_constructible<T>::value && std::is_copy_assignable<T>::value ) : true ) &&
+	static constexpr bool value = ( AllowUseCopy || is_satisfy_required_copy_constructible_constraint<T, ConstrainAndOperationArgs...>::value ) &&
+	                              is_satisfy_required_move_constructible_constraint<T, ConstrainAndOperationArgs...>::value &&
 	                              !( is_specialized_of_constrained_any<T>::value ) &&
 	                              !( std::is_same<T, std::any>::value ) &&
-	                              ( ... && ConstrainAndOperationArgs<T>::constraint_check_result );
+	                              is_satisfy_constraints<T, ConstrainAndOperationArgs...>::value;
 };
+
+// =====================
 
 struct value_carrier_if_common {
 	virtual ~value_carrier_if_common() = default;

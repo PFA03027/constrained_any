@@ -62,6 +62,50 @@ static_assert( yan::impl::is_acceptable_value_type<int, true, no_specialoperatio
 static_assert( yan::impl::is_acceptable_value_type<int, true, no_specialoperation, no_specialoperation2>::value == true, "int should be acceptable type" );
 static_assert( yan::impl::is_acceptable_value_type<int, true, no_specialoperation, no_specialoperation2, constrained_alway_false>::value == false, "int should be acceptable type" );
 
+template <typename T>
+struct copy_construction_required1 {
+	static constexpr bool require_copy_constructible = false;
+};
+
+template <typename T>
+struct copy_construction_required2 {
+	static constexpr bool require_copy_constructible = false;
+};
+
+template <typename T>
+struct copy_construction_required3 {
+	static constexpr bool require_copy_constructible = true;
+};
+
+static_assert( yan::impl::is_defined_require_copy_constructible<int>::value == false, "int has no require_copy_constructible" );
+static_assert( yan::impl::is_defined_require_copy_constructible<copy_construction_required1<int>>::value == true, "copy_construction_required1<int> has require_copy_constructible" );
+
+static_assert( yan::impl::are_constrains_required_copy_constructible<int, copy_construction_required1>::value == false, "should not require require_copy_constructible" );
+static_assert( yan::impl::are_constrains_required_copy_constructible<int, copy_construction_required1, copy_construction_required2>::value == false, "should not require require_copy_constructible" );
+static_assert( yan::impl::are_constrains_required_copy_constructible<int, copy_construction_required1, copy_construction_required2, copy_construction_required3>::value == true, "should require require_copy_constructible" );
+
+template <typename T>
+struct move_construction_required1 {
+	static constexpr bool require_move_constructible = false;
+};
+
+template <typename T>
+struct move_construction_required2 {
+	static constexpr bool require_move_constructible = false;
+};
+
+template <typename T>
+struct move_construction_required3 {
+	static constexpr bool require_move_constructible = true;
+};
+
+static_assert( yan::impl::is_defined_require_move_constructible<int>::value == false, "int has no require_move_constructible" );
+static_assert( yan::impl::is_defined_require_move_constructible<move_construction_required1<int>>::value == true, "move_construction_required1<int> has require_move_constructible" );
+
+static_assert( yan::impl::are_constrains_required_move_constructible<int, move_construction_required1>::value == false, "should not require require_move_constructible" );
+static_assert( yan::impl::are_constrains_required_move_constructible<int, move_construction_required1, move_construction_required2>::value == false, "should not require require_move_constructible" );
+static_assert( yan::impl::are_constrains_required_move_constructible<int, move_construction_required1, move_construction_required2, move_construction_required3>::value == true, "should require require_move_constructible" );
+
 // ================================================
 
 TEST( TestConstrainedAny, CanDefaultConstruct )

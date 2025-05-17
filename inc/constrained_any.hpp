@@ -64,6 +64,62 @@ template <typename T>
 using remove_cvref = std::remove_reference<typename std::remove_cv<T>::type>;
 #endif
 
+// =====================
+
+struct is_defined_require_copy_constructible_impl {
+	template <typename T, typename VT = typename impl::remove_cvref<T>::type>
+	static auto check( T* ) -> decltype( VT::require_copy_constructible == true, std::true_type {} );
+	template <typename T>
+	static auto check( ... ) -> std::false_type;
+};
+
+template <typename T>
+struct is_defined_require_copy_constructible : public decltype( is_defined_require_copy_constructible_impl::check<T>( nullptr ) ) {};
+
+template <typename T>
+constexpr bool is_required_copy_constructible( void )
+{
+	if constexpr ( is_defined_require_copy_constructible<T>::value ) {
+		return T::require_copy_constructible;
+	} else {
+		return false;
+	}
+}
+
+template <typename T, template <class> class... ConstrainAndOperationArgs>
+struct are_constrains_required_copy_constructible {
+	static constexpr bool value = ( ... || is_required_copy_constructible<ConstrainAndOperationArgs<T>>() );
+};
+
+// =====================
+
+struct is_defined_require_move_constructible_impl {
+	template <typename T, typename VT = typename impl::remove_cvref<T>::type>
+	static auto check( T* ) -> decltype( VT::require_move_constructible == true, std::true_type {} );
+	template <typename T>
+	static auto check( ... ) -> std::false_type;
+};
+
+template <typename T>
+struct is_defined_require_move_constructible : public decltype( is_defined_require_move_constructible_impl::check<T>( nullptr ) ) {};
+
+template <typename T>
+constexpr bool is_required_move_constructible( void )
+{
+	if constexpr ( is_defined_require_move_constructible<T>::value ) {
+		return T::require_move_constructible;
+	} else {
+		return false;
+	}
+}
+
+template <typename T, template <class> class... ConstrainAndOperationArgs>
+struct are_constrains_required_move_constructible {
+	static constexpr bool value = ( ... || is_required_move_constructible<ConstrainAndOperationArgs<T>>() );
+};
+
+// =====================
+
 // helper metafunction to check T is acceptable value type or not
 template <typename T, bool AllowUseCopy, template <class> class... ConstrainAndOperationArgs>
 struct is_acceptable_value_type {

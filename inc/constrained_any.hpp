@@ -157,7 +157,7 @@ struct is_satisfy_constraints {
 // helper metafunction to check T is acceptable value type or not
 template <typename T, bool AllowUseCopy, template <class> class... ConstrainAndOperationArgs>
 struct is_acceptable_value_type {
-	static constexpr bool value = ( AllowUseCopy || is_satisfy_required_copy_constructible_constraint<T, ConstrainAndOperationArgs...>::value ) &&
+	static constexpr bool value = is_satisfy_required_copy_constructible_constraint<T, ConstrainAndOperationArgs...>::value &&
 	                              is_satisfy_required_move_constructible_constraint<T, ConstrainAndOperationArgs...>::value &&
 	                              !( is_specialized_of_constrained_any<T>::value ) &&
 	                              !( std::is_same<T, std::any>::value ) &&
@@ -780,8 +780,6 @@ T* constrained_any_cast( constrained_any<RequiresCopy, RequiresMove, ConstrainAn
 	return &( p->ref() );
 }
 
-using no_constrained_any = constrained_any<true, true>;   //!< @brief no special operation. this is same to std::any.
-
 namespace impl {
 
 // -----------------------------------------
@@ -818,6 +816,12 @@ struct is_callable_equal_to : public decltype( is_callable_equal_to_impl::check<
 // -----------------------------------------
 // Special Operation implementation section
 
+template <typename Carrier>
+class special_operation_copyable {
+public:
+	static constexpr bool require_copy_constructible = true;
+};
+
 class special_operation_less_if {
 public:
 	virtual ~special_operation_less_if() = default;
@@ -828,7 +832,8 @@ public:
 template <typename Carrier>
 class special_operation_less : public special_operation_less_if {
 public:
-	static constexpr bool constraint_check_result = !is_related_type_of_constrained_any<Carrier>::value &&
+	static constexpr bool require_copy_constructible = true;
+	static constexpr bool constraint_check_result    = !is_related_type_of_constrained_any<Carrier>::value &&
 	                                                is_weak_orderable<Carrier>::value;
 
 	template <typename U = Carrier, typename std::enable_if<is_specialized_of_constrained_any<U>::value>::type* = nullptr>
@@ -888,7 +893,8 @@ public:
 template <typename Carrier>
 class special_operation_equal_to : public special_operation_equal_to_if {
 public:
-	static constexpr bool constraint_check_result = !is_related_type_of_constrained_any<Carrier>::value &&
+	static constexpr bool require_copy_constructible = true;
+	static constexpr bool constraint_check_result    = !is_related_type_of_constrained_any<Carrier>::value &&
 	                                                is_callable_equal_to<Carrier>::value;
 
 	template <typename U = Carrier, typename std::enable_if<is_specialized_of_constrained_any<U>::value>::type* = nullptr>
@@ -944,7 +950,8 @@ public:
 template <typename Carrier>
 class special_operation_hash_value : public special_operation_hash_value_if {
 public:
-	static constexpr bool constraint_check_result = !is_related_type_of_constrained_any<Carrier>::value &&
+	static constexpr bool require_copy_constructible = true;
+	static constexpr bool constraint_check_result    = !is_related_type_of_constrained_any<Carrier>::value &&
 	                                                is_hashable<Carrier>::value;
 
 	template <typename U = Carrier, typename std::enable_if<is_specialized_of_constrained_any<U>::value>::type* = nullptr>
@@ -976,6 +983,8 @@ private:
 };
 
 }   // namespace impl
+
+using no_constrained_any = constrained_any<true, true, impl::special_operation_copyable>;   //!< @brief no special operation. this is same to std::any.
 
 /**
  * @brief constrained_any with weak ordering

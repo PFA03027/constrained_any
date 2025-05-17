@@ -419,7 +419,12 @@ public:
 	}
 
 	constrained_any( constrained_any&& src )
-	  : up_carrier_( src.up_carrier_->mk_clone_by_move_construction() ) {}
+#if __cpp_concepts >= 201907L
+		requires RequiresCopy || RequiresMove
+#endif
+	  : up_carrier_( src.up_carrier_->mk_clone_by_move_construction() )
+	{
+	}
 
 	constrained_any& operator=( const constrained_any& rhs )
 #if __cpp_concepts >= 201907L
@@ -439,6 +444,9 @@ public:
 	}
 
 	constrained_any& operator=( constrained_any&& rhs ) noexcept
+#if __cpp_concepts >= 201907L
+		requires RequiresCopy || RequiresMove
+#endif
 	{
 		if ( this == &rhs ) return *this;
 

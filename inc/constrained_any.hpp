@@ -363,11 +363,9 @@ public:
 	{
 		if ( this == &rhs ) return *this;
 
-		if ( ( this->has_value() ) && ( rhs.has_value() ) ) {
-			if ( this->type() == rhs.type() ) {
-				up_carrier_->copy_value( *rhs.up_carrier_ );
-				return *this;
-			}
+		if ( this->type() == rhs.type() ) {
+			up_carrier_->copy_value( *rhs.up_carrier_ );
+			return *this;
 		}
 
 		constrained_any( rhs ).swap( *this );
@@ -379,11 +377,9 @@ public:
 	{
 		if ( this == &rhs ) return *this;
 
-		if ( ( this->has_value() ) && ( rhs.has_value() ) ) {
-			if ( this->type() == rhs.type() ) {
-				up_carrier_->move_value( *rhs.up_carrier_ );
-				return *this;
-			}
+		if ( this->type() == rhs.type() ) {
+			up_carrier_->move_value( *rhs.up_carrier_ );
+			return *this;
 		}
 
 		constrained_any( std::move( rhs ) ).swap( *this );
@@ -437,13 +433,11 @@ public:
 	constrained_any& operator=( T&& rhs )
 	{
 
-		if ( this->has_value() ) {
-			if ( this->type() == typeid( VT ) ) {
-				using carrier_t    = impl::value_carrier<VT, RequiresCopy, ConstrainAndOperationArgs...>;
-				carrier_t& ref_src = dynamic_cast<carrier_t&>( *( up_carrier_.get() ) );   // TODO: should be static_cast
-				ref_src.ref()      = std::forward<T>( rhs );
-				return *this;
-			}
+		if ( this->type() == typeid( VT ) ) {
+			using carrier_t    = impl::value_carrier<VT, RequiresCopy, ConstrainAndOperationArgs...>;
+			carrier_t& ref_src = dynamic_cast<carrier_t&>( *( up_carrier_.get() ) );   // TODO: should be static_cast
+			ref_src.ref()      = std::forward<T>( rhs );
+			return *this;
 		}
 
 		up_carrier_ = make_impl_value_carrier<VT>( std::forward<T>( rhs ) );

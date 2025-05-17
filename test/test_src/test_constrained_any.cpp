@@ -34,27 +34,27 @@ struct constrained_alway_false {
 };
 
 static_assert( yan::is_specialized_of_constrained_any<int>::value == false, "int is not a constrained_any" );
-static_assert( yan::is_specialized_of_constrained_any<yan::constrained_any<true>>::value, "constrained_any is specialized type of constrained_any" );
-static_assert( yan::is_specialized_of_constrained_any<yan::constrained_any<true, no_specialoperation>>::value, "constrained_any is specialized type of constrained_any" );
-static_assert( yan::is_specialized_of_constrained_any<yan::constrained_any<true, no_specialoperation, no_specialoperation2>>::value, "constrained_any is specialized type of constrained_any" );
-static_assert( yan::is_specialized_of_constrained_any<yan::constrained_any<true, no_specialoperation, no_specialoperation2, constrained_alway_false>>::value, "constrained_any is specialized type of constrained_any" );
+static_assert( yan::is_specialized_of_constrained_any<yan::constrained_any<true, true>>::value, "constrained_any is specialized type of constrained_any" );
+static_assert( yan::is_specialized_of_constrained_any<yan::constrained_any<true, true, no_specialoperation>>::value, "constrained_any is specialized type of constrained_any" );
+static_assert( yan::is_specialized_of_constrained_any<yan::constrained_any<true, true, no_specialoperation, no_specialoperation2>>::value, "constrained_any is specialized type of constrained_any" );
+static_assert( yan::is_specialized_of_constrained_any<yan::constrained_any<true, true, no_specialoperation, no_specialoperation2, constrained_alway_false>>::value, "constrained_any is specialized type of constrained_any" );
 
 static_assert( yan::is_value_carrier_of_constrained_any<int>::value == false, "int is not a constrained_any" );
-static_assert( yan::is_value_carrier_of_constrained_any<yan::impl::value_carrier<int, true>>::value == true, "yan::impl::value_carrier<int,true> is a value carrier type of constrained_any" );
-static_assert( yan::is_value_carrier_of_constrained_any<yan::impl::value_carrier<int, true, no_specialoperation>>::value == true, "yan::impl::value_carrier<int,true,no_specialoperation> is a value carrier type of constrained_any" );
+static_assert( yan::is_value_carrier_of_constrained_any<yan::impl::value_carrier<int, true, true>>::value == true, "yan::impl::value_carrier<int,true> is a value carrier type of constrained_any" );
+static_assert( yan::is_value_carrier_of_constrained_any<yan::impl::value_carrier<int, true, true, no_specialoperation>>::value == true, "yan::impl::value_carrier<int,true,no_specialoperation> is a value carrier type of constrained_any" );
 
 static_assert( yan::is_related_type_of_constrained_any<int>::value == false, "int should not be constrained_any related type" );
-static_assert( yan::is_related_type_of_constrained_any<yan::impl::value_carrier<int, true>>::value == true, "yan::impl::value_carrier<int, true> should be constrained_any related type" );
-static_assert( yan::is_related_type_of_constrained_any<yan::impl::value_carrier<int, true, no_specialoperation>>::value == true, "yan::impl::value_carrier<int, true, no_specialoperation> should be constrained_any related type" );
-static_assert( yan::is_related_type_of_constrained_any<yan::constrained_any<true>>::value == true, "constrained_any should be constrained_any related type" );
-static_assert( yan::is_related_type_of_constrained_any<yan::constrained_any<true, no_specialoperation>>::value == true, "constrained_any should be constrained_any related type" );
-static_assert( yan::is_related_type_of_constrained_any<yan::constrained_any<true, no_specialoperation, no_specialoperation2>>::value == true, "constrained_any should be constrained_any related type" );
-static_assert( yan::is_related_type_of_constrained_any<yan::constrained_any<true, no_specialoperation, no_specialoperation2, constrained_alway_false>>::value == true, "constrained_any should be constrained_any related type" );
+static_assert( yan::is_related_type_of_constrained_any<yan::impl::value_carrier<int, true, true>>::value == true, "yan::impl::value_carrier<int, true> should be constrained_any related type" );
+static_assert( yan::is_related_type_of_constrained_any<yan::impl::value_carrier<int, true, true, no_specialoperation>>::value == true, "yan::impl::value_carrier<int, true, no_specialoperation> should be constrained_any related type" );
+static_assert( yan::is_related_type_of_constrained_any<yan::constrained_any<true, true>>::value == true, "constrained_any should be constrained_any related type" );
+static_assert( yan::is_related_type_of_constrained_any<yan::constrained_any<true, true, no_specialoperation>>::value == true, "constrained_any should be constrained_any related type" );
+static_assert( yan::is_related_type_of_constrained_any<yan::constrained_any<true, true, no_specialoperation, no_specialoperation2>>::value == true, "constrained_any should be constrained_any related type" );
+static_assert( yan::is_related_type_of_constrained_any<yan::constrained_any<true, true, no_specialoperation, no_specialoperation2, constrained_alway_false>>::value == true, "constrained_any should be constrained_any related type" );
 
-static_assert( yan::impl::is_acceptable_value_type<yan::constrained_any<true>, true>::value == false, "constrained_any should not be acceptable type" );
-static_assert( yan::impl::is_acceptable_value_type<yan::constrained_any<true, no_specialoperation>, true>::value == false, "constrained_any should not be acceptable type" );
-static_assert( yan::impl::is_acceptable_value_type<yan::constrained_any<true, no_specialoperation, no_specialoperation2>, true>::value == false, "constrained_any should not be acceptable type" );
-static_assert( yan::impl::is_acceptable_value_type<yan::constrained_any<true, no_specialoperation, no_specialoperation2, constrained_alway_false>, true>::value == false, "constrained_any should not be acceptable type" );
+static_assert( yan::impl::is_acceptable_value_type<yan::constrained_any<true, true>, true>::value == false, "constrained_any should not be acceptable type" );
+static_assert( yan::impl::is_acceptable_value_type<yan::constrained_any<true, true, no_specialoperation>, true>::value == false, "constrained_any should not be acceptable type" );
+static_assert( yan::impl::is_acceptable_value_type<yan::constrained_any<true, true, no_specialoperation, no_specialoperation2>, true>::value == false, "constrained_any should not be acceptable type" );
+static_assert( yan::impl::is_acceptable_value_type<yan::constrained_any<true, true, no_specialoperation, no_specialoperation2, constrained_alway_false>, true>::value == false, "constrained_any should not be acceptable type" );
 // static_assert( yan::impl::is_acceptable_value_type<yan::impl::value_carrier<int, true>, true>::value == false, "value carrier of constrained_any should not be acceptable type" );
 
 static_assert( yan::impl::is_acceptable_value_type<int, true>::value == true, "int should be acceptable type" );
@@ -314,7 +314,7 @@ TEST( TestConstrainedAny, WithConstraint_CanCopyConstructFromLvalue )
 	Foo_has_print value( 42 );
 
 	// Act
-	yan::constrained_any<true, special_operation_adapter_call_print> sut( value );
+	yan::constrained_any<true, true, special_operation_adapter_call_print> sut( value );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -328,7 +328,7 @@ TEST( TestConstrainedAny, WithConstraint_CanCopyConstructFromLvalueInt )
 	Foo_has_print value( 42 );
 
 	// Act
-	yan::constrained_any<true, special_operation_adapter_call_print> sut( value );
+	yan::constrained_any<true, true, special_operation_adapter_call_print> sut( value );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -342,7 +342,7 @@ TEST( TestConstrainedAny, WithConstraintAndSpecialOperator_CanConstruct )
 	Foo_has_print value( 42 );
 
 	// Act
-	yan::constrained_any<true, special_operation_adapter_call_print> sut( value );
+	yan::constrained_any<true, true, special_operation_adapter_call_print> sut( value );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -353,8 +353,8 @@ TEST( TestConstrainedAny, WithConstraintAndSpecialOperator_CanConstruct )
 TEST( TestConstrainedAny, WithConstraintAndSpecialOperator_CanCallPrint )
 {
 	// Arrange
-	Foo_has_print                                                    value( 42 );
-	yan::constrained_any<true, special_operation_adapter_call_print> sut( value );
+	Foo_has_print                                                          value( 42 );
+	yan::constrained_any<true, true, special_operation_adapter_call_print> sut( value );
 
 	// Act
 	bool result = sut.call_print();
@@ -571,7 +571,7 @@ TEST( TestConstrainedAny_NowAllowCopy, CanConstruct )
 	std::unique_ptr<int> value = std::make_unique<int>( 42 );
 
 	// Act
-	yan::constrained_any<false> sut( std::move( value ) );
+	yan::constrained_any<false, true> sut( std::move( value ) );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -582,11 +582,11 @@ TEST( TestConstrainedAny_NowAllowCopy, CanConstruct )
 TEST( TestConstrainedAny_NowAllowCopy, CanMoveConstruct )
 {
 	// Arrange
-	std::unique_ptr<int>        value = std::make_unique<int>( 42 );
-	yan::constrained_any<false> src( std::move( value ) );
+	std::unique_ptr<int>              value = std::make_unique<int>( 42 );
+	yan::constrained_any<false, true> src( std::move( value ) );
 
 	// Act
-	yan::constrained_any<false> sut( std::move( src ) );
+	yan::constrained_any<false, true> sut( std::move( src ) );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -600,9 +600,9 @@ TEST( TestConstrainedAny_NowAllowCopy, CanMoveConstruct )
 TEST( TestConstrainedAny_NowAllowCopy, CanMoveAssign )
 {
 	// Arrange
-	std::unique_ptr<int>        value = std::make_unique<int>( 42 );
-	yan::constrained_any<false> src( std::move( value ) );
-	yan::constrained_any<false> sut;
+	std::unique_ptr<int>              value = std::make_unique<int>( 42 );
+	yan::constrained_any<false, true> src( std::move( value ) );
+	yan::constrained_any<false, true> sut;
 
 	// Act
 	sut = std::move( src );
@@ -619,8 +619,8 @@ TEST( TestConstrainedAny_NowAllowCopy, CanMoveAssign )
 TEST( TestConstrainedAny_NowAllowCopy, CanGetValueByMoveCast )
 {
 	// Arrange
-	std::unique_ptr<int>        value = std::make_unique<int>( 42 );
-	yan::constrained_any<false> sut( std::move( value ) );
+	std::unique_ptr<int>              value = std::make_unique<int>( 42 );
+	yan::constrained_any<false, true> sut( std::move( value ) );
 
 	// Act
 	auto up_ret = yan::constrained_any_cast<std::unique_ptr<int>&&>( std::move( sut ) );
@@ -638,7 +638,7 @@ TEST( TestConstrainedAny_NonMemberFunction, CanMakeConstrainedAny )
 	int value = 42;
 
 	// Act
-	auto sut = yan::make_constrained_any<int, true>( 42 );
+	auto sut = yan::make_constrained_any<int, true, true>( 42 );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );

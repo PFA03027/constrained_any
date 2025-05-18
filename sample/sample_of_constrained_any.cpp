@@ -77,6 +77,8 @@ public:
 template <typename Carrier>
 class special_operation_convert_to_string : public special_operation_convert_to_string_if {
 public:
+	static constexpr bool require_copy_constructible = true;
+
 	// ---------------------------------------------------
 	// Step 4: implement the constraint check result variable with using step 1 constraint
 	/**
@@ -170,7 +172,7 @@ private:
 /**
  * @brief Constrained any class that has the constraint of convertible to std::string
  */
-using string_convertible_any = yan::constrained_any<true, true, special_operation_convert_to_string>;
+using string_convertible_any = yan::constrained_any<special_operation_convert_to_string>;
 
 // ---------------------------------------------------
 // implementation of the test class for the sample code

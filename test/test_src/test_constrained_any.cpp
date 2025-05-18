@@ -173,7 +173,7 @@ TEST( TestConstrainedAny, CanDefaultConstruct )
 	// Arrange
 
 	// Act
-	yan::no_constrained_any sut;
+	yan::copyable_any sut;
 
 	// Assert
 	EXPECT_FALSE( sut.has_value() );
@@ -182,10 +182,10 @@ TEST( TestConstrainedAny, CanDefaultConstruct )
 TEST( TestConstrainedAny, NoValue_CanCopyConstruct )
 {
 	// Arrange
-	yan::no_constrained_any src;
+	yan::copyable_any src;
 
 	// Act
-	yan::no_constrained_any sut( src );
+	yan::copyable_any sut( src );
 
 	// Assert
 	EXPECT_FALSE( sut.has_value() );
@@ -197,10 +197,10 @@ TEST( TestConstrainedAny, NoValue_CanCopyConstruct )
 TEST( TestConstrainedAny, NoValue_CanMoveConstruct )
 {
 	// Arrange
-	yan::no_constrained_any src;
+	yan::copyable_any src;
 
 	// Act
-	yan::no_constrained_any sut( std::move( src ) );
+	yan::copyable_any sut( std::move( src ) );
 
 	// Assert
 	EXPECT_FALSE( sut.has_value() );
@@ -215,7 +215,7 @@ TEST( TestConstrainedAny, CanConstructWithLvalue )
 	int value = 42;
 
 	// Act
-	yan::no_constrained_any sut( value );
+	yan::copyable_any sut( value );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -229,7 +229,7 @@ TEST( TestConstrainedAny, CanConstructWithRvalue )
 	int value = 42;
 
 	// Act
-	yan::no_constrained_any sut( std::move( value ) );
+	yan::copyable_any sut( std::move( value ) );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -240,8 +240,8 @@ TEST( TestConstrainedAny, CanConstructWithRvalue )
 TEST( TestConstrainedAny, NoValue_CanCopyAssign )
 {
 	// Arrange
-	yan::no_constrained_any src;
-	yan::no_constrained_any sut;
+	yan::copyable_any src;
+	yan::copyable_any sut;
 
 	// Act
 	sut = src;
@@ -256,8 +256,8 @@ TEST( TestConstrainedAny, NoValue_CanCopyAssign )
 TEST( TestConstrainedAny, NoValue_CanMoveAssign )
 {
 	// Arrange
-	yan::no_constrained_any src;
-	yan::no_constrained_any sut;
+	yan::copyable_any src;
+	yan::copyable_any sut;
 
 	// Act
 	sut = std::move( src );
@@ -272,11 +272,11 @@ TEST( TestConstrainedAny, NoValue_CanMoveAssign )
 TEST( TestConstrainedAny, HasValue_CanCopyConstruct )
 {
 	// Arrange
-	int                     value = 42;
-	yan::no_constrained_any src( value );
+	int               value = 42;
+	yan::copyable_any src( value );
 
 	// Act
-	yan::no_constrained_any sut( src );
+	yan::copyable_any sut( src );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -288,11 +288,11 @@ TEST( TestConstrainedAny, HasValue_CanCopyConstruct )
 TEST( TestConstrainedAny, HasValue_CanMoveConstruct )
 {
 	// Arrange
-	int                     value = 42;
-	yan::no_constrained_any src( value );
+	int               value = 42;
+	yan::copyable_any src( value );
 
 	// Act
-	yan::no_constrained_any sut( std::move( src ) );
+	yan::copyable_any sut( std::move( src ) );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -304,9 +304,9 @@ TEST( TestConstrainedAny, HasValue_CanMoveConstruct )
 TEST( TestConstrainedAny, HasValue_CanCopyAssign )
 {
 	// Arrange
-	int                     value = 42;
-	yan::no_constrained_any src( value );
-	yan::no_constrained_any sut;
+	int               value = 42;
+	yan::copyable_any src( value );
+	yan::copyable_any sut;
 
 	// Act
 	sut = src;
@@ -321,9 +321,9 @@ TEST( TestConstrainedAny, HasValue_CanCopyAssign )
 TEST( TestConstrainedAny, HasValue_CanMoveAssign )
 {
 	// Arrange
-	int                     value = 42;
-	yan::no_constrained_any src( value );
-	yan::no_constrained_any sut;
+	int               value = 42;
+	yan::copyable_any src( value );
+	yan::copyable_any sut;
 
 	// Act
 	sut = std::move( src );
@@ -341,7 +341,7 @@ TEST( TestConstrainedAny, CanTranslationConstructorFromLValue )
 	int value = 42;
 
 	// Act
-	yan::no_constrained_any sut = value;
+	yan::copyable_any sut = value;
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -354,7 +354,7 @@ TEST( TestConstrainedAny, CanTranslationConstructorFromRValue )
 	// Arrange
 
 	// Act
-	yan::no_constrained_any sut = static_cast<int>( 42 );
+	yan::copyable_any sut = static_cast<int>( 42 );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -506,7 +506,7 @@ TEST( TestConstrainedAny, CanConstructWithCopyOnlyRvalue )
 	TestCopyOnlyType value( 42 );
 
 	// Act
-	yan::no_constrained_any sut( value );
+	yan::copyable_any sut( value );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -517,11 +517,11 @@ TEST( TestConstrainedAny, CanConstructWithCopyOnlyRvalue )
 TEST( TestConstrainedAny, OnlyCopyType_CanCopyConstruct )
 {
 	// Arrange
-	TestCopyOnlyType        value( 42 );
-	yan::no_constrained_any src( value );
+	TestCopyOnlyType  value( 42 );
+	yan::copyable_any src( value );
 
 	// Act
-	yan::no_constrained_any sut( src );
+	yan::copyable_any sut( src );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -532,11 +532,11 @@ TEST( TestConstrainedAny, OnlyCopyType_CanCopyConstruct )
 TEST( TestConstrainedAny, OnlyCopyType_CanMoveConstruct )
 {
 	// Arrange
-	TestCopyOnlyType        value( 42 );
-	yan::no_constrained_any src( value );
+	TestCopyOnlyType  value( 42 );
+	yan::copyable_any src( value );
 
 	// Act
-	yan::no_constrained_any sut( std::move( src ) );
+	yan::copyable_any sut( std::move( src ) );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -547,9 +547,9 @@ TEST( TestConstrainedAny, OnlyCopyType_CanMoveConstruct )
 TEST( TestConstrainedAny, OnlyCopyType_CanCopyAssign )
 {
 	// Arrange
-	TestCopyOnlyType        value( 42 );
-	yan::no_constrained_any src( value );
-	yan::no_constrained_any sut;
+	TestCopyOnlyType  value( 42 );
+	yan::copyable_any src( value );
+	yan::copyable_any sut;
 
 	// Act
 	sut = src;
@@ -566,9 +566,9 @@ TEST( TestConstrainedAny, OnlyCopyType_CanCopyAssign )
 TEST( TestConstrainedAny, OnlyCopyType_CanMoveAssign )
 {
 	// Arrange
-	TestCopyOnlyType        value( 42 );
-	yan::no_constrained_any src( value );
-	yan::no_constrained_any sut;
+	TestCopyOnlyType  value( 42 );
+	yan::copyable_any src( value );
+	yan::copyable_any sut;
 
 	// Act
 	sut = std::move( src );
@@ -610,11 +610,11 @@ struct TestCopyAndMoveType {
 TEST( TestConstrainedAny, CopyAndMoveType_CanCopyConstruct )
 {
 	// Arrange
-	TestCopyAndMoveType     value( 42 );
-	yan::no_constrained_any src( value );
+	TestCopyAndMoveType value( 42 );
+	yan::copyable_any   src( value );
 
 	// Act
-	yan::no_constrained_any sut( src );
+	yan::copyable_any sut( src );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -628,11 +628,11 @@ TEST( TestConstrainedAny, CopyAndMoveType_CanCopyConstruct )
 TEST( TestConstrainedAny, CopyAndMoveType_CanMoveConstruct )
 {
 	// Arrange
-	TestCopyAndMoveType     value( 42 );
-	yan::no_constrained_any src( value );
+	TestCopyAndMoveType value( 42 );
+	yan::copyable_any   src( value );
 
 	// Act
-	yan::no_constrained_any sut( std::move( src ) );
+	yan::copyable_any sut( std::move( src ) );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -646,9 +646,9 @@ TEST( TestConstrainedAny, CopyAndMoveType_CanMoveConstruct )
 TEST( TestConstrainedAny, CopyAndMoveType_CanCopyAssign )
 {
 	// Arrange
-	TestCopyAndMoveType     value( 42 );
-	yan::no_constrained_any src( value );
-	yan::no_constrained_any sut;
+	TestCopyAndMoveType value( 42 );
+	yan::copyable_any   src( value );
+	yan::copyable_any   sut;
 
 	// Act
 	sut = src;
@@ -665,9 +665,9 @@ TEST( TestConstrainedAny, CopyAndMoveType_CanCopyAssign )
 TEST( TestConstrainedAny, CopyAndMoveType_CanMoveAssign )
 {
 	// Arrange
-	TestCopyAndMoveType     value( 42 );
-	yan::no_constrained_any src( value );
-	yan::no_constrained_any sut;
+	TestCopyAndMoveType value( 42 );
+	yan::copyable_any   src( value );
+	yan::copyable_any   sut;
 
 	// Act
 	sut = std::move( src );

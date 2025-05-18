@@ -1001,7 +1001,7 @@ private:
 
 }   // namespace impl
 
-using no_constrained_any = constrained_any<impl::special_operation_copyable>;   //!< @brief no special operation. this is same to std::any.
+using copyable_any = constrained_any<impl::special_operation_copyable>;   //!< @brief no special operation. this is same to std::any.
 
 /**
  * @brief constrained_any with weak ordering

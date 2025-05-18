@@ -137,8 +137,8 @@ And also, you can use the key of not only std::set, std::map but also std::unord
     }
 ```
 
-## yan::no_constrained_any
-yan::no_constrained_any is a type aliased from yan::constrained_any without any constraint and any special operation.<br>
+## yan::copyable_any
+yan::copyable_any is a type aliased from yan::constrained_any without any constraint and any special operation.<br>
 This is mostly same as std::any.<br>
 
 
@@ -147,21 +147,40 @@ yan::constrained_any is a generalized any type that has the template parameter p
 
 ```cpp
 namespace yan {
-    template <bool RequiresCopy,
-              template <class> class... ConstrainAndOperationArgs>
+    template <template <class> class... ConstrainAndOperationArgs>
     class constrained_any;
 }
 ```
-above is the definition of yan::constrained_any. And it has 2 template paramters<br>
+above is the definition of yan::constrained_any. And it has any template paramters.
 
-1. RequiresCopy: if true, input type is requires copy constructible and copy assignable.<br> And, the copy constructor and copy assignment operator of constrained_any are enabled. Otherwise, they are deleted from constrained_any.
-2. ConstrainAndOperationArgs: this template parameter pack adds the multiple constrains and the specialized member functions to yan::constrained_any.<br>
-    The each type in ConstrainAndOperationArgs requires 2 rules;
-    1. Each type in ConstrainAndOperationArgs should support one template parameter T.<br>(There is 3 meta function classes are prepared. Please see the section "Utility" for the detail.)
-        * Case 1: T is the type of the concrete constrained_any type.
-        * Case 2: T is the type of internal value carrier class of constrained_any. This case, T has the member function named "ref()" that returns the reference of the actual stored type of constrained_any.
-        * Case 3: T is the type of input value type. This case expect to test that type is satisfied by the constraint or not. and that test result is stored in the static constexper bool member variable named "constraint_check_result".
-    2. The type of ConstrainAndOperationArgs should have static constexper bool member variable named "constraint_check_result". and it should be true if the type is acceptable by the constraint.<br>
+## Template parameter pack: ConstrainAndOperationArgs
+This template parameter pack adds the multiple constrains and the specialized member functions to yan::constrained_any.<br>
+
+1. The each constraint type in ConstrainAndOperationArgs should support one template parameter T.
+    * Case 1: T is the type of the concrete constrained_any type.
+    * Case 2: T is the type of internal value carrier class of constrained_any. This case, T has the member function named "ref()" that returns the reference of the actual stored type of constrained_any.
+    * Case 3: T is the type of input value type. This case expect to test that type is satisfied by the constraint or not. and that test result is stored in the static constexper bool member variable named "constraint_check_result".
+
+   There is 3 meta function classes are prepared to identify above 3 cases. Please see the section "Utility" for the detail.
+
+2. The each constraint in ConstrainAndOperationArgs is refered below 3 non-static constexper bool member variable;
+   * require_copy_constructible
+   * require_move_constructible
+   * constraint_check_result
+
+   If a constraint does not have above, yan::constrained_any just does not consider to make a constrainted any.
+   1. require_copy_constructible<br>
+   If a constraint type requires copy constructible to an input type, please define and set value true.<br>
+   If any constraints in ConstrainAndOperationArgs define and set true, copy/move constructor of constrained_any are available.
+   2. require_move_constructible<br>
+   If a constraint type requires move constructible to an input type, please define and set value true.<br>
+   If any constraints in ConstrainAndOperationArgs define and set true, move constructor of constrained_any are available.
+   3. constraint_check_result<br>
+   If a constraint type requires a constraint, please define and set value true or false according to an input type.<bt>
+        * true: an input type satisfies a constraint.
+        * false: an input type does not satisfy a constraint.
+
+      If all of constraints defined constraint_check_result in ConstrainAndOperationArgs are true, an input type is acceptable type as an input type of constrained_any.
 
 Sample implementation of ConstrainAndOperationArgs is in sample/sample_of_constrained_any.cpp.<br>
 impl::special_operation_less\<T\> and impl::special_operation_equal_to\<T\> is also the reference to implement your own constraint and specialized operation.
@@ -238,7 +257,6 @@ const T* get_special_operation_if() const noexcept;  // (7)
 ```cpp
 namespace yan {
     template <class T,
-              bool RequiresCopy,
               template <class> class... ConstrainAndOperationArgs,
               class... Args>
     constrained_any<RequiresCopy, ConstrainAndOperationArgs...> make_constrained_any( Args&&... args );  // (1)
@@ -274,7 +292,7 @@ namespace yan {
 7. see (6)
 
 ### Requirements
-as the pre-condition, using U = remove_cv_t<remove_reference_t<T>>.
+as the pre-condition, using U = remove_cv_t\<remove_reference_t\<T\>\>.
 
 3. std::is_constructible_v\<T, const U&\> == true.
 4. std::is_constructible_v\<T, U&\> == true.
@@ -329,14 +347,24 @@ This helps to implement ConstrainAndOperationArgs class.
 ## How to implement your own constraint any
 please refer to the sample/sample_of_constrained_any.cpp.<br>
 besically you need to implement the following three things;
-1. implement your own constraint to make easy to implement the constraint check in (4)
-2. prepare the interface class of the ConstrainAndOperation. This interface class help to communicate between constrained_any and the actual value type.
-3. implement your own ConstrainAndOperation class accepting one template parameter that is used by CRTP to get actual value type and indentify it is base class of constrained_any or not.
-4. implement static constexpr bool member variable named "constraint_check_result" in the class of (2).<br>
-   This member variable should be true if the type is acceptable by the constraint.<br>
-   And also, this member variable should be false if the type is not acceptable by the constraint. 
+1. Implement your own constraint to make easy to implement the constraint check in (4)
+2. Prepare the interface class of the ConstrainAndOperation. This interface class help to communicate between constrained_any and the actual value type.
+3. Implement your own ConstrainAndOperation class accepting one template parameter that is used by CRTP to get actual value type and indentify it is base class of constrained_any or not.
+4. Optionally, implement 3 static constexpr bool member variable named "require_copy_constructible"/"require_move_constructible"/"constraint_check_result" in the class of above (3).<br>
+   Especially, "constraint_check_result" member variable should be true if the type is acceptable by the constraint. Otherwise, set false.
 5. implement your own constrainted_any
 
 ## ToDo
 * use concept to adapt the constraint and specialized operator
   
+## Remark
+move constructor/move assigner spec of std::any in C++ library does not specify post condition of source of move like has_value() is true or not after move.<br>
+
+Current constrained_any implementation is;<br>
+Even if constrained_any is after move constructor/assigner, it is has_value() == true and value it self is applied move constructor/assigner if it has.<br>
+But, it leads Complex implementation.
+
+On the other hand, if constrained_any is has_value() == false after move constructor/assigner, constrained_any implementation is simpler than above meybe.
+
+From above point of view, there is a trade-off, and I don't know which is better implementation now.
+ 

@@ -124,7 +124,7 @@ template <typename T, template <class> class... ConstrainAndOperationArgs>
 struct is_satisfy_required_copy_constructible_constraint {
 	static constexpr bool are_constrains_required_copy_constructible = are_any_constraints_required_copy_constructible<ConstrainAndOperationArgs...>::value;
 
-	static constexpr bool value = ( are_constrains_required_copy_constructible ? ( std::is_copy_constructible<T>::value && std::is_copy_assignable<T>::value ) : true );
+	static constexpr bool value = ( are_constrains_required_copy_constructible ? std::is_copy_constructible<T>::value : true );
 };
 
 // =====================
@@ -153,7 +153,7 @@ template <typename T, template <class> class... ConstrainAndOperationArgs>
 struct is_satisfy_required_move_constructible_constraint {
 	static constexpr bool are_constrains_required_move_constructible = are_any_constraints_required_move_constructible<ConstrainAndOperationArgs...>::value;
 
-	static constexpr bool value = ( are_constrains_required_move_constructible ? ( std::is_move_constructible<T>::value && std::is_move_assignable<T>::value ) : true );
+	static constexpr bool value = ( are_constrains_required_move_constructible ? std::is_move_constructible<T>::value : true );
 };
 
 // =====================
@@ -207,14 +207,14 @@ template <bool SupportUseMove>
 struct value_carrier_if<true, SupportUseMove> : public value_carrier_if_common {
 	virtual value_carrier_if<true, SupportUseMove>* mk_clone_by_copy_construction() const                       = 0;
 	virtual value_carrier_if<true, SupportUseMove>* mk_clone_by_move_construction()                             = 0;
-	virtual void                                    copy_value( const value_carrier_if<true, SupportUseMove>& ) = 0;
-	virtual void                                    move_value( value_carrier_if<true, SupportUseMove>& )       = 0;
+	virtual value_carrier_if<true, SupportUseMove>* copy_value( const value_carrier_if<true, SupportUseMove>& ) = 0;
+	virtual value_carrier_if<true, SupportUseMove>* move_value( value_carrier_if<true, SupportUseMove>& )       = 0;
 };
 
 template <>
 struct value_carrier_if<false, true> : public value_carrier_if_common {
 	virtual value_carrier_if<false, true>* mk_clone_by_move_construction()              = 0;
-	virtual void                           move_value( value_carrier_if<false, true>& ) = 0;
+	virtual value_carrier_if<false, true>* move_value( value_carrier_if<false, true>& ) = 0;
 };
 
 template <>
@@ -260,11 +260,13 @@ struct value_carrier<void, true, SupportUseMove, ConstrainAndOperationArgs...> :
 		return p;
 	}
 
-	void copy_value( const abst_if_t& src ) override
+	abst_if_t* copy_value( const abst_if_t& src ) override
 	{
+		return nullptr;
 	}
-	void move_value( abst_if_t& src ) override
+	abst_if_t* move_value( abst_if_t& src ) override
 	{
+		return nullptr;
 	}
 };
 
@@ -297,8 +299,9 @@ struct value_carrier<void, false, true, ConstrainAndOperationArgs...> : public v
 		return p;
 	}
 
-	void move_value( abst_if_t& src ) override
+	abst_if_t* move_value( abst_if_t& src ) override
 	{
+		return nullptr;
 	}
 };
 
@@ -371,15 +374,29 @@ struct value_carrier<T, true, SupportUseMove, ConstrainAndOperationArgs...> : pu
 		return p;
 	}
 
-	void copy_value( const abst_if_t& src ) override
+	abst_if_t* copy_value( const abst_if_t& src ) override
 	{
 		const value_carrier& ref_src = dynamic_cast<const value_carrier&>( src );
-		*this                        = ref_src;
+		if constexpr ( std::is_copy_assignable<value_carrier>::value ) {
+			*this = ref_src;
+
+			return nullptr;
+		} else {
+			value_carrier* p = new value_carrier( ref_src );
+			return p;
+		}
 	}
-	void move_value( abst_if_t& src ) override
+	abst_if_t* move_value( abst_if_t& src ) override
 	{
 		value_carrier& ref_src = dynamic_cast<value_carrier&>( src );
-		*this                  = std::move( ref_src );
+		if constexpr ( std::is_move_assignable<value_carrier>::value ) {
+			*this = std::move( ref_src );
+
+			return nullptr;
+		} else {
+			value_carrier* p = new value_carrier( std::move( ref_src ) );
+			return p;
+		}
 	}
 
 private:
@@ -425,10 +442,17 @@ struct value_carrier<T, false, true, ConstrainAndOperationArgs...> : public valu
 		return p;
 	}
 
-	void move_value( abst_if_t& src ) override
+	abst_if_t* move_value( abst_if_t& src ) override
 	{
 		value_carrier& ref_src = dynamic_cast<value_carrier&>( src );
-		*this                  = std::move( ref_src );
+		if constexpr ( std::is_move_assignable<value_carrier>::value ) {
+			*this = std::move( ref_src );
+
+			return nullptr;
+		} else {
+			value_carrier* p = new value_carrier( std::move( ref_src ) );
+			return p;
+		}
 	}
 
 private:
@@ -477,8 +501,11 @@ private:
 /**
  * @brief Constrained any type
  *
- * @tparam RequiresCopy if true, copy constructible and copy assignable are requires for input type, and constrained_any itself supports copy constructor and copy assignment operator.
  * @tparam ConstrainAndOperationArgs template parameter packs for multiple specialized operator classes.
+ *
+ * @note
+ * It is implemented based on the following concepts:
+ * member variable up_carrier_ is always valid (= non nullptr).
  */
 template <template <class> class... ConstrainAndOperationArgs>
 class constrained_any : public ConstrainAndOperationArgs<constrained_any<ConstrainAndOperationArgs...>>... {
@@ -513,7 +540,10 @@ public:
 		if ( this == &rhs ) return *this;
 
 		if ( this->type() == rhs.type() ) {
-			up_carrier_->copy_value( *rhs.up_carrier_ );
+			auto p = up_carrier_->copy_value( *rhs.up_carrier_ );
+			if ( p != nullptr ) {
+				up_carrier_.reset( p );
+			}
 			return *this;
 		}
 
@@ -530,7 +560,10 @@ public:
 		if ( this == &rhs ) return *this;
 
 		if ( this->type() == rhs.type() ) {
-			up_carrier_->move_value( *rhs.up_carrier_ );
+			auto p = up_carrier_->move_value( *rhs.up_carrier_ );
+			if ( p != nullptr ) {
+				up_carrier_.reset( p );
+			}
 			return *this;
 		}
 
@@ -592,7 +625,7 @@ public:
 	constrained_any& operator=( T&& rhs )
 	{
 		if ( this->type() == typeid( VT ) ) {
-			using carrier_t    = impl::value_carrier<VT, RequiresCopy, true, ConstrainAndOperationArgs...>;
+			using carrier_t    = impl::value_carrier<VT, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>;
 			carrier_t& ref_src = dynamic_cast<carrier_t&>( *( up_carrier_.get() ) );   // TODO: should be static_cast
 			ref_src.ref()      = std::forward<T>( rhs );
 			return *this;
@@ -626,32 +659,32 @@ public:
 
 private:
 	template <typename T, class... Args>
-	static auto make_impl_value_carrier( Args&&... args ) -> std::unique_ptr<impl::value_carrier<T, RequiresCopy, true, ConstrainAndOperationArgs...>>
+	static auto make_impl_value_carrier( Args&&... args ) -> std::unique_ptr<impl::value_carrier<T, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>>
 	{
-		return std::make_unique<impl::value_carrier<T, RequiresCopy, true, ConstrainAndOperationArgs...>>( std::in_place_type_t<T> {}, std::forward<Args>( args )... );
+		return std::make_unique<impl::value_carrier<T, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>>( std::in_place_type_t<T> {}, std::forward<Args>( args )... );
 	}
 
 	template <typename T>
-	auto static_cast_T_carrier() const -> const impl::value_carrier<T, RequiresCopy, true, ConstrainAndOperationArgs...>*
+	auto static_cast_T_carrier() const -> const impl::value_carrier<T, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>*
 	{
 		if ( this->type() != typeid( T ) ) {
 			return nullptr;
 		}
 
-		return static_cast<const impl::value_carrier<T, RequiresCopy, true, ConstrainAndOperationArgs...>*>( up_carrier_.get() );
+		return static_cast<const impl::value_carrier<T, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>*>( up_carrier_.get() );
 	}
 
 	template <typename T>
-	auto static_cast_T_carrier() -> impl::value_carrier<T, RequiresCopy, true, ConstrainAndOperationArgs...>*
+	auto static_cast_T_carrier() -> impl::value_carrier<T, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>*
 	{
 		if ( this->type() != typeid( T ) ) {
 			return nullptr;
 		}
 
-		return static_cast<impl::value_carrier<T, RequiresCopy, true, ConstrainAndOperationArgs...>*>( up_carrier_.get() );
+		return static_cast<impl::value_carrier<T, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>*>( up_carrier_.get() );
 	}
 
-	std::unique_ptr<impl::value_carrier_if<RequiresCopy, true>> up_carrier_;
+	std::unique_ptr<impl::value_carrier_if<RequiresCopy, RequiresMove>> up_carrier_;
 
 	template <class T, template <class> class... USpecializedOperator>
 	friend T constrained_any_cast( const constrained_any<USpecializedOperator...>& operand );
@@ -851,9 +884,7 @@ public:
 		const special_operation_less_if* p_a_soi = p_a->template get_special_operation_if<special_operation_less_if>();
 		const special_operation_less_if* p_b_soi = p_b->template get_special_operation_if<special_operation_less_if>();
 		if ( p_a_soi == nullptr ) {
-			// this means both this and b have no value. Therefore *this == b.
-			// So, *this < b is false.
-			return false;
+			throw std::logic_error( "constrained_any should be get valid pointer of special_operation_less_if. But it failed." );
 		}
 
 		return p_a_soi->specialized_operation_less_proxy( p_b_soi );
@@ -871,7 +902,7 @@ private:
 			const Carrier* p_a_carrier = static_cast<const Carrier*>( this );
 			const Carrier* p_b_carrier = dynamic_cast<const Carrier*>( p_b_if );
 			if ( p_b_carrier == nullptr ) {
-				throw std::bad_any_cast();
+				throw std::logic_error( "p_b_if of less_by_value() should be success to cast to same type to this. But it failed." );
 			}
 
 			return p_a_carrier->ref() < p_b_carrier->ref();
@@ -910,7 +941,7 @@ public:
 		const special_operation_equal_to_if* p_a_soi = p_a->template get_special_operation_if<special_operation_equal_to_if>();
 		const special_operation_equal_to_if* p_b_soi = p_b->template get_special_operation_if<special_operation_equal_to_if>();
 		if ( p_a_soi == nullptr ) {
-			return false;
+			throw std::logic_error( "constrained_any should be get valid pointer of special_operation_equal_to_if. But it failed." );
 		}
 
 		return p_a_soi->specialized_operation_equal_to_proxy( p_b_soi );
@@ -928,7 +959,7 @@ private:
 			const Carrier* p_a_carrier = static_cast<const Carrier*>( this );
 			const Carrier* p_b_carrier = dynamic_cast<const Carrier*>( p_b_if );
 			if ( p_b_carrier == nullptr ) {
-				throw std::bad_any_cast();
+				throw std::logic_error( "p_b_if of less_by_value() should be success to cast to same type to this. But it failed." );
 			}
 
 			return p_a_carrier->ref() == p_b_carrier->ref();
@@ -959,7 +990,7 @@ public:
 
 		const special_operation_hash_value_if* p_a_soi = p_a->template get_special_operation_if<special_operation_hash_value_if>();
 		if ( p_a_soi == nullptr ) {
-			return 0;
+			throw std::logic_error( "constrained_any should be get valid pointer of special_operation_hash_value_if. But it failed." );
 		}
 
 		return p_a_soi->specialized_operation_hash_value_proxy();
@@ -982,7 +1013,22 @@ private:
 
 }   // namespace impl
 
-using copyable_any = constrained_any<impl::special_operation_copyable>;   //!< @brief no special operation. this is same to std::any.
+/**
+ * @brief any type that could stores the copy constructible type
+ *
+ * This constrained any has copy/move constructor and copy/move assigner.
+ *
+ * @note
+ * This is same to std::any.
+ */
+using copyable_any = constrained_any<impl::special_operation_copyable>;
+
+/**
+ * @brief any type that could stores the move constructible type
+ *
+ * This constrained any has move constructor and move assigner.
+ */
+using movable_any = constrained_any<impl::special_operation_movable>;
 
 /**
  * @brief constrained_any with weak ordering

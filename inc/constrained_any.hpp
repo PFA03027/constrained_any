@@ -207,14 +207,14 @@ template <bool SupportUseMove>
 struct value_carrier_if<true, SupportUseMove> : public value_carrier_if_common {
 	virtual value_carrier_if<true, SupportUseMove>* mk_clone_by_copy_construction() const                       = 0;
 	virtual value_carrier_if<true, SupportUseMove>* mk_clone_by_move_construction()                             = 0;
-	virtual void                                    copy_value( const value_carrier_if<true, SupportUseMove>& ) = 0;
-	virtual void                                    move_value( value_carrier_if<true, SupportUseMove>& )       = 0;
+	virtual value_carrier_if<true, SupportUseMove>* copy_value( const value_carrier_if<true, SupportUseMove>& ) = 0;
+	virtual value_carrier_if<true, SupportUseMove>* move_value( value_carrier_if<true, SupportUseMove>& )       = 0;
 };
 
 template <>
 struct value_carrier_if<false, true> : public value_carrier_if_common {
 	virtual value_carrier_if<false, true>* mk_clone_by_move_construction()              = 0;
-	virtual void                           move_value( value_carrier_if<false, true>& ) = 0;
+	virtual value_carrier_if<false, true>* move_value( value_carrier_if<false, true>& ) = 0;
 };
 
 template <>
@@ -260,11 +260,13 @@ struct value_carrier<void, true, SupportUseMove, ConstrainAndOperationArgs...> :
 		return p;
 	}
 
-	void copy_value( const abst_if_t& src ) override
+	abst_if_t* copy_value( const abst_if_t& src ) override
 	{
+		return nullptr;
 	}
-	void move_value( abst_if_t& src ) override
+	abst_if_t* move_value( abst_if_t& src ) override
 	{
+		return nullptr;
 	}
 };
 
@@ -297,8 +299,9 @@ struct value_carrier<void, false, true, ConstrainAndOperationArgs...> : public v
 		return p;
 	}
 
-	void move_value( abst_if_t& src ) override
+	abst_if_t* move_value( abst_if_t& src ) override
 	{
+		return nullptr;
 	}
 };
 
@@ -371,15 +374,19 @@ struct value_carrier<T, true, SupportUseMove, ConstrainAndOperationArgs...> : pu
 		return p;
 	}
 
-	void copy_value( const abst_if_t& src ) override
+	abst_if_t* copy_value( const abst_if_t& src ) override
 	{
 		const value_carrier& ref_src = dynamic_cast<const value_carrier&>( src );
 		*this                        = ref_src;
+
+		return nullptr;
 	}
-	void move_value( abst_if_t& src ) override
+	abst_if_t* move_value( abst_if_t& src ) override
 	{
 		value_carrier& ref_src = dynamic_cast<value_carrier&>( src );
 		*this                  = std::move( ref_src );
+
+		return nullptr;
 	}
 
 private:
@@ -425,10 +432,12 @@ struct value_carrier<T, false, true, ConstrainAndOperationArgs...> : public valu
 		return p;
 	}
 
-	void move_value( abst_if_t& src ) override
+	abst_if_t* move_value( abst_if_t& src ) override
 	{
 		value_carrier& ref_src = dynamic_cast<value_carrier&>( src );
 		*this                  = std::move( ref_src );
+
+		return nullptr;
 	}
 
 private:
@@ -513,7 +522,10 @@ public:
 		if ( this == &rhs ) return *this;
 
 		if ( this->type() == rhs.type() ) {
-			up_carrier_->copy_value( *rhs.up_carrier_ );
+			auto p = up_carrier_->copy_value( *rhs.up_carrier_ );
+			if ( p != nullptr ) {
+				up_carrier_.reset( p );
+			}
 			return *this;
 		}
 
@@ -530,7 +542,10 @@ public:
 		if ( this == &rhs ) return *this;
 
 		if ( this->type() == rhs.type() ) {
-			up_carrier_->move_value( *rhs.up_carrier_ );
+			auto p = up_carrier_->move_value( *rhs.up_carrier_ );
+			if ( p != nullptr ) {
+				up_carrier_.reset( p );
+			}
 			return *this;
 		}
 
@@ -592,7 +607,7 @@ public:
 	constrained_any& operator=( T&& rhs )
 	{
 		if ( this->type() == typeid( VT ) ) {
-			using carrier_t    = impl::value_carrier<VT, RequiresCopy, true, ConstrainAndOperationArgs...>;
+			using carrier_t    = impl::value_carrier<VT, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>;
 			carrier_t& ref_src = dynamic_cast<carrier_t&>( *( up_carrier_.get() ) );   // TODO: should be static_cast
 			ref_src.ref()      = std::forward<T>( rhs );
 			return *this;
@@ -626,32 +641,32 @@ public:
 
 private:
 	template <typename T, class... Args>
-	static auto make_impl_value_carrier( Args&&... args ) -> std::unique_ptr<impl::value_carrier<T, RequiresCopy, true, ConstrainAndOperationArgs...>>
+	static auto make_impl_value_carrier( Args&&... args ) -> std::unique_ptr<impl::value_carrier<T, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>>
 	{
-		return std::make_unique<impl::value_carrier<T, RequiresCopy, true, ConstrainAndOperationArgs...>>( std::in_place_type_t<T> {}, std::forward<Args>( args )... );
+		return std::make_unique<impl::value_carrier<T, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>>( std::in_place_type_t<T> {}, std::forward<Args>( args )... );
 	}
 
 	template <typename T>
-	auto static_cast_T_carrier() const -> const impl::value_carrier<T, RequiresCopy, true, ConstrainAndOperationArgs...>*
+	auto static_cast_T_carrier() const -> const impl::value_carrier<T, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>*
 	{
 		if ( this->type() != typeid( T ) ) {
 			return nullptr;
 		}
 
-		return static_cast<const impl::value_carrier<T, RequiresCopy, true, ConstrainAndOperationArgs...>*>( up_carrier_.get() );
+		return static_cast<const impl::value_carrier<T, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>*>( up_carrier_.get() );
 	}
 
 	template <typename T>
-	auto static_cast_T_carrier() -> impl::value_carrier<T, RequiresCopy, true, ConstrainAndOperationArgs...>*
+	auto static_cast_T_carrier() -> impl::value_carrier<T, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>*
 	{
 		if ( this->type() != typeid( T ) ) {
 			return nullptr;
 		}
 
-		return static_cast<impl::value_carrier<T, RequiresCopy, true, ConstrainAndOperationArgs...>*>( up_carrier_.get() );
+		return static_cast<impl::value_carrier<T, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>*>( up_carrier_.get() );
 	}
 
-	std::unique_ptr<impl::value_carrier_if<RequiresCopy, true>> up_carrier_;
+	std::unique_ptr<impl::value_carrier_if<RequiresCopy, RequiresMove>> up_carrier_;
 
 	template <class T, template <class> class... USpecializedOperator>
 	friend T constrained_any_cast( const constrained_any<USpecializedOperator...>& operand );

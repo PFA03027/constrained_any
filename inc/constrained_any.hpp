@@ -572,7 +572,7 @@ public:
 				  ( RequiresCopy || RequiresMove ) &&
 				  !is_related_type_of_constrained_any<typename impl::remove_cvref<T>::type>::value &&
 				  impl::is_acceptable_value_type<VT, ConstrainAndOperationArgs...>::value>::type* = nullptr>
-	explicit constrained_any( T&& v )
+	constrained_any( T&& v )
 	  : constrained_any( std::in_place_type<std::decay_t<T>>, std::forward<T>( v ) )
 	{
 	}
@@ -1011,7 +1011,23 @@ using no_constrained_any = constrained_any<impl::special_operation_copyable>;   
  * Therefore, this class can be used as a key type in std::map or std::set.
  */
 using weak_ordering_any = constrained_any<impl::special_operation_less>;
-inline bool operator<( const weak_ordering_any& lhs, const weak_ordering_any& rhs )
+
+/**
+ * @brief less operator(operator <) of weak_ordering_any
+ *
+ * @tparam T weak_ordering_any is only acceptable
+ * @param lhs left side variable of operator <
+ * @param rhs right side variable of operator <
+ * @return expression result of lhs < rhs
+ *
+ * @note
+ * any type absoves all type.@n
+ * Therefore, because un-explicit translation constructor leads implicit conversion for all type, it leads unexpected overload resolution of general name function.
+ * To avoid this implicit conversion, general name function is defined by template parameter T with SFINE to apply only target constraind_any<...> type.
+ *
+ */
+template <typename T, typename std::enable_if<!std::is_same<T, weak_ordering_any>::value>::type* = nullptr>
+inline bool operator<( const T& lhs, const T& rhs )
 {
 	return lhs.less( rhs );
 }
@@ -1024,7 +1040,23 @@ inline bool operator<( const weak_ordering_any& lhs, const weak_ordering_any& rh
  * Therefore, this class can be used as a key type in std::unordered_set or std::unordered_map.
  */
 using unordered_key_any = constrained_any<impl::special_operation_hash_value, impl::special_operation_equal_to>;
-inline bool operator==( const unordered_key_any& lhs, const unordered_key_any& rhs )
+
+/**
+ * @brief less operator(operator ==) of unordered_key_any
+ *
+ * @tparam T unordered_key_any is only acceptable
+ * @param lhs left side variable of operator ==
+ * @param rhs right side variable of operator ==
+ * @return expression result of lhs < rhs
+ *
+ * @note
+ * any type absoves all type.@n
+ * Therefore, because un-explicit translation constructor leads implicit conversion for all type, it leads unexpected overload resolution of general name function.
+ * To avoid this implicit conversion, general name function is defined by template parameter T with SFINE to apply only target constraind_any<...> type.
+ *
+ */
+template <typename T, typename std::enable_if<!std::is_same<T, unordered_key_any>::value>::type* = nullptr>
+inline bool operator==( const T& lhs, const T& rhs )
 {
 	return lhs.equal_to( rhs );
 }
@@ -1038,12 +1070,43 @@ inline bool operator==( const unordered_key_any& lhs, const unordered_key_any& r
  * This class can also be used as a key type in std::set or std::map.
  */
 using keyable_any = constrained_any<impl::special_operation_less, impl::special_operation_hash_value, impl::special_operation_equal_to>;
-inline bool operator<( const keyable_any& lhs, const keyable_any& rhs )
+
+/**
+ * @brief less operator(operator <) of keyable_any
+ *
+ * @tparam T keyable_any is only acceptable
+ * @param lhs left side variable of operator <
+ * @param rhs right side variable of operator <
+ * @return expression result of lhs < rhs
+ *
+ * @note
+ * any type absoves all type.@n
+ * Therefore, because un-explicit translation constructor leads implicit conversion for all type, it leads unexpected overload resolution of general name function.
+ * To avoid this implicit conversion, general name function is defined by template parameter T with SFINE to apply only target constraind_any<...> type.
+ *
+ */
+template <typename T, typename std::enable_if<!std::is_same<T, keyable_any>::value>::type* = nullptr>
+inline bool operator<( const T& lhs, const T& rhs )
 {
 	return lhs.less( rhs );
 }
 
-inline bool operator==( const keyable_any& lhs, const keyable_any& rhs )
+/**
+ * @brief less operator(operator ==) of keyable_any
+ *
+ * @tparam T keyable_any is only acceptable
+ * @param lhs left side variable of operator ==
+ * @param rhs right side variable of operator ==
+ * @return expression result of lhs < rhs
+ *
+ * @note
+ * any type absoves all type.@n
+ * Therefore, because un-explicit translation constructor leads implicit conversion for all type, it leads unexpected overload resolution of general name function.
+ * To avoid this implicit conversion, general name function is defined by template parameter T with SFINE to apply only target constraind_any<...> type.
+ *
+ */
+template <typename T, typename std::enable_if<!std::is_same<T, keyable_any>::value>::type* = nullptr>
+inline bool operator==( const T& lhs, const T& rhs )
 {
 	return lhs.equal_to( rhs );
 }

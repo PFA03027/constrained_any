@@ -227,5 +227,8 @@ int main( void )
 		std::cout << "vector item: " << item.to_string() << std::endl;
 	}
 
+	// Check what constructor is called.
+	string_convertible_any foo_any2 = foo_value;
+
 	return 0;
 }

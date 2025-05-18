@@ -335,6 +335,33 @@ TEST( TestConstrainedAny, HasValue_CanMoveAssign )
 	EXPECT_TRUE( src.has_value() );
 }
 
+TEST( TestConstrainedAny, CanTranslationConstructorFromLValue )
+{
+	// Arrange
+	int value = 42;
+
+	// Act
+	yan::no_constrained_any sut = value;
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( int ) );
+	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), value );
+}
+
+TEST( TestConstrainedAny, CanTranslationConstructorFromRValue )
+{
+	// Arrange
+
+	// Act
+	yan::no_constrained_any sut = static_cast<int>( 42 );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( int ) );
+	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), 42 );
+}
+
 // ================================================================
 
 struct is_callable_print_impl {

@@ -46,6 +46,71 @@ struct TestMoveOnlyType {
 	  : v_( v ) {}
 };
 
+struct TestCopyAndMoveType {
+	int v_;
+
+	TestCopyAndMoveType()
+	  : v_( 0 ) {}
+	TestCopyAndMoveType( const TestCopyAndMoveType& ) = default;
+	TestCopyAndMoveType( TestCopyAndMoveType&& src )
+	  : v_( src.v_ )
+	{
+		src.v_ = 0;
+	}
+	TestCopyAndMoveType& operator=( const TestCopyAndMoveType& ) = default;
+	TestCopyAndMoveType& operator=( TestCopyAndMoveType&& src )
+	{
+		v_     = src.v_;
+		src.v_ = 0;
+		return *this;
+	}
+
+	TestCopyAndMoveType( int v )
+	  : v_( v ) {}
+};
+
+struct TestCopyConstructOnly {
+	int v_;
+
+	TestCopyConstructOnly()
+	  : v_( 0 ) {}
+	TestCopyConstructOnly( const TestCopyConstructOnly& )            = default;
+	TestCopyConstructOnly( TestCopyOnlyType&& )                      = delete;
+	TestCopyConstructOnly& operator=( const TestCopyConstructOnly& ) = delete;
+	TestCopyConstructOnly& operator=( TestCopyConstructOnly&& )      = delete;
+
+	TestCopyConstructOnly( int v )
+	  : v_( v ) {}
+};
+
+struct TestMoveConstructOnly {
+	int v_;
+
+	TestMoveConstructOnly()
+	  : v_( 0 ) {}
+	TestMoveConstructOnly( const TestMoveConstructOnly& )            = delete;
+	TestMoveConstructOnly( TestMoveConstructOnly&& )                 = default;
+	TestMoveConstructOnly& operator=( const TestMoveConstructOnly& ) = delete;
+	TestMoveConstructOnly& operator=( TestMoveConstructOnly&& )      = delete;
+
+	TestMoveConstructOnly( int v )
+	  : v_( v ) {}
+};
+
+struct TestCopyMoveConstructOnly {
+	int v_;
+
+	TestCopyMoveConstructOnly()
+	  : v_( 0 ) {}
+	TestCopyMoveConstructOnly( const TestCopyMoveConstructOnly& )            = default;
+	TestCopyMoveConstructOnly( TestCopyMoveConstructOnly&& )                 = default;
+	TestCopyMoveConstructOnly& operator=( const TestCopyMoveConstructOnly& ) = delete;
+	TestCopyMoveConstructOnly& operator=( TestCopyMoveConstructOnly&& )      = delete;
+
+	TestCopyMoveConstructOnly( int v )
+	  : v_( v ) {}
+};
+
 // ================================================
 
 template <typename T>
@@ -165,6 +230,11 @@ static_assert( yan::impl::is_acceptable_value_type<TestMoveOnlyType, yan::impl::
 static_assert( yan::impl::are_any_constraints_required_copy_constructible<yan::impl::special_operation_less>::value == true, "int should be acceptable type" );
 static_assert( yan::impl::are_any_constraints_required_copy_constructible<yan::impl::special_operation_equal_to>::value == true, "int should be acceptable type" );
 static_assert( yan::impl::are_any_constraints_required_copy_constructible<yan::impl::special_operation_hash_value>::value == true, "int should be acceptable type" );
+
+static_assert( yan::impl::is_acceptable_value_type<TestCopyConstructOnly, yan::impl::special_operation_copyable>::value == true, "TestCopyConstructOnly should be acceptable type" );
+static_assert( yan::impl::is_acceptable_value_type<TestCopyConstructOnly, yan::impl::special_operation_movable>::value == true, "TestCopyConstructOnly should be acceptable type" );
+static_assert( yan::impl::is_acceptable_value_type<TestMoveConstructOnly, yan::impl::special_operation_copyable>::value == false, "TestCopyConstructOnly should be acceptable type" );
+static_assert( yan::impl::is_acceptable_value_type<TestMoveConstructOnly, yan::impl::special_operation_movable>::value == true, "TestCopyConstructOnly should be acceptable type" );
 
 // ================================================
 
@@ -360,6 +430,145 @@ TEST( TestConstrainedAny, CanTranslationConstructorFromRValue )
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( int ) );
 	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), 42 );
+}
+
+TEST( TestConstrainedAny, CanSwap )
+{
+	// Arrange
+	yan::copyable_any sut = static_cast<int>( 42 );
+	yan::copyable_any src = static_cast<double>( 3.0 );
+
+	// Act
+	sut.swap( src );
+
+	// Assert
+	EXPECT_TRUE( src.has_value() );
+	EXPECT_EQ( src.type(), typeid( int ) );
+	EXPECT_EQ( yan::constrained_any_cast<int>( src ), 42 );
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( double ) );
+	EXPECT_EQ( yan::constrained_any_cast<double>( sut ), 3.0 );
+}
+
+TEST( TestConstrainedAny, StoreCopyConstructOnly_CanCopyAssignToDifferentTypeStoredAny )
+{
+	// Arrange
+	TestCopyConstructOnly tv( 1 );
+	yan::copyable_any     sut( static_cast<int>( 42 ) );
+	yan::copyable_any     src( tv );
+
+	// Act
+	sut = src;
+
+	// Assert
+	EXPECT_TRUE( src.has_value() );
+	EXPECT_EQ( src.type(), typeid( TestCopyConstructOnly ) );
+	EXPECT_EQ( yan::constrained_any_cast<TestCopyConstructOnly&>( src ).v_, 1 );
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( TestCopyConstructOnly ) );
+	EXPECT_EQ( yan::constrained_any_cast<TestCopyConstructOnly&>( sut ).v_, 1 );
+}
+
+TEST( TestConstrainedAny, StoreCopyConstructOnly_CanCopyAssignToSameTypeStoredAny )
+{
+	// Arrange
+	TestCopyConstructOnly sut_v( 2 );
+	TestCopyConstructOnly src_v( 1 );
+	yan::copyable_any     sut( sut_v );
+	yan::copyable_any     src( src_v );
+
+	// Act
+	sut = src;
+
+	// Assert
+	EXPECT_TRUE( src.has_value() );
+	EXPECT_EQ( src.type(), typeid( TestCopyConstructOnly ) );
+	EXPECT_EQ( yan::constrained_any_cast<TestCopyConstructOnly&>( src ).v_, 1 );
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( TestCopyConstructOnly ) );
+	EXPECT_EQ( yan::constrained_any_cast<TestCopyConstructOnly&>( sut ).v_, 1 );
+}
+
+TEST( TestConstrainedAny, StoreCopyConstructOnly_CanMoveAssignToDifferentTypeStoredAny )
+{
+	// Arrange
+	TestCopyConstructOnly tv( 1 );
+	yan::copyable_any     sut( static_cast<int>( 42 ) );
+	yan::copyable_any     src( tv );
+
+	// Act
+	sut = std::move( src );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( TestCopyConstructOnly ) );
+	EXPECT_EQ( yan::constrained_any_cast<TestCopyConstructOnly&>( sut ).v_, 1 );
+	// source status is not specified by C++ standard spec of std::any
+	// EXPECT_TRUE( src.has_value() );
+	// EXPECT_EQ( src.type(), typeid( TestCopyConstructOnly ) );
+	// EXPECT_EQ( yan::constrained_any_cast<TestCopyConstructOnly&>( src ).v_, 1 );
+}
+
+TEST( TestConstrainedAny, StoreCopyConstructOnly_CanMoveAssignToSameTypeStoredAny )
+{
+	// Arrange
+	TestCopyConstructOnly sut_v( 2 );
+	TestCopyConstructOnly src_v( 1 );
+	yan::copyable_any     sut( sut_v );
+	yan::copyable_any     src( src_v );
+
+	// Act
+	sut = std::move( src );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( TestCopyConstructOnly ) );
+	EXPECT_EQ( yan::constrained_any_cast<TestCopyConstructOnly&>( sut ).v_, 1 );
+	// source status is not specified by C++ standard spec of std::any
+	// EXPECT_TRUE( src.has_value() );
+	// EXPECT_EQ( src.type(), typeid( TestCopyConstructOnly ) );
+	// EXPECT_EQ( yan::constrained_any_cast<TestCopyConstructOnly&>( src ).v_, 1 );
+}
+
+TEST( TestConstrainedAny, StoreMoveConstructOnly_CanMoveAssignToDifferentTypeStoredAny )
+{
+	// Arrange
+	TestMoveConstructOnly tv( 1 );
+	yan::movable_any      sut( static_cast<int>( 42 ) );
+	yan::movable_any      src( std::move( tv ) );
+
+	// Act
+	sut = std::move( src );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( TestMoveConstructOnly ) );
+	EXPECT_EQ( yan::constrained_any_cast<TestMoveConstructOnly&>( sut ).v_, 1 );
+	// source status is not specified by C++ standard spec of std::any
+	// EXPECT_TRUE( src.has_value() );
+	// EXPECT_EQ( src.type(), typeid( TestMoveConstructOnly ) );
+	// EXPECT_EQ( yan::constrained_any_cast<TestMoveConstructOnly&>( src ).v_, 1 );
+}
+
+TEST( TestConstrainedAny, StoreMoveConstructOnly_CanMoveAssignToSameTypeStoredAny )
+{
+	// Arrange
+	TestMoveConstructOnly sut_v( 2 );
+	TestMoveConstructOnly src_v( 1 );
+	yan::movable_any      sut( std::move( sut_v ) );
+	yan::movable_any      src( std::move( src_v ) );
+
+	// Act
+	sut = std::move( src );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( TestMoveConstructOnly ) );
+	EXPECT_EQ( yan::constrained_any_cast<TestMoveConstructOnly&>( sut ).v_, 1 );
+	// source status is not specified by C++ standard spec of std::any
+	// EXPECT_TRUE( src.has_value() );
+	// EXPECT_EQ( src.type(), typeid( TestMoveConstructOnly ) );
+	// EXPECT_EQ( yan::constrained_any_cast<TestMoveConstructOnly&>( src ).v_, 1 );
 }
 
 // ================================================================
@@ -583,29 +792,6 @@ TEST( TestConstrainedAny, OnlyCopyType_CanMoveAssign )
 }
 
 // ================================================================
-
-struct TestCopyAndMoveType {
-	int v_;
-
-	TestCopyAndMoveType()
-	  : v_( 0 ) {}
-	TestCopyAndMoveType( const TestCopyAndMoveType& ) = default;
-	TestCopyAndMoveType( TestCopyAndMoveType&& src )
-	  : v_( src.v_ )
-	{
-		src.v_ = 0;
-	}
-	TestCopyAndMoveType& operator=( const TestCopyAndMoveType& ) = default;
-	TestCopyAndMoveType& operator=( TestCopyAndMoveType&& src )
-	{
-		v_     = src.v_;
-		src.v_ = 0;
-		return *this;
-	}
-
-	TestCopyAndMoveType( int v )
-	  : v_( v ) {}
-};
 
 TEST( TestConstrainedAny, CopyAndMoveType_CanCopyConstruct )
 {

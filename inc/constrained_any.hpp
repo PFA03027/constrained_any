@@ -124,7 +124,7 @@ template <typename T, template <class> class... ConstrainAndOperationArgs>
 struct is_satisfy_required_copy_constructible_constraint {
 	static constexpr bool are_constrains_required_copy_constructible = are_any_constraints_required_copy_constructible<ConstrainAndOperationArgs...>::value;
 
-	static constexpr bool value = ( are_constrains_required_copy_constructible ? ( std::is_copy_constructible<T>::value && std::is_copy_assignable<T>::value ) : true );
+	static constexpr bool value = ( are_constrains_required_copy_constructible ? std::is_copy_constructible<T>::value : true );
 };
 
 // =====================
@@ -153,7 +153,7 @@ template <typename T, template <class> class... ConstrainAndOperationArgs>
 struct is_satisfy_required_move_constructible_constraint {
 	static constexpr bool are_constrains_required_move_constructible = are_any_constraints_required_move_constructible<ConstrainAndOperationArgs...>::value;
 
-	static constexpr bool value = ( are_constrains_required_move_constructible ? ( std::is_move_constructible<T>::value && std::is_move_assignable<T>::value ) : true );
+	static constexpr bool value = ( are_constrains_required_move_constructible ? std::is_move_constructible<T>::value : true );
 };
 
 // =====================
@@ -1012,7 +1012,22 @@ private:
 
 }   // namespace impl
 
-using copyable_any = constrained_any<impl::special_operation_copyable>;   //!< @brief no special operation. this is same to std::any.
+/**
+ * @brief any type that could stores the copy constructible type
+ *
+ * This constrained any has copy/move constructor and copy/move assigner.
+ *
+ * @note
+ * This is same to std::any.
+ */
+using copyable_any = constrained_any<impl::special_operation_copyable>;
+
+/**
+ * @brief any type that could stores the move constructible type
+ *
+ * This constrained any has move constructor and move assigner.
+ */
+using movable_any = constrained_any<impl::special_operation_movable>;
 
 /**
  * @brief constrained_any with weak ordering

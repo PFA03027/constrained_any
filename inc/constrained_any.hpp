@@ -377,16 +377,26 @@ struct value_carrier<T, true, SupportUseMove, ConstrainAndOperationArgs...> : pu
 	abst_if_t* copy_value( const abst_if_t& src ) override
 	{
 		const value_carrier& ref_src = dynamic_cast<const value_carrier&>( src );
-		*this                        = ref_src;
+		if constexpr ( std::is_copy_assignable<value_carrier>::value ) {
+			*this = ref_src;
 
-		return nullptr;
+			return nullptr;
+		} else {
+			value_carrier* p = new value_carrier( ref_src );
+			return p;
+		}
 	}
 	abst_if_t* move_value( abst_if_t& src ) override
 	{
 		value_carrier& ref_src = dynamic_cast<value_carrier&>( src );
-		*this                  = std::move( ref_src );
+		if constexpr ( std::is_move_assignable<value_carrier>::value ) {
+			*this = std::move( ref_src );
 
-		return nullptr;
+			return nullptr;
+		} else {
+			value_carrier* p = new value_carrier( std::move( ref_src ) );
+			return p;
+		}
 	}
 
 private:
@@ -435,9 +445,14 @@ struct value_carrier<T, false, true, ConstrainAndOperationArgs...> : public valu
 	abst_if_t* move_value( abst_if_t& src ) override
 	{
 		value_carrier& ref_src = dynamic_cast<value_carrier&>( src );
-		*this                  = std::move( ref_src );
+		if constexpr ( std::is_move_assignable<value_carrier>::value ) {
+			*this = std::move( ref_src );
 
-		return nullptr;
+			return nullptr;
+		} else {
+			value_carrier* p = new value_carrier( std::move( ref_src ) );
+			return p;
+		}
 	}
 
 private:

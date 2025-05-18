@@ -29,6 +29,13 @@ namespace yan {   // yet another
 
 namespace impl {
 class constrained_any_tag {};
+
+struct value_carrier_if_common {
+	virtual ~value_carrier_if_common() = default;
+
+	virtual const std::type_info& get_type_info() const noexcept = 0;
+};
+
 }   // namespace impl
 
 template <template <class> class... ConstrainAndOperationArgs>
@@ -59,6 +66,31 @@ struct is_specialized_of_constrained_any<constrained_any<ConstrainAndOperationAr
 
 template <>
 struct is_specialized_of_constrained_any<impl::constrained_any_tag> : public std::true_type {};
+
+/**
+ * @brief meta function to check if T is specialized type of value_carrier class in constrained_any
+ *
+ * this class is the helper class to implement constrained and operation class.
+ *
+ * @tparam T type to check
+ */
+template <typename T>
+struct is_value_carrier_of_constrained_any {
+	static constexpr bool value = !is_specialized_of_constrained_any<T>::value &&
+	                              std::is_base_of<impl::value_carrier_if_common, T>::value;
+};
+
+/**
+ * @brief meta function to check if T is not specialized type of constrained_any and not value_carrier class in constrained_any
+ *
+ * this class is the helper class to implement constrained and operation class.
+ *
+ * @tparam T type to check
+ */
+template <typename T>
+struct is_related_type_of_constrained_any {
+	static constexpr bool value = is_specialized_of_constrained_any<T>::value || is_value_carrier_of_constrained_any<T>::value;
+};
 
 namespace impl {
 
@@ -167,12 +199,6 @@ struct is_acceptable_value_type<std::any, UConstrainAndOperationArgs...> {
 };
 
 // =====================
-
-struct value_carrier_if_common {
-	virtual ~value_carrier_if_common() = default;
-
-	virtual const std::type_info& get_type_info() const noexcept = 0;
-};
 
 template <bool SupportUseCopy, bool SupportUseMove>
 struct value_carrier_if;
@@ -446,52 +472,7 @@ private:
 	value_type value_;
 };
 
-struct is_callable_ref_impl {
-	template <typename T>
-	static auto check( T* ) -> decltype( std::declval<T>().ref(), std::true_type() );
-	template <typename T>
-	static auto check( ... ) -> std::false_type;
-};
-
-template <typename T>
-struct is_callable_ref : public decltype( impl::is_callable_ref_impl::check<T>( nullptr ) ) {};
-
-struct is_defined_value_type_impl {
-	template <typename T, typename VT = typename impl::remove_cvref<T>::type, typename VT::value_type* = nullptr>
-	static auto check( T* ) -> std::true_type;
-	template <typename T>
-	static auto check( ... ) -> std::false_type;
-};
-
-template <typename T>
-struct is_defined_value_type : public decltype( is_defined_value_type_impl::check<T>( nullptr ) ) {};
-
 }   // namespace impl
-
-/**
- * @brief meta function to check if T is specialized type of value_carrier class in constrained_any
- *
- * this class is the helper class to implement constrained and operation class.
- *
- * @tparam T type to check
- */
-template <typename T>
-struct is_value_carrier_of_constrained_any {
-	static constexpr bool value = !is_specialized_of_constrained_any<T>::value &&
-	                              std::is_base_of<impl::value_carrier_if_common, T>::value;
-};
-
-/**
- * @brief meta function to check if T is not specialized type of constrained_any and not value_carrier class in constrained_any
- *
- * this class is the helper class to implement constrained and operation class.
- *
- * @tparam T type to check
- */
-template <typename T>
-struct is_related_type_of_constrained_any {
-	static constexpr bool value = is_specialized_of_constrained_any<T>::value || is_value_carrier_of_constrained_any<T>::value;
-};
 
 /**
  * @brief Constrained any type

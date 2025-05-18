@@ -501,8 +501,11 @@ private:
 /**
  * @brief Constrained any type
  *
- * @tparam RequiresCopy if true, copy constructible and copy assignable are requires for input type, and constrained_any itself supports copy constructor and copy assignment operator.
  * @tparam ConstrainAndOperationArgs template parameter packs for multiple specialized operator classes.
+ *
+ * @note
+ * It is implemented based on the following concepts:
+ * member variable up_carrier_ is always valid (= non nullptr).
  */
 template <template <class> class... ConstrainAndOperationArgs>
 class constrained_any : public ConstrainAndOperationArgs<constrained_any<ConstrainAndOperationArgs...>>... {
@@ -881,9 +884,7 @@ public:
 		const special_operation_less_if* p_a_soi = p_a->template get_special_operation_if<special_operation_less_if>();
 		const special_operation_less_if* p_b_soi = p_b->template get_special_operation_if<special_operation_less_if>();
 		if ( p_a_soi == nullptr ) {
-			// this means both this and b have no value. Therefore *this == b.
-			// So, *this < b is false.
-			return false;
+			throw std::logic_error( "constrained_any should be get valid pointer of special_operation_less_if. But it failed." );
 		}
 
 		return p_a_soi->specialized_operation_less_proxy( p_b_soi );
@@ -901,7 +902,7 @@ private:
 			const Carrier* p_a_carrier = static_cast<const Carrier*>( this );
 			const Carrier* p_b_carrier = dynamic_cast<const Carrier*>( p_b_if );
 			if ( p_b_carrier == nullptr ) {
-				throw std::bad_any_cast();
+				throw std::logic_error( "p_b_if of less_by_value() should be success to cast to same type to this. But it failed." );
 			}
 
 			return p_a_carrier->ref() < p_b_carrier->ref();
@@ -940,7 +941,7 @@ public:
 		const special_operation_equal_to_if* p_a_soi = p_a->template get_special_operation_if<special_operation_equal_to_if>();
 		const special_operation_equal_to_if* p_b_soi = p_b->template get_special_operation_if<special_operation_equal_to_if>();
 		if ( p_a_soi == nullptr ) {
-			return false;
+			throw std::logic_error( "constrained_any should be get valid pointer of special_operation_equal_to_if. But it failed." );
 		}
 
 		return p_a_soi->specialized_operation_equal_to_proxy( p_b_soi );
@@ -958,7 +959,7 @@ private:
 			const Carrier* p_a_carrier = static_cast<const Carrier*>( this );
 			const Carrier* p_b_carrier = dynamic_cast<const Carrier*>( p_b_if );
 			if ( p_b_carrier == nullptr ) {
-				throw std::bad_any_cast();
+				throw std::logic_error( "p_b_if of less_by_value() should be success to cast to same type to this. But it failed." );
 			}
 
 			return p_a_carrier->ref() == p_b_carrier->ref();
@@ -989,7 +990,7 @@ public:
 
 		const special_operation_hash_value_if* p_a_soi = p_a->template get_special_operation_if<special_operation_hash_value_if>();
 		if ( p_a_soi == nullptr ) {
-			return 0;
+			throw std::logic_error( "constrained_any should be get valid pointer of special_operation_hash_value_if. But it failed." );
 		}
 
 		return p_a_soi->specialized_operation_hash_value_proxy();

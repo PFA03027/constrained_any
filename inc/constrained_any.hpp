@@ -863,8 +863,7 @@ public:
 template <typename Carrier>
 class special_operation_less : public special_operation_less_if {
 public:
-	static constexpr bool require_copy_constructible = true;
-	static constexpr bool constraint_check_result    = !is_related_type_of_constrained_any<Carrier>::value &&
+	static constexpr bool constraint_check_result = !is_related_type_of_constrained_any<Carrier>::value &&
 	                                                is_weak_orderable<Carrier>::value;
 
 	template <typename U = Carrier, typename std::enable_if<is_specialized_of_constrained_any<U>::value>::type* = nullptr>
@@ -922,8 +921,7 @@ public:
 template <typename Carrier>
 class special_operation_equal_to : public special_operation_equal_to_if {
 public:
-	static constexpr bool require_copy_constructible = true;
-	static constexpr bool constraint_check_result    = !is_related_type_of_constrained_any<Carrier>::value &&
+	static constexpr bool constraint_check_result = !is_related_type_of_constrained_any<Carrier>::value &&
 	                                                is_callable_equal_to<Carrier>::value;
 
 	template <typename U = Carrier, typename std::enable_if<is_specialized_of_constrained_any<U>::value>::type* = nullptr>
@@ -979,8 +977,7 @@ public:
 template <typename Carrier>
 class special_operation_hash_value : public special_operation_hash_value_if {
 public:
-	static constexpr bool require_copy_constructible = true;
-	static constexpr bool constraint_check_result    = !is_related_type_of_constrained_any<Carrier>::value &&
+	static constexpr bool constraint_check_result = !is_related_type_of_constrained_any<Carrier>::value &&
 	                                                is_hashable<Carrier>::value;
 
 	template <typename U = Carrier, typename std::enable_if<is_specialized_of_constrained_any<U>::value>::type* = nullptr>
@@ -1037,7 +1034,7 @@ using movable_any = constrained_any<impl::special_operation_movable>;
  * This class is used to create a constrained_any type that supports weak ordering.
  * Therefore, this class can be used as a key type in std::map or std::set.
  */
-using weak_ordering_any = constrained_any<impl::special_operation_less>;
+using weak_ordering_any = constrained_any<impl::special_operation_copyable, impl::special_operation_less>;
 
 /**
  * @brief less operator(operator <) of weak_ordering_any
@@ -1066,7 +1063,7 @@ inline bool operator<( const T& lhs, const T& rhs )
  * This class is used to create a constrained_any type that supports operator== and std::hash<unordered_key_any>.
  * Therefore, this class can be used as a key type in std::unordered_set or std::unordered_map.
  */
-using unordered_key_any = constrained_any<impl::special_operation_hash_value, impl::special_operation_equal_to>;
+using unordered_key_any = constrained_any<impl::special_operation_copyable, impl::special_operation_hash_value, impl::special_operation_equal_to>;
 
 /**
  * @brief less operator(operator ==) of unordered_key_any
@@ -1096,7 +1093,7 @@ inline bool operator==( const T& lhs, const T& rhs )
  * Therefore, this class can be used as a key type in std::unordered_set or std::unordered_map.
  * This class can also be used as a key type in std::set or std::map.
  */
-using keyable_any = constrained_any<impl::special_operation_less, impl::special_operation_hash_value, impl::special_operation_equal_to>;
+using keyable_any = constrained_any<impl::special_operation_copyable, impl::special_operation_less, impl::special_operation_hash_value, impl::special_operation_equal_to>;
 
 /**
  * @brief less operator(operator <) of keyable_any

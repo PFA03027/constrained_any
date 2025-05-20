@@ -227,9 +227,8 @@ static_assert( yan::impl::is_acceptable_value_type<int, yan::impl::special_opera
 static_assert( yan::impl::is_acceptable_value_type<TestCopyOnlyType, yan::impl::special_operation_less>::value == false, "int should be acceptable type" );
 static_assert( yan::impl::is_acceptable_value_type<TestMoveOnlyType, yan::impl::special_operation_less>::value == false, "int should be acceptable type" );
 
-static_assert( yan::impl::are_any_constraints_required_copy_constructible<yan::impl::special_operation_less>::value == true, "int should be acceptable type" );
-static_assert( yan::impl::are_any_constraints_required_copy_constructible<yan::impl::special_operation_equal_to>::value == true, "int should be acceptable type" );
-static_assert( yan::impl::are_any_constraints_required_copy_constructible<yan::impl::special_operation_hash_value>::value == true, "int should be acceptable type" );
+static_assert( yan::impl::are_any_constraints_required_copy_constructible<yan::impl::special_operation_copyable>::value == true, "yan::impl::special_operation_copyable should require copy constructible" );
+static_assert( yan::impl::are_any_constraints_required_move_constructible<yan::impl::special_operation_movable>::value == true, "yan::impl::special_operation_movable should require move constructible" );
 
 static_assert( yan::impl::is_acceptable_value_type<TestCopyConstructOnly, yan::impl::special_operation_copyable>::value == true, "TestCopyConstructOnly should be acceptable type" );
 static_assert( yan::impl::is_acceptable_value_type<TestCopyConstructOnly, yan::impl::special_operation_movable>::value == true, "TestCopyConstructOnly should be acceptable type" );

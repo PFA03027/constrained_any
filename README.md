@@ -42,7 +42,7 @@ And also, you can use yan::weak_ordering_any as the key of std::set or std::map 
 ```cpp
     std::set<yan::weak_ordering_any> s;
     s.insert(1);
-    s.insert(2);
+    s.insert(std::string("2"));
     s.insert(3);
     for (const auto& e : s) {
         std::cout << e << std::endl;
@@ -90,7 +90,7 @@ And also, you can use the key of std::unordered_set or std::unordered_map like b
 ```cpp
     std::unordered_set<yan::unordered_key_any> s;
     s.insert(1);
-    s.insert(2);
+    s.insert(std::string("2"));
     s.insert(3);
     for (const auto& e : s) {
         std::cout << e << std::endl;
@@ -130,7 +130,7 @@ And also, you can use the key of not only std::set, std::map but also std::unord
 ```cpp
     std::set<yan::keyable_any> s;
     s.insert(1);
-    s.insert(2);
+    s.insert(std::string("2"));
     s.insert(3);
     for (const auto& e : s) {
         std::cout << e << std::endl;

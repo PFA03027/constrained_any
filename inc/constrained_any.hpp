@@ -505,7 +505,7 @@ private:
  *
  * @note
  * It is implemented based on the following concepts:
- * member variable up_carrier_ is always valid (= non nullptr).
+ * member variable p_cur_carrier_ is always valid (= non nullptr).
  */
 template <template <class> class... ConstrainAndOperationArgs>
 class constrained_any : public ConstrainAndOperationArgs<constrained_any<ConstrainAndOperationArgs...>>... {
@@ -513,14 +513,21 @@ class constrained_any : public ConstrainAndOperationArgs<constrained_any<Constra
 	static constexpr bool RequiresMove = impl::do_any_constraints_requir_move_constructible<ConstrainAndOperationArgs...>::value;
 
 public:
+	~constrained_any()
+	{
+		up_carrier_.reset();
+	}
+
 	constrained_any()
-	  : up_carrier_( make_impl_value_carrier<void>() ) {}
+	  : up_carrier_( make_impl_value_carrier<void>() )
+	  , p_cur_carrier_( up_carrier_.get() ) {}
 
 	constrained_any( const constrained_any& src )
 #if __cpp_concepts >= 201907L
 		requires RequiresCopy
 #endif
-	  : up_carrier_( src.up_carrier_->mk_clone_by_copy_construction() )
+	  : up_carrier_( src.p_cur_carrier_->mk_clone_by_copy_construction() )
+	  , p_cur_carrier_( up_carrier_.get() )
 	{
 	}
 
@@ -528,7 +535,8 @@ public:
 #if __cpp_concepts >= 201907L
 		requires RequiresCopy || RequiresMove
 #endif
-	  : up_carrier_( src.up_carrier_->mk_clone_by_move_construction() )
+	  : up_carrier_( src.p_cur_carrier_->mk_clone_by_move_construction() )
+	  , p_cur_carrier_( up_carrier_.get() )
 	{
 	}
 
@@ -540,9 +548,10 @@ public:
 		if ( this == &rhs ) return *this;
 
 		if ( this->type() == rhs.type() ) {
-			auto p = up_carrier_->copy_value( *rhs.up_carrier_ );
+			auto p = p_cur_carrier_->copy_value( *rhs.p_cur_carrier_ );
 			if ( p != nullptr ) {
 				up_carrier_.reset( p );
+				p_cur_carrier_ = p;
 			}
 			return *this;
 		}
@@ -560,9 +569,10 @@ public:
 		if ( this == &rhs ) return *this;
 
 		if ( this->type() == rhs.type() ) {
-			auto p = up_carrier_->move_value( *rhs.up_carrier_ );
+			auto p = p_cur_carrier_->move_value( *rhs.p_cur_carrier_ );
 			if ( p != nullptr ) {
 				up_carrier_.reset( p );
+				p_cur_carrier_ = p;
 			}
 			return *this;
 		}
@@ -578,6 +588,7 @@ public:
 				  std::is_constructible<VT, Args...>::value>::type* = nullptr>
 	explicit constrained_any( std::in_place_type_t<T>, Args&&... args )
 	  : up_carrier_( make_impl_value_carrier<VT>( std::forward<Args>( args )... ) )
+	  , p_cur_carrier_( up_carrier_.get() )
 	{
 	}
 
@@ -594,6 +605,7 @@ public:
 	void swap( constrained_any& src )
 	{
 		up_carrier_.swap( src.up_carrier_ );
+		std::swap( p_cur_carrier_, src.p_cur_carrier_ );
 	}
 
 	void reset() noexcept
@@ -612,7 +624,8 @@ public:
 		auto             up_vc = make_impl_value_carrier<VT>( std::forward<Args>( args )... );
 		std::decay_t<T>* p_ans = &( up_vc->value_ );
 
-		up_carrier_ = std::move( up_vc );
+		up_carrier_    = std::move( up_vc );
+		p_cur_carrier_ = up_carrier_.get();
 
 		return *p_ans;
 	}
@@ -626,12 +639,13 @@ public:
 	{
 		if ( this->type() == typeid( VT ) ) {
 			using carrier_t    = impl::value_carrier<VT, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>;
-			carrier_t& ref_src = dynamic_cast<carrier_t&>( *( up_carrier_.get() ) );   // TODO: should be static_cast
+			carrier_t& ref_src = dynamic_cast<carrier_t&>( *( p_cur_carrier_ ) );   // TODO: should be static_cast
 			ref_src.ref()      = std::forward<T>( rhs );
 			return *this;
 		}
 
-		up_carrier_ = make_impl_value_carrier<VT>( std::forward<T>( rhs ) );
+		up_carrier_    = make_impl_value_carrier<VT>( std::forward<T>( rhs ) );
+		p_cur_carrier_ = up_carrier_.get();
 
 		return *this;
 	}
@@ -643,18 +657,18 @@ public:
 
 	const std::type_info& type() const noexcept
 	{
-		return up_carrier_->get_type_info();
+		return p_cur_carrier_->get_type_info();
 	}
 
 	template <typename SpecializedOperatorIF>
 	SpecializedOperatorIF* get_special_operation_if() noexcept
 	{
-		return dynamic_cast<SpecializedOperatorIF*>( up_carrier_.get() );
+		return dynamic_cast<SpecializedOperatorIF*>( p_cur_carrier_ );
 	}
 	template <typename SpecializedOperatorIF>
 	const SpecializedOperatorIF* get_special_operation_if() const noexcept
 	{
-		return dynamic_cast<const SpecializedOperatorIF*>( up_carrier_.get() );
+		return dynamic_cast<const SpecializedOperatorIF*>( p_cur_carrier_ );
 	}
 
 private:
@@ -671,7 +685,7 @@ private:
 			return nullptr;
 		}
 
-		return static_cast<const impl::value_carrier<T, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>*>( up_carrier_.get() );
+		return static_cast<const impl::value_carrier<T, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>*>( p_cur_carrier_ );
 	}
 
 	template <typename T>
@@ -681,10 +695,11 @@ private:
 			return nullptr;
 		}
 
-		return static_cast<impl::value_carrier<T, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>*>( up_carrier_.get() );
+		return static_cast<impl::value_carrier<T, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>*>( p_cur_carrier_ );
 	}
 
 	std::unique_ptr<impl::value_carrier_if<RequiresCopy, RequiresMove>> up_carrier_;
+	impl::value_carrier_if<RequiresCopy, RequiresMove>*                 p_cur_carrier_;
 
 	template <class T, template <class> class... USpecializedOperator>
 	friend T constrained_any_cast( const constrained_any<USpecializedOperator...>& operand );

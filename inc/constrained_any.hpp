@@ -116,13 +116,13 @@ template <typename T>
 struct is_required_copy_constructible : public decltype( is_required_copy_constructible_impl::check<T>( nullptr ) ) {};
 
 template <template <class> class... ConstrainAndOperationArgs>
-struct are_any_constraints_required_copy_constructible {
+struct do_any_constraints_requir_copy_constructible {
 	static constexpr bool value = ( ... || is_required_copy_constructible<ConstrainAndOperationArgs<impl::constrained_any_tag>>::value );
 };
 
 template <typename T, template <class> class... ConstrainAndOperationArgs>
 struct is_satisfy_required_copy_constructible_constraint {
-	static constexpr bool are_constrains_required_copy_constructible = are_any_constraints_required_copy_constructible<ConstrainAndOperationArgs...>::value;
+	static constexpr bool are_constrains_required_copy_constructible = do_any_constraints_requir_copy_constructible<ConstrainAndOperationArgs...>::value;
 
 	static constexpr bool value = ( are_constrains_required_copy_constructible ? std::is_copy_constructible<T>::value : true );
 };
@@ -140,9 +140,9 @@ template <typename T>
 struct is_required_move_constructible : public decltype( is_required_move_constructible_impl::check<T>( nullptr ) ) {};
 
 template <template <class> class... ConstrainAndOperationArgs>
-struct are_any_constraints_required_move_constructible {
+struct do_any_constraints_requir_move_constructible {
 private:
-	static constexpr bool are_constrains_required_copy_constructible = are_any_constraints_required_copy_constructible<ConstrainAndOperationArgs...>::value;
+	static constexpr bool are_constrains_required_copy_constructible = do_any_constraints_requir_copy_constructible<ConstrainAndOperationArgs...>::value;
 
 public:
 	// コピー構築を要求されている場合、ムーブ構築をサポートしていない型であってもムーブ構築をコピー構築で代用できるため、ムーブ構築の要求を無効化する。
@@ -151,7 +151,7 @@ public:
 
 template <typename T, template <class> class... ConstrainAndOperationArgs>
 struct is_satisfy_required_move_constructible_constraint {
-	static constexpr bool are_constrains_required_move_constructible = are_any_constraints_required_move_constructible<ConstrainAndOperationArgs...>::value;
+	static constexpr bool are_constrains_required_move_constructible = do_any_constraints_requir_move_constructible<ConstrainAndOperationArgs...>::value;
 
 	static constexpr bool value = ( are_constrains_required_move_constructible ? std::is_move_constructible<T>::value : true );
 };
@@ -509,8 +509,8 @@ private:
  */
 template <template <class> class... ConstrainAndOperationArgs>
 class constrained_any : public ConstrainAndOperationArgs<constrained_any<ConstrainAndOperationArgs...>>... {
-	static constexpr bool RequiresCopy = impl::are_any_constraints_required_copy_constructible<ConstrainAndOperationArgs...>::value;
-	static constexpr bool RequiresMove = impl::are_any_constraints_required_move_constructible<ConstrainAndOperationArgs...>::value;
+	static constexpr bool RequiresCopy = impl::do_any_constraints_requir_copy_constructible<ConstrainAndOperationArgs...>::value;
+	static constexpr bool RequiresMove = impl::do_any_constraints_requir_move_constructible<ConstrainAndOperationArgs...>::value;
 
 public:
 	constrained_any()

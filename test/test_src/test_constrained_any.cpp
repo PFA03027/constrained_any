@@ -9,6 +9,7 @@
  *
  */
 
+#include <array>
 #include <map>
 #include <unordered_map>
 
@@ -111,6 +112,20 @@ struct TestCopyMoveConstructOnly {
 	  : v_( v ) {}
 };
 
+struct TestOverSSOSize {
+	std::array<int, yan::impl::sso_buff_size> v_buff;
+
+	TestOverSSOSize()                                    = default;
+	TestOverSSOSize( const TestOverSSOSize& )            = default;
+	TestOverSSOSize( TestOverSSOSize&& )                 = default;
+	TestOverSSOSize& operator=( const TestOverSSOSize& ) = default;
+	TestOverSSOSize& operator=( TestOverSSOSize&& )      = default;
+	TestOverSSOSize( int v )
+	  : v_buff { v }
+	{
+	}
+};
+
 // ================================================
 
 template <typename T>
@@ -157,6 +172,10 @@ static_assert( yan::impl::is_acceptable_value_type<int, yan::impl::special_opera
 static_assert( yan::impl::is_acceptable_value_type<int, yan::impl::special_operation_copyable, no_specialoperation, no_specialoperation2>::value == true, "int should be acceptable type" );
 static_assert( yan::impl::is_acceptable_value_type<int, yan::impl::special_operation_copyable, no_specialoperation, no_specialoperation2, constrained_alway_false>::value == false, "int should be acceptable type" );
 
+static_assert( sizeof( yan::copyable_any::value_carrier_t<size_t> ) < yan::impl::sso_buff_size, "Small size optimization buffer size should be larger than X" );
+static_assert( std::is_nothrow_move_constructible<yan::copyable_any::value_carrier_t<size_t>>::value, "Let check nothrow ?" );
+static_assert( sizeof( TestOverSSOSize ) > yan::impl::sso_buff_size, "TestOverSSOSize should be larger than Small size optimization buffer size" );
+
 template <typename T>
 struct copy_construction_required1 {
 };
@@ -171,10 +190,10 @@ struct copy_construction_required3 {
 	static constexpr bool require_copy_constructible = true;
 };
 
-static_assert( yan::impl::are_any_constraints_required_copy_constructible<>::value == false, "copy constructible is not required" );
-static_assert( yan::impl::are_any_constraints_required_copy_constructible<copy_construction_required1>::value == false, "copy constructible is not required" );
-static_assert( yan::impl::are_any_constraints_required_copy_constructible<copy_construction_required1, copy_construction_required2>::value == false, "copy constructible is not required" );
-static_assert( yan::impl::are_any_constraints_required_copy_constructible<copy_construction_required1, copy_construction_required2, copy_construction_required3>::value == true, "copy constructible is required" );
+static_assert( yan::impl::do_any_constraints_requir_copy_constructible<>::value == false, "copy constructible is not required" );
+static_assert( yan::impl::do_any_constraints_requir_copy_constructible<copy_construction_required1>::value == false, "copy constructible is not required" );
+static_assert( yan::impl::do_any_constraints_requir_copy_constructible<copy_construction_required1, copy_construction_required2>::value == false, "copy constructible is not required" );
+static_assert( yan::impl::do_any_constraints_requir_copy_constructible<copy_construction_required1, copy_construction_required2, copy_construction_required3>::value == true, "copy constructible is required" );
 
 static_assert( yan::impl::is_satisfy_required_copy_constructible_constraint<int, copy_construction_required1>::value == true, "should not require require_copy_constructible" );
 static_assert( yan::impl::is_satisfy_required_copy_constructible_constraint<int, copy_construction_required1, copy_construction_required2>::value == true, "should not require require_copy_constructible" );
@@ -202,10 +221,10 @@ struct move_construction_required3 {
 	static constexpr bool require_move_constructible = true;
 };
 
-static_assert( yan::impl::are_any_constraints_required_move_constructible<>::value == false, "copy constructible is not required" );
-static_assert( yan::impl::are_any_constraints_required_move_constructible<move_construction_required1>::value == false, "copy constructible is not required" );
-static_assert( yan::impl::are_any_constraints_required_move_constructible<move_construction_required1, move_construction_required2>::value == false, "copy constructible is not required" );
-static_assert( yan::impl::are_any_constraints_required_move_constructible<move_construction_required1, move_construction_required2, move_construction_required3>::value == true, "copy constructible is required" );
+static_assert( yan::impl::do_any_constraints_requir_move_constructible<>::value == false, "copy constructible is not required" );
+static_assert( yan::impl::do_any_constraints_requir_move_constructible<move_construction_required1>::value == false, "copy constructible is not required" );
+static_assert( yan::impl::do_any_constraints_requir_move_constructible<move_construction_required1, move_construction_required2>::value == false, "copy constructible is not required" );
+static_assert( yan::impl::do_any_constraints_requir_move_constructible<move_construction_required1, move_construction_required2, move_construction_required3>::value == true, "copy constructible is required" );
 
 static_assert( yan::impl::is_satisfy_required_move_constructible_constraint<int, move_construction_required1>::value == true, "should not require require_move_constructible" );
 static_assert( yan::impl::is_satisfy_required_move_constructible_constraint<int, move_construction_required1, move_construction_required2>::value == true, "should not require require_move_constructible" );
@@ -227,8 +246,8 @@ static_assert( yan::impl::is_acceptable_value_type<int, yan::impl::special_opera
 static_assert( yan::impl::is_acceptable_value_type<TestCopyOnlyType, yan::impl::special_operation_less>::value == false, "int should be acceptable type" );
 static_assert( yan::impl::is_acceptable_value_type<TestMoveOnlyType, yan::impl::special_operation_less>::value == false, "int should be acceptable type" );
 
-static_assert( yan::impl::are_any_constraints_required_copy_constructible<yan::impl::special_operation_copyable>::value == true, "yan::impl::special_operation_copyable should require copy constructible" );
-static_assert( yan::impl::are_any_constraints_required_move_constructible<yan::impl::special_operation_movable>::value == true, "yan::impl::special_operation_movable should require move constructible" );
+static_assert( yan::impl::do_any_constraints_requir_copy_constructible<yan::impl::special_operation_copyable>::value == true, "yan::impl::special_operation_copyable should require copy constructible" );
+static_assert( yan::impl::do_any_constraints_requir_move_constructible<yan::impl::special_operation_movable>::value == true, "yan::impl::special_operation_movable should require move constructible" );
 
 static_assert( yan::impl::is_acceptable_value_type<TestCopyConstructOnly, yan::impl::special_operation_copyable>::value == true, "TestCopyConstructOnly should be acceptable type" );
 static_assert( yan::impl::is_acceptable_value_type<TestCopyConstructOnly, yan::impl::special_operation_movable>::value == true, "TestCopyConstructOnly should be acceptable type" );
@@ -453,7 +472,7 @@ TEST( TestConstrainedAny, CanTranslationConstructorFromRValue )
 	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), 42 );
 }
 
-TEST( TestConstrainedAny, CanSwap )
+TEST( TestConstrainedAny, SmallerThanSSOSizeValue_CanSwapWithSmallerThanSSOSizeValue )
 {
 	// Arrange
 	yan::copyable_any sut = static_cast<int>( 42 );
@@ -469,6 +488,60 @@ TEST( TestConstrainedAny, CanSwap )
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( double ) );
 	EXPECT_EQ( yan::constrained_any_cast<double>( sut ), 3.0 );
+}
+
+TEST( TestConstrainedAny, SmallerThanSSOSizeValue_CanSwapWithLargerThanSSOSizeValue )
+{
+	// Arrange
+	yan::copyable_any sut = static_cast<int>( 42 );
+	yan::copyable_any src = TestOverSSOSize( 3 );
+
+	// Act
+	sut.swap( src );
+
+	// Assert
+	EXPECT_TRUE( src.has_value() );
+	EXPECT_EQ( src.type(), typeid( int ) );
+	EXPECT_EQ( yan::constrained_any_cast<int>( src ), 42 );
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( TestOverSSOSize ) );
+	EXPECT_EQ( yan::constrained_any_cast<TestOverSSOSize&>( sut ).v_buff[0], 3 );
+}
+
+TEST( TestConstrainedAny, LergerThanSSOSizeValue_CanSwapWithSmallerThanSSOSizeValue )
+{
+	// Arrange
+	yan::copyable_any sut = TestOverSSOSize( 3 );
+	yan::copyable_any src = static_cast<int>( 42 );
+
+	// Act
+	sut.swap( src );
+
+	// Assert
+	EXPECT_TRUE( src.has_value() );
+	EXPECT_EQ( src.type(), typeid( TestOverSSOSize ) );
+	EXPECT_EQ( yan::constrained_any_cast<TestOverSSOSize&>( src ).v_buff[0], 3 );
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( int ) );
+	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), 42 );
+}
+
+TEST( TestConstrainedAny, LergerThanSSOSizeValue_CanSwapWithLargerThanSSOSizeValue )
+{
+	// Arrange
+	yan::copyable_any sut = TestOverSSOSize( 3 );
+	yan::copyable_any src = TestOverSSOSize( 4 );
+
+	// Act
+	sut.swap( src );
+
+	// Assert
+	EXPECT_TRUE( src.has_value() );
+	EXPECT_EQ( src.type(), typeid( TestOverSSOSize ) );
+	EXPECT_EQ( yan::constrained_any_cast<TestOverSSOSize&>( src ).v_buff[0], 3 );
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( TestOverSSOSize ) );
+	EXPECT_EQ( yan::constrained_any_cast<TestOverSSOSize&>( sut ).v_buff[0], 4 );
 }
 
 TEST( TestConstrainedAny, StoreCopyConstructOnly_CanCopyAssignToDifferentTypeStoredAny )

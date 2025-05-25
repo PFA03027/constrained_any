@@ -79,9 +79,10 @@ coverage: clean
 
 profile: clean
 	set -e; \
-	make BUILDTARGET=gprof BUILDTYPE=Release test;  \
+	make BUILDTARGET=gprof BUILDTYPE=Release build-test;  \
 	cd ${BUILD_DIR}; \
-	find . -type f -executable -name "test_*" | xargs -P${JOBS} -I@ sh ../gprof_exec.sh @
+	./test/test_performance_constrained_any; \
+	gprof ./test/test_performance_constrained_any ./gmon.out > ./prof.out.txt
 
 sanitizer:
 	set -e; \

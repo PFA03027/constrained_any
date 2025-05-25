@@ -242,7 +242,7 @@ struct value_carrier<void, true, SupportUseMove, ConstrainAndOperationArgs...> :
 	value_carrier& operator=( value_carrier&& )      = default;
 
 	template <typename... Args>
-	value_carrier( std::in_place_type_t<void>, Args&&... args )
+	value_carrier( std::in_place_type_t<void>, Args&&... args ) noexcept
 	{
 	}
 
@@ -287,7 +287,7 @@ struct value_carrier<void, false, true, ConstrainAndOperationArgs...> : public v
 	value_carrier& operator=( value_carrier&& )      = default;
 
 	template <typename... Args>
-	value_carrier( std::in_place_type_t<void>, Args&&... args )
+	value_carrier( std::in_place_type_t<void>, Args&&... args ) noexcept
 	{
 	}
 
@@ -322,7 +322,7 @@ struct value_carrier<void, false, false, ConstrainAndOperationArgs...> : public 
 	value_carrier& operator=( value_carrier&& )      = default;
 
 	template <typename... Args>
-	value_carrier( std::in_place_type_t<void>, Args&&... args )
+	value_carrier( std::in_place_type_t<void>, Args&&... args ) noexcept
 	{
 	}
 
@@ -350,12 +350,12 @@ struct value_carrier<T, true, SupportUseMove, ConstrainAndOperationArgs...> : pu
 	{
 	}
 
-	T& ref( void )
+	T& ref( void ) noexcept
 	{
 		return value_;
 	}
 
-	const T& ref( void ) const
+	const T& ref( void ) const noexcept
 	{
 		return value_;
 	}
@@ -424,12 +424,12 @@ struct value_carrier<T, false, true, ConstrainAndOperationArgs...> : public valu
 	{
 	}
 
-	T& ref( void )
+	T& ref( void ) noexcept
 	{
 		return value_;
 	}
 
-	const T& ref( void ) const
+	const T& ref( void ) const noexcept
 	{
 		return value_;
 	}
@@ -480,12 +480,12 @@ struct value_carrier<T, false, false, ConstrainAndOperationArgs...> : public val
 	{
 	}
 
-	T& ref( void )
+	T& ref( void ) noexcept
 	{
 		return value_;
 	}
 
-	const T& ref( void ) const
+	const T& ref( void ) const noexcept
 	{
 		return value_;
 	}
@@ -526,7 +526,7 @@ public:
 
 	constrained_any()
 	  : p_cur_carrier_( nullptr )
-	  , up_carrier_( make_impl_value_carrier<void>( &p_cur_carrier_ ) )
+	  , up_carrier_( construct_value_carrier_info<void>( &p_cur_carrier_, buff_ ) )
 	{
 	}
 
@@ -596,7 +596,7 @@ public:
 				  std::is_constructible<VT, Args...>::value>::type* = nullptr>
 	explicit constrained_any( std::in_place_type_t<T>, Args&&... args )
 	  : p_cur_carrier_( nullptr )
-	  , up_carrier_( make_impl_value_carrier<VT>( &p_cur_carrier_, std::forward<Args>( args )... ) )
+	  , up_carrier_( construct_value_carrier_info<VT>( &p_cur_carrier_, buff_, std::forward<Args>( args )... ) )
 	{
 	}
 
@@ -629,14 +629,7 @@ public:
 				  std::is_constructible<VT, Args...>::value>::type* = nullptr>
 	std::decay_t<T>& emplace( Args&&... args )
 	{
-		value_carrier_keeper_t* p_vc  = nullptr;
-		auto                    up_vc = make_impl_value_carrier<VT>( &p_vc, std::forward<Args>( args )... );
-		std::decay_t<T>*        p_ans = &( up_vc->value_ );
-
-		destruct_value_carrier();
-
-		up_carrier_    = std::move( up_vc );
-		p_cur_carrier_ = p_vc;
+		std::decay_t<T>* p_ans = reconstruct_value_carrier_info<VT>( std::forward<Args>( args )... );
 
 		return *p_ans;
 	}
@@ -655,13 +648,7 @@ public:
 			return *this;
 		}
 
-		value_carrier_keeper_t* p_vc  = nullptr;
-		auto                    up_vc = make_impl_value_carrier<VT>( &p_vc, std::forward<T>( rhs ) );
-
-		destruct_value_carrier();
-
-		up_carrier_    = std::move( up_vc );
-		p_cur_carrier_ = p_vc;
+		reconstruct_value_carrier_info<VT>( std::forward<T>( rhs ) );
 
 		return *this;
 	}
@@ -690,13 +677,10 @@ public:
 private:
 	using value_carrier_keeper_t = impl::value_carrier_if<RequiresCopy, RequiresMove>;
 
-	template <typename T, class... Args>
-	static auto make_impl_value_carrier( value_carrier_keeper_t** pp_k, Args&&... args ) -> std::unique_ptr<impl::value_carrier<T, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>>
-	{
-		auto up_ans = std::make_unique<impl::value_carrier<T, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>>( std::in_place_type_t<T> {}, std::forward<Args>( args )... );
-		*pp_k       = up_ans.get();
-		return up_ans;
-	}
+	template <typename T>
+	static constexpr bool is_possible_sso = ( sizeof( value_carrier_t<T> ) < yan::impl::sso_buff_size ) &&
+	                                        std::is_nothrow_move_constructible<value_carrier_t<T>>::value;
+
 	void destruct_value_carrier( void )
 	{
 		if ( up_carrier_ == nullptr ) {
@@ -706,29 +690,66 @@ private:
 		}
 	}
 
+	template <typename T, class... Args, typename std::enable_if<!is_possible_sso<T>>::type* = nullptr>
+	static auto construct_value_carrier_info( value_carrier_keeper_t** pp_k, unsigned char* p_buff, Args&&... args ) -> std::unique_ptr<value_carrier_t<T>>
+	{
+		auto up_ans = std::make_unique<value_carrier_t<T>>( std::in_place_type_t<T> {}, std::forward<Args>( args )... );
+		*pp_k       = up_ans.get();
+		return up_ans;
+	}
+
+	template <typename T, class... Args, typename std::enable_if<is_possible_sso<T>>::type* = nullptr>
+	static auto construct_value_carrier_info( value_carrier_keeper_t** pp_k, unsigned char* p_buff, Args&&... args ) -> std::unique_ptr<value_carrier_t<T>>
+	{
+		*pp_k = new ( p_buff ) value_carrier_t<T>( std::in_place_type_t<T> {}, std::forward<Args>( args )... );
+		return nullptr;
+	}
+
+	template <typename T, class... Args, typename std::enable_if<!is_possible_sso<T>>::type* = nullptr>
+	std::decay_t<T>* reconstruct_value_carrier_info( Args&&... args )
+	{
+		auto up_vc = std::make_unique<value_carrier_t<T>>( std::in_place_type_t<T> {}, std::forward<Args>( args )... );
+		destruct_value_carrier();
+		std::decay_t<T>* p_ans = &( up_vc->ref() );
+		p_cur_carrier_         = up_vc.get();
+		up_carrier_            = std::move( up_vc );
+		return p_ans;
+	}
+
+	template <typename T, class... Args, typename std::enable_if<is_possible_sso<T>>::type* = nullptr>
+	std::decay_t<T>* reconstruct_value_carrier_info( Args&&... args )
+	{
+		value_carrier_t<T> tmp( std::in_place_type_t<T> {}, std::forward<Args>( args )... );
+		destruct_value_carrier();
+		auto             p_vc  = new ( buff_ ) value_carrier_t<T>( std::move( tmp ) );
+		std::decay_t<T>* p_ans = &( p_vc->ref() );
+		p_cur_carrier_         = p_vc;
+		return p_ans;
+	}
+
 	template <typename T>
-	auto static_cast_T_carrier() const -> const impl::value_carrier<T, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>*
+	auto static_cast_T_carrier() const -> const value_carrier_t<T>*
 	{
 		if ( this->type() != typeid( T ) ) {
 			return nullptr;
 		}
 
-		return static_cast<const impl::value_carrier<T, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>*>( p_cur_carrier_ );
+		return static_cast<const value_carrier_t<T>*>( p_cur_carrier_ );
 	}
 
 	template <typename T>
-	auto static_cast_T_carrier() -> impl::value_carrier<T, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>*
+	auto static_cast_T_carrier() -> value_carrier_t<T>*
 	{
 		if ( this->type() != typeid( T ) ) {
 			return nullptr;
 		}
 
-		return static_cast<impl::value_carrier<T, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>*>( p_cur_carrier_ );
+		return static_cast<value_carrier_t<T>*>( p_cur_carrier_ );
 	}
 
+	unsigned char                           buff_[impl::sso_buff_size];
 	value_carrier_keeper_t*                 p_cur_carrier_;
 	std::unique_ptr<value_carrier_keeper_t> up_carrier_;
-	unsigned char*                          buff_[impl::sso_buff_size];
 
 	template <class T, template <class> class... USpecializedOperator>
 	friend T constrained_any_cast( const constrained_any<USpecializedOperator...>& operand );

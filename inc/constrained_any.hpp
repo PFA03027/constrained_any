@@ -208,20 +208,25 @@ struct value_carrier_if;
 
 template <bool SupportUseMove>
 struct value_carrier_if<true, SupportUseMove> : public value_carrier_if_common {
-	virtual value_carrier_if<true, SupportUseMove>* mk_clone_by_copy_construction() const                       = 0;
-	virtual value_carrier_if<true, SupportUseMove>* mk_clone_by_move_construction()                             = 0;
-	virtual value_carrier_if<true, SupportUseMove>* copy_value( const value_carrier_if<true, SupportUseMove>& ) = 0;
-	virtual value_carrier_if<true, SupportUseMove>* move_value( value_carrier_if<true, SupportUseMove>& )       = 0;
+	using abst_if_t = value_carrier_if<true, SupportUseMove>;
+
+	virtual std::unique_ptr<abst_if_t> mk_clone_by_copy_construction( abst_if_t**, unsigned char* ) const      = 0;
+	virtual std::unique_ptr<abst_if_t> mk_clone_by_move_construction( abst_if_t**, unsigned char* )            = 0;
+	virtual std::unique_ptr<abst_if_t> copy_my_value_to_other( abst_if_t&, abst_if_t**, unsigned char* ) const = 0;
+	virtual std::unique_ptr<abst_if_t> move_my_value_to_other( abst_if_t&, abst_if_t**, unsigned char* )       = 0;
 };
 
 template <>
 struct value_carrier_if<false, true> : public value_carrier_if_common {
-	virtual value_carrier_if<false, true>* mk_clone_by_move_construction()              = 0;
-	virtual value_carrier_if<false, true>* move_value( value_carrier_if<false, true>& ) = 0;
+	using abst_if_t = value_carrier_if<false, true>;
+
+	virtual std::unique_ptr<abst_if_t> mk_clone_by_move_construction( abst_if_t**, unsigned char* )      = 0;
+	virtual std::unique_ptr<abst_if_t> move_my_value_to_other( abst_if_t&, abst_if_t**, unsigned char* ) = 0;
 };
 
 template <>
 struct value_carrier_if<false, false> : public value_carrier_if_common {
+	using abst_if_t = value_carrier_if<false, false>;
 };
 
 // primary template for value_carrier
@@ -231,8 +236,11 @@ struct value_carrier;
 // specialization for void
 template <bool SupportUseMove, template <class> class... ConstrainAndOperationArgs>
 struct value_carrier<void, true, SupportUseMove, ConstrainAndOperationArgs...> : public value_carrier_if<true, SupportUseMove> {
-	using abst_if_t  = value_carrier_if<true, SupportUseMove>;
+	using abst_if_t  = typename value_carrier_if<true, SupportUseMove>::abst_if_t;
 	using value_type = void;
+
+	static constexpr bool is_possible_sso = ( sizeof( value_carrier ) < yan::impl::sso_buff_size ) &&
+	                                        std::is_nothrow_move_constructible<value_carrier>::value;
 
 	~value_carrier()                                 = default;
 	value_carrier()                                  = default;
@@ -251,23 +259,35 @@ struct value_carrier<void, true, SupportUseMove, ConstrainAndOperationArgs...> :
 		return typeid( void );
 	}
 
-	abst_if_t* mk_clone_by_copy_construction() const override
+	std::unique_ptr<abst_if_t> mk_clone_by_copy_construction( abst_if_t** pp_k, unsigned char* p_buff ) const override
 	{
-		value_carrier* p = new value_carrier( *this );
-		return p;
+		std::unique_ptr<abst_if_t> up_ans;
+		if constexpr ( is_possible_sso ) {
+			*pp_k = new ( p_buff ) value_carrier( *this );
+		} else {
+			up_ans = std::make_unique<value_carrier>( *this );
+			*pp_k  = up_ans.get();
+		}
+		return up_ans;
 	}
 
-	abst_if_t* mk_clone_by_move_construction() override
+	std::unique_ptr<abst_if_t> mk_clone_by_move_construction( abst_if_t** pp_k, unsigned char* p_buff ) override
 	{
-		value_carrier* p = new value_carrier( std::move( *this ) );
-		return p;
+		std::unique_ptr<abst_if_t> up_ans;
+		if constexpr ( is_possible_sso ) {
+			*pp_k = new ( p_buff ) value_carrier( std::move( *this ) );
+		} else {
+			up_ans = std::make_unique<value_carrier>( std::move( *this ) );
+			*pp_k  = up_ans.get();
+		}
+		return up_ans;
 	}
 
-	abst_if_t* copy_value( const abst_if_t& src ) override
+	std::unique_ptr<abst_if_t> copy_my_value_to_other( abst_if_t& other, abst_if_t** pp_k, unsigned char* p_buff ) const override
 	{
 		return nullptr;
 	}
-	abst_if_t* move_value( abst_if_t& src ) override
+	std::unique_ptr<abst_if_t> move_my_value_to_other( abst_if_t& other, abst_if_t** pp_k, unsigned char* p_buff ) override
 	{
 		return nullptr;
 	}
@@ -276,8 +296,11 @@ struct value_carrier<void, true, SupportUseMove, ConstrainAndOperationArgs...> :
 // specialization for void
 template <template <class> class... ConstrainAndOperationArgs>
 struct value_carrier<void, false, true, ConstrainAndOperationArgs...> : public value_carrier_if<false, true> {
-	using abst_if_t  = value_carrier_if<false, true>;
+	using abst_if_t  = typename value_carrier_if<false, true>::abst_if_t;
 	using value_type = void;
+
+	static constexpr bool is_possible_sso = ( sizeof( value_carrier ) < yan::impl::sso_buff_size ) &&
+	                                        std::is_nothrow_move_constructible<value_carrier>::value;
 
 	~value_carrier()                                 = default;
 	value_carrier()                                  = default;
@@ -296,13 +319,19 @@ struct value_carrier<void, false, true, ConstrainAndOperationArgs...> : public v
 		return typeid( void );
 	}
 
-	abst_if_t* mk_clone_by_move_construction() override
+	std::unique_ptr<abst_if_t> mk_clone_by_move_construction( abst_if_t** pp_k, unsigned char* p_buff ) override
 	{
-		value_carrier* p = new value_carrier( std::move( *this ) );
-		return p;
+		std::unique_ptr<abst_if_t> up_ans;
+		if constexpr ( is_possible_sso ) {
+			*pp_k = new ( p_buff ) value_carrier( std::move( *this ) );
+		} else {
+			up_ans = std::make_unique<value_carrier>( std::move( *this ) );
+			*pp_k  = up_ans.get();
+		}
+		return up_ans;
 	}
 
-	abst_if_t* move_value( abst_if_t& src ) override
+	std::unique_ptr<abst_if_t> move_my_value_to_other( abst_if_t& other, abst_if_t** pp_k, unsigned char* p_buff ) override
 	{
 		return nullptr;
 	}
@@ -311,8 +340,11 @@ struct value_carrier<void, false, true, ConstrainAndOperationArgs...> : public v
 // specialization for void
 template <template <class> class... ConstrainAndOperationArgs>
 struct value_carrier<void, false, false, ConstrainAndOperationArgs...> : public value_carrier_if<false, false> {
-	using abst_if_t  = value_carrier_if<false, true>;
+	using abst_if_t  = typename value_carrier_if<false, false>::abst_if_t;
 	using value_type = void;
+
+	static constexpr bool is_possible_sso = ( sizeof( value_carrier ) < yan::impl::sso_buff_size ) &&
+	                                        std::is_nothrow_move_constructible<value_carrier>::value;
 
 	~value_carrier()                                 = default;
 	value_carrier()                                  = default;
@@ -334,8 +366,11 @@ struct value_carrier<void, false, false, ConstrainAndOperationArgs...> : public 
 
 template <typename T, bool SupportUseMove, template <class> class... ConstrainAndOperationArgs>
 struct value_carrier<T, true, SupportUseMove, ConstrainAndOperationArgs...> : public value_carrier_if<true, SupportUseMove>, public ConstrainAndOperationArgs<value_carrier<T, true, SupportUseMove, ConstrainAndOperationArgs...>>... {
-	using abst_if_t  = value_carrier_if<true, SupportUseMove>;
+	using abst_if_t  = typename value_carrier_if<true, SupportUseMove>::abst_if_t;
 	using value_type = T;
+
+	static constexpr bool is_possible_sso = ( sizeof( value_carrier ) < yan::impl::sso_buff_size ) &&
+	                                        std::is_nothrow_move_constructible<value_carrier>::value;
 
 	~value_carrier()                                 = default;
 	value_carrier()                                  = default;
@@ -365,40 +400,52 @@ struct value_carrier<T, true, SupportUseMove, ConstrainAndOperationArgs...> : pu
 		return typeid( value_type );
 	}
 
-	abst_if_t* mk_clone_by_copy_construction() const override
+	std::unique_ptr<abst_if_t> mk_clone_by_copy_construction( abst_if_t** pp_k, unsigned char* p_buff ) const override
 	{
-		value_carrier* p = new value_carrier( *this );
-		return p;
+		std::unique_ptr<abst_if_t> up_ans;
+		if constexpr ( is_possible_sso ) {
+			*pp_k = new ( p_buff ) value_carrier( *this );
+		} else {
+			up_ans = std::make_unique<value_carrier>( *this );
+			*pp_k  = up_ans.get();
+		}
+		return up_ans;
 	}
 
-	abst_if_t* mk_clone_by_move_construction() override
+	std::unique_ptr<abst_if_t> mk_clone_by_move_construction( abst_if_t** pp_k, unsigned char* p_buff ) override
 	{
-		value_carrier* p = new value_carrier( std::move( *this ) );
-		return p;
+		std::unique_ptr<abst_if_t> up_ans;
+		if constexpr ( is_possible_sso ) {
+			*pp_k = new ( p_buff ) value_carrier( std::move( *this ) );
+		} else {
+			up_ans = std::make_unique<value_carrier>( std::move( *this ) );
+			*pp_k  = up_ans.get();
+		}
+		return up_ans;
 	}
 
-	abst_if_t* copy_value( const abst_if_t& src ) override
+	std::unique_ptr<abst_if_t> copy_my_value_to_other( abst_if_t& other, abst_if_t** pp_k, unsigned char* p_buff ) const override
 	{
-		const value_carrier& ref_src = dynamic_cast<const value_carrier&>( src );
+		value_carrier& ref_other = dynamic_cast<value_carrier&>( other );
 		if constexpr ( std::is_copy_assignable<value_carrier>::value ) {
-			*this = ref_src;
+			ref_other = *this;
 
 			return nullptr;
 		} else {
-			value_carrier* p = new value_carrier( ref_src );
-			return p;
+			( *pp_k )->~abst_if_t();   // TODO: ソース変更に対して不安に艇になりやすい、危険なコード
+			return mk_clone_by_copy_construction( pp_k, p_buff );
 		}
 	}
-	abst_if_t* move_value( abst_if_t& src ) override
+	std::unique_ptr<abst_if_t> move_my_value_to_other( abst_if_t& other, abst_if_t** pp_k, unsigned char* p_buff ) override
 	{
-		value_carrier& ref_src = dynamic_cast<value_carrier&>( src );
-		if constexpr ( std::is_move_assignable<value_carrier>::value ) {
-			*this = std::move( ref_src );
+		value_carrier& ref_other = dynamic_cast<value_carrier&>( other );
+		if constexpr ( std::is_copy_assignable<value_carrier>::value ) {
+			ref_other = std::move( *this );
 
 			return nullptr;
 		} else {
-			value_carrier* p = new value_carrier( std::move( ref_src ) );
-			return p;
+			( *pp_k )->~abst_if_t();   // TODO: ソース変更に対して不安に艇になりやすい、危険なコード
+			return mk_clone_by_move_construction( pp_k, p_buff );
 		}
 	}
 
@@ -408,8 +455,11 @@ private:
 
 template <typename T, template <class> class... ConstrainAndOperationArgs>
 struct value_carrier<T, false, true, ConstrainAndOperationArgs...> : public value_carrier_if<false, true>, public ConstrainAndOperationArgs<value_carrier<T, false, true, ConstrainAndOperationArgs...>>... {
-	using abst_if_t  = value_carrier_if<false, true>;
+	using abst_if_t  = typename value_carrier_if<false, true>::abst_if_t;
 	using value_type = T;
+
+	static constexpr bool is_possible_sso = ( sizeof( value_carrier ) < yan::impl::sso_buff_size ) &&
+	                                        std::is_nothrow_move_constructible<value_carrier>::value;
 
 	~value_carrier()                                 = default;
 	value_carrier()                                  = default;
@@ -439,22 +489,28 @@ struct value_carrier<T, false, true, ConstrainAndOperationArgs...> : public valu
 		return typeid( value_type );
 	}
 
-	abst_if_t* mk_clone_by_move_construction() override
+	std::unique_ptr<abst_if_t> mk_clone_by_move_construction( abst_if_t** pp_k, unsigned char* p_buff ) override
 	{
-		value_carrier* p = new value_carrier( std::move( *this ) );
-		return p;
+		std::unique_ptr<abst_if_t> up_ans;
+		if constexpr ( is_possible_sso ) {
+			*pp_k = new ( p_buff ) value_carrier( std::move( *this ) );
+		} else {
+			up_ans = std::make_unique<value_carrier>( std::move( *this ) );
+			*pp_k  = up_ans.get();
+		}
+		return up_ans;
 	}
 
-	abst_if_t* move_value( abst_if_t& src ) override
+	std::unique_ptr<abst_if_t> move_my_value_to_other( abst_if_t& other, abst_if_t** pp_k, unsigned char* p_buff ) override
 	{
-		value_carrier& ref_src = dynamic_cast<value_carrier&>( src );
-		if constexpr ( std::is_move_assignable<value_carrier>::value ) {
-			*this = std::move( ref_src );
+		value_carrier& ref_other = dynamic_cast<value_carrier&>( other );
+		if constexpr ( std::is_copy_assignable<value_carrier>::value ) {
+			ref_other = std::move( *this );
 
 			return nullptr;
 		} else {
-			value_carrier* p = new value_carrier( std::move( ref_src ) );
-			return p;
+			( *pp_k )->~abst_if_t();   // TODO: ソース変更に対して不安に艇になりやすい、危険なコード
+			return mk_clone_by_move_construction( pp_k, p_buff );
 		}
 	}
 
@@ -464,8 +520,11 @@ private:
 
 template <typename T, template <class> class... ConstrainAndOperationArgs>
 struct value_carrier<T, false, false, ConstrainAndOperationArgs...> : public value_carrier_if<false, false>, public ConstrainAndOperationArgs<value_carrier<T, false, false, ConstrainAndOperationArgs...>>... {
-	using abst_if_t  = value_carrier_if<false, false>;
+	using abst_if_t  = typename value_carrier_if<false, false>::abst_if_t;
 	using value_type = T;
+
+	static constexpr bool is_possible_sso = ( sizeof( value_carrier ) < yan::impl::sso_buff_size ) &&
+	                                        std::is_nothrow_move_constructible<value_carrier>::value;
 
 	~value_carrier()                                 = default;
 	value_carrier()                                  = default;
@@ -534,8 +593,8 @@ public:
 #if __cpp_concepts >= 201907L
 		requires RequiresCopy
 #endif
-	  : p_cur_carrier_( src.p_cur_carrier_->mk_clone_by_copy_construction() )
-	  , up_carrier_( p_cur_carrier_ )
+	  : p_cur_carrier_( nullptr )
+	  , up_carrier_( src.p_cur_carrier_->mk_clone_by_copy_construction( &p_cur_carrier_, buff_ ) )
 	{
 	}
 
@@ -543,8 +602,8 @@ public:
 #if __cpp_concepts >= 201907L
 		requires RequiresCopy || RequiresMove
 #endif
-	  : p_cur_carrier_( src.p_cur_carrier_->mk_clone_by_move_construction() )
-	  , up_carrier_( p_cur_carrier_ )
+	  : p_cur_carrier_( nullptr )
+	  , up_carrier_( src.p_cur_carrier_->mk_clone_by_move_construction( &p_cur_carrier_, buff_ ) )
 	{
 	}
 
@@ -556,11 +615,7 @@ public:
 		if ( this == &rhs ) return *this;
 
 		if ( this->type() == rhs.type() ) {
-			auto p = p_cur_carrier_->copy_value( *rhs.p_cur_carrier_ );
-			if ( p != nullptr ) {
-				up_carrier_.reset( p );
-				p_cur_carrier_ = p;
-			}
+			up_carrier_ = rhs.p_cur_carrier_->copy_my_value_to_other( *p_cur_carrier_, &p_cur_carrier_, buff_ );
 			return *this;
 		}
 
@@ -577,11 +632,7 @@ public:
 		if ( this == &rhs ) return *this;
 
 		if ( this->type() == rhs.type() ) {
-			auto p = p_cur_carrier_->move_value( *rhs.p_cur_carrier_ );
-			if ( p != nullptr ) {
-				up_carrier_.reset( p );
-				p_cur_carrier_ = p;
-			}
+			up_carrier_ = rhs.p_cur_carrier_->move_my_value_to_other( *p_cur_carrier_, &p_cur_carrier_, buff_ );
 			return *this;
 		}
 
@@ -611,14 +662,55 @@ public:
 	}
 
 	void swap( constrained_any& src )
+#if __cpp_concepts >= 201907L
+		requires RequiresCopy || RequiresMove
+#endif
 	{
-		up_carrier_.swap( src.up_carrier_ );
-		std::swap( p_cur_carrier_, src.p_cur_carrier_ );
+		if ( this == &src ) return;
+
+		if ( ( up_carrier_ != nullptr ) && ( src.up_carrier_ != nullptr ) ) {
+			up_carrier_.swap( src.up_carrier_ );
+			std::swap( p_cur_carrier_, src.p_cur_carrier_ );
+		} else if ( ( up_carrier_ == nullptr ) && ( src.up_carrier_ != nullptr ) ) {
+			std::unique_ptr<value_carrier_keeper_t> up_keeper = std::move( src.up_carrier_ );
+
+			src.up_carrier_ = p_cur_carrier_->mk_clone_by_move_construction( &src.p_cur_carrier_, src.buff_ );
+
+			destruct_value_carrier();
+			up_carrier_    = std::move( up_keeper );
+			p_cur_carrier_ = up_carrier_.get();
+		} else if ( ( up_carrier_ != nullptr ) && ( src.up_carrier_ == nullptr ) ) {
+			std::unique_ptr<value_carrier_keeper_t> up_keeper = std::move( up_carrier_ );
+
+			up_carrier_ = src.p_cur_carrier_->mk_clone_by_move_construction( &p_cur_carrier_, buff_ );
+
+			src.destruct_value_carrier();
+			src.up_carrier_    = std::move( up_keeper );
+			src.p_cur_carrier_ = src.up_carrier_.get();
+		} else {   // ( up_carrier_ == nullptr ) && ( src.up_carrier_ == nullptr )
+			unsigned char                           backup_buff_[impl::sso_buff_size];
+			value_carrier_keeper_t*                 p_backup_cur_carrier_;
+			std::unique_ptr<value_carrier_keeper_t> up_backup_keeper;
+
+			up_backup_keeper = p_cur_carrier_->mk_clone_by_move_construction( &p_backup_cur_carrier_, backup_buff_ );
+			destruct_value_carrier();
+
+			up_carrier_ = src.p_cur_carrier_->mk_clone_by_move_construction( &p_cur_carrier_, buff_ );
+			src.destruct_value_carrier();
+
+			src.up_carrier_ = p_backup_cur_carrier_->mk_clone_by_move_construction( &src.p_cur_carrier_, src.buff_ );
+
+			if ( up_backup_keeper == nullptr ) {
+				p_backup_cur_carrier_->~value_carrier_keeper_t();
+			} else {
+				up_backup_keeper.reset();
+			}
+		}
 	}
 
 	void reset() noexcept
 	{
-		constrained_any().swap( *this );
+		reconstruct_value_carrier_info<void>();
 	}
 
 	template <class T, class... Args,

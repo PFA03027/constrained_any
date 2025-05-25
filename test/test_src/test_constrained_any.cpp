@@ -507,7 +507,7 @@ TEST( TestConstrainedAny, SmallerThanSSOSizeValue_CanSwapWithLargerThanSSOSizeVa
 	EXPECT_EQ( sut.type(), typeid( TestOverSSOSize ) );
 	EXPECT_EQ( yan::constrained_any_cast<TestOverSSOSize&>( sut ).v_buff[0], 3 );
 }
-#if 0
+
 TEST( TestConstrainedAny, LergerThanSSOSizeValue_CanSwapWithSmallerThanSSOSizeValue )
 {
 	// Arrange
@@ -525,7 +525,7 @@ TEST( TestConstrainedAny, LergerThanSSOSizeValue_CanSwapWithSmallerThanSSOSizeVa
 	EXPECT_EQ( sut.type(), typeid( int ) );
 	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), 42 );
 }
-#endif
+
 TEST( TestConstrainedAny, LergerThanSSOSizeValue_CanSwapWithLargerThanSSOSizeValue )
 {
 	// Arrange

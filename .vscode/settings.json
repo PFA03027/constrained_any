@@ -69,6 +69,7 @@
         "thread": "cpp",
         "cinttypes": "cpp",
         "variant": "cpp",
-        "typeindex": "cpp"
+        "typeindex": "cpp",
+        "future": "cpp"
     }
 }

@@ -158,7 +158,11 @@ private:
 			} else if constexpr ( std::is_same<std::string, decltype( std::to_string( std::declval<value_type>() ) )>::value ) {
 				return std::to_string( p_a->ref() );
 			} else {
+#if __cplusplus >= 202302L
 				static_assert( false, "to_string() is not implemented for this type" );
+#else
+				static_assert( []() { return false; }(), "to_string() is not implemented for this type" );
+#endif
 			}
 		} else {
 			throw std::logic_error( "call_to_string() is not implemented for constrained_any itself" );

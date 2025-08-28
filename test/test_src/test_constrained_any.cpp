@@ -128,6 +128,18 @@ struct TestOverSSOSize {
 
 // ================================================
 
+static_assert( yan::impl::is_weak_orderable<int>::value, "int should be weak order" );
+static_assert( yan::impl::is_weak_orderable<std::unique_ptr<int>>::value, "std::unique_ptr<int> should be weak order" );
+static_assert( yan::impl::is_weak_orderable<std::shared_ptr<int>>::value, "std::shared_ptr<int> should be weak order" );
+static_assert( yan::impl::is_hashable<int>::value, "int should apply std::hash" );
+static_assert( yan::impl::is_hashable<std::unique_ptr<int>>::value, "int should apply std::hash" );
+static_assert( yan::impl::is_hashable<std::shared_ptr<int>>::value, "std::shared_ptr<int> should apply std::hash" );
+static_assert( yan::impl::is_callable_equal_to<int>::value, "int should be callable operator==" );
+static_assert( yan::impl::is_callable_equal_to<std::unique_ptr<int>>::value, "std::unique_ptr<int> should be callable operator==" );
+static_assert( yan::impl::is_callable_equal_to<std::shared_ptr<int>>::value, "std::shared_ptr<int> should be callable operator==" );
+
+// ================================================
+
 template <typename T>
 struct no_specialoperation {
 	static constexpr bool constraint_check_result = true;
@@ -1318,6 +1330,34 @@ TEST( TestWeakOrderingAny, CanLessWithDifferentType )
 	// Assert
 }
 
+TEST( TestWeakOrderingAny, CanLessWithNotFunndamentalType )
+{
+	// Arrange
+	yan::weak_ordering_any a( std::make_shared<int>( 42 ) );
+	yan::weak_ordering_any b( std::make_shared<int>( 43 ) );
+
+	// Act
+	ASSERT_NO_THROW( a < b );
+
+	// Assert
+	EXPECT_NE( ( a < b ), ( b < a ) );
+}
+
+TEST( TestWeakOrderingAny, CanLessWithDefaultConstructed )
+{
+	// Arrange
+	yan::weak_ordering_any a;
+	yan::weak_ordering_any b;
+
+	// Act
+	ASSERT_NO_THROW( a < b );
+	ASSERT_NO_THROW( b < a );
+
+	// Assert
+	EXPECT_FALSE( a < b );
+	EXPECT_FALSE( b < a );
+}
+
 TEST( TestWeakOrderingAny, CanUseMapWithWeakOrderingAny )
 {
 	// Arrange
@@ -1416,12 +1456,39 @@ TEST( TestUnorderedKeyAny, CanEqualToWithSameTypeDifferentValue )
 	EXPECT_FALSE( result );
 }
 
+TEST( TestUnorderedKeyAny, CanEqualToWithDefaultConstructed )
+{
+	// Arrange
+	yan::unordered_key_any a;
+	yan::unordered_key_any b;
+
+	// Act
+	bool result = ( a == b );
+
+	// Assert
+	EXPECT_TRUE( result );
+}
+
 TEST( TestUnorderedKeyAny, CanEqualToWithDifferentType )
 {
 	// Arrange
 	yan::unordered_key_any a( 42 );
 	yan::unordered_key_any b( std::string( "Hello" ) );
 	bool                   result = true;
+
+	// Act
+	ASSERT_NO_THROW( result = ( a == b ) );
+
+	// Assert
+	EXPECT_FALSE( result );
+}
+
+TEST( TestUnorderedKeyAny, CanEqualToWithNotFunndamentalType )
+{
+	// Arrange
+	yan::unordered_key_any a( std::make_shared<int>( 42 ) );
+	yan::unordered_key_any b( std::make_shared<int>( 42 ) );
+	bool                   result = false;
 
 	// Act
 	ASSERT_NO_THROW( result = ( a == b ) );

@@ -1040,7 +1040,10 @@ public:
 		const special_operation_less_if* p_a_soi = p_a->template get_special_operation_if<special_operation_less_if>();
 		const special_operation_less_if* p_b_soi = p_b->template get_special_operation_if<special_operation_less_if>();
 		if ( p_a_soi == nullptr ) {
-			throw std::logic_error( "constrained_any should be get valid pointer of special_operation_less_if. But it failed." );
+			// In case that this is default constructed constrained_any
+			// it does not have special_operation_less_if.
+			// In this case, because this less operation means void < void, it is always false.
+			return false;
 		}
 
 		return p_a_soi->specialized_operation_less_proxy( p_b_soi );
@@ -1096,7 +1099,10 @@ public:
 		const special_operation_equal_to_if* p_a_soi = p_a->template get_special_operation_if<special_operation_equal_to_if>();
 		const special_operation_equal_to_if* p_b_soi = p_b->template get_special_operation_if<special_operation_equal_to_if>();
 		if ( p_a_soi == nullptr ) {
-			throw std::logic_error( "constrained_any should be get valid pointer of special_operation_equal_to_if. But it failed." );
+			// In case that this is default constructed constrained_any
+			// it does not have special_operation_equal_to_if.
+			// In this case, because this equal_to operation means void == void, it is always true.
+			return true;
 		}
 
 		return p_a_soi->specialized_operation_equal_to_proxy( p_b_soi );
@@ -1144,7 +1150,10 @@ public:
 
 		const special_operation_hash_value_if* p_a_soi = p_a->template get_special_operation_if<special_operation_hash_value_if>();
 		if ( p_a_soi == nullptr ) {
-			throw std::logic_error( "constrained_any should be get valid pointer of special_operation_hash_value_if. But it failed." );
+			// In case that this is default constructed constrained_any
+			// it does not have special_operation_hash_value_if.
+			// In this case, because this hash_value operation means hash_value(void), it is always 0.
+			return 0;
 		}
 
 		return p_a_soi->specialized_operation_hash_value_proxy();
@@ -1207,7 +1216,7 @@ using weak_ordering_any = constrained_any<impl::special_operation_copyable, impl
  * To avoid this implicit conversion, general name function is defined by template parameter T with SFINE to apply only target constraind_any<...> type.
  *
  */
-template <typename T, typename std::enable_if<!std::is_same<T, weak_ordering_any>::value>::type* = nullptr>
+template <typename T, typename std::enable_if<std::is_same<T, weak_ordering_any>::value>::type* = nullptr>
 inline bool operator<( const T& lhs, const T& rhs )
 {
 	return lhs.less( rhs );
@@ -1236,7 +1245,7 @@ using unordered_key_any = constrained_any<impl::special_operation_copyable, impl
  * To avoid this implicit conversion, general name function is defined by template parameter T with SFINE to apply only target constraind_any<...> type.
  *
  */
-template <typename T, typename std::enable_if<!std::is_same<T, unordered_key_any>::value>::type* = nullptr>
+template <typename T, typename std::enable_if<std::is_same<T, unordered_key_any>::value>::type* = nullptr>
 inline bool operator==( const T& lhs, const T& rhs )
 {
 	return lhs.equal_to( rhs );
@@ -1266,7 +1275,7 @@ using keyable_any = constrained_any<impl::special_operation_copyable, impl::spec
  * To avoid this implicit conversion, general name function is defined by template parameter T with SFINE to apply only target constraind_any<...> type.
  *
  */
-template <typename T, typename std::enable_if<!std::is_same<T, keyable_any>::value>::type* = nullptr>
+template <typename T, typename std::enable_if<std::is_same<T, keyable_any>::value>::type* = nullptr>
 inline bool operator<( const T& lhs, const T& rhs )
 {
 	return lhs.less( rhs );
@@ -1286,7 +1295,7 @@ inline bool operator<( const T& lhs, const T& rhs )
  * To avoid this implicit conversion, general name function is defined by template parameter T with SFINE to apply only target constraind_any<...> type.
  *
  */
-template <typename T, typename std::enable_if<!std::is_same<T, keyable_any>::value>::type* = nullptr>
+template <typename T, typename std::enable_if<std::is_same<T, keyable_any>::value>::type* = nullptr>
 inline bool operator==( const T& lhs, const T& rhs )
 {
 	return lhs.equal_to( rhs );

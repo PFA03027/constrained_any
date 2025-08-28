@@ -33,6 +33,19 @@ struct TestCopyOnlyType {
 	  : v_( v ) {}
 };
 
+struct TestCopyOnlyTypeWithoutDefaultCtor {
+	int v_;
+
+	TestCopyOnlyTypeWithoutDefaultCtor()                                                       = delete;
+	TestCopyOnlyTypeWithoutDefaultCtor( const TestCopyOnlyTypeWithoutDefaultCtor& )            = default;
+	TestCopyOnlyTypeWithoutDefaultCtor( TestCopyOnlyTypeWithoutDefaultCtor&& )                 = delete;
+	TestCopyOnlyTypeWithoutDefaultCtor& operator=( const TestCopyOnlyTypeWithoutDefaultCtor& ) = default;
+	TestCopyOnlyTypeWithoutDefaultCtor& operator=( TestCopyOnlyTypeWithoutDefaultCtor&& )      = delete;
+
+	TestCopyOnlyTypeWithoutDefaultCtor( int v )
+	  : v_( v ) {}
+};
+
 struct TestMoveOnlyType {
 	int v_;
 
@@ -44,6 +57,19 @@ struct TestMoveOnlyType {
 	TestMoveOnlyType& operator=( TestMoveOnlyType&& )      = default;
 
 	TestMoveOnlyType( int v )
+	  : v_( v ) {}
+};
+
+struct TestMoveOnlyTypeWithoutDefaultCtor {
+	int v_;
+
+	TestMoveOnlyTypeWithoutDefaultCtor()                                                       = delete;
+	TestMoveOnlyTypeWithoutDefaultCtor( const TestMoveOnlyTypeWithoutDefaultCtor& )            = delete;
+	TestMoveOnlyTypeWithoutDefaultCtor( TestMoveOnlyTypeWithoutDefaultCtor&& )                 = default;
+	TestMoveOnlyTypeWithoutDefaultCtor& operator=( const TestMoveOnlyTypeWithoutDefaultCtor& ) = delete;
+	TestMoveOnlyTypeWithoutDefaultCtor& operator=( TestMoveOnlyTypeWithoutDefaultCtor&& )      = default;
+
+	TestMoveOnlyTypeWithoutDefaultCtor( int v )
 	  : v_( v ) {}
 };
 
@@ -76,11 +102,24 @@ struct TestCopyConstructOnly {
 	TestCopyConstructOnly()
 	  : v_( 0 ) {}
 	TestCopyConstructOnly( const TestCopyConstructOnly& )            = default;
-	TestCopyConstructOnly( TestCopyOnlyType&& )                      = delete;
+	TestCopyConstructOnly( TestCopyConstructOnly&& )                 = delete;
 	TestCopyConstructOnly& operator=( const TestCopyConstructOnly& ) = delete;
 	TestCopyConstructOnly& operator=( TestCopyConstructOnly&& )      = delete;
 
 	TestCopyConstructOnly( int v )
+	  : v_( v ) {}
+};
+
+struct TestCopyConstructOnlyWithoutDefaultCtor {
+	int v_;
+
+	TestCopyConstructOnlyWithoutDefaultCtor()                                                            = delete;
+	TestCopyConstructOnlyWithoutDefaultCtor( const TestCopyConstructOnlyWithoutDefaultCtor& )            = default;
+	TestCopyConstructOnlyWithoutDefaultCtor( TestCopyConstructOnlyWithoutDefaultCtor&& )                 = delete;
+	TestCopyConstructOnlyWithoutDefaultCtor& operator=( const TestCopyConstructOnlyWithoutDefaultCtor& ) = delete;
+	TestCopyConstructOnlyWithoutDefaultCtor& operator=( TestCopyConstructOnlyWithoutDefaultCtor&& )      = delete;
+
+	TestCopyConstructOnlyWithoutDefaultCtor( int v )
 	  : v_( v ) {}
 };
 
@@ -95,6 +134,19 @@ struct TestMoveConstructOnly {
 	TestMoveConstructOnly& operator=( TestMoveConstructOnly&& )      = delete;
 
 	TestMoveConstructOnly( int v )
+	  : v_( v ) {}
+};
+
+struct TestMoveConstructOnlyWithoutDefaultCtor {
+	int v_;
+
+	TestMoveConstructOnlyWithoutDefaultCtor()                                                            = delete;
+	TestMoveConstructOnlyWithoutDefaultCtor( const TestMoveConstructOnlyWithoutDefaultCtor& )            = delete;
+	TestMoveConstructOnlyWithoutDefaultCtor( TestMoveConstructOnlyWithoutDefaultCtor&& )                 = default;
+	TestMoveConstructOnlyWithoutDefaultCtor& operator=( const TestMoveConstructOnlyWithoutDefaultCtor& ) = delete;
+	TestMoveConstructOnlyWithoutDefaultCtor& operator=( TestMoveConstructOnlyWithoutDefaultCtor&& )      = delete;
+
+	TestMoveConstructOnlyWithoutDefaultCtor( int v )
 	  : v_( v ) {}
 };
 
@@ -261,8 +313,11 @@ static_assert( yan::impl::is_acceptable_value_type<TestMoveOnlyType, yan::impl::
 static_assert( yan::impl::do_any_constraints_requir_copy_constructible<yan::impl::special_operation_copyable>::value == true, "yan::impl::special_operation_copyable should require copy constructible" );
 static_assert( yan::impl::do_any_constraints_requir_move_constructible<yan::impl::special_operation_movable>::value == true, "yan::impl::special_operation_movable should require move constructible" );
 
+static_assert( yan::impl::is_satisfy_required_move_constructible_constraint<TestCopyConstructOnly, yan::impl::special_operation_movable>::value == false, "TestCopyConstructOnly should satisfy is_satisfy_required_copy_constructible_constraint" );
+// TestCopyConstructOnlyはコピー構築可能だが、ムーブ構築は明示的にdeleteされている。そのため、ムーブ構築可能な制約を満たさない。
+
 static_assert( yan::impl::is_acceptable_value_type<TestCopyConstructOnly, yan::impl::special_operation_copyable>::value == true, "TestCopyConstructOnly should be acceptable type" );
-static_assert( yan::impl::is_acceptable_value_type<TestCopyConstructOnly, yan::impl::special_operation_movable>::value == true, "TestCopyConstructOnly should be acceptable type" );
+static_assert( yan::impl::is_acceptable_value_type<TestCopyConstructOnly, yan::impl::special_operation_movable>::value == false, "TestCopyConstructOnly should be acceptable type" );
 static_assert( yan::impl::is_acceptable_value_type<TestMoveConstructOnly, yan::impl::special_operation_copyable>::value == false, "TestCopyConstructOnly should be acceptable type" );
 static_assert( yan::impl::is_acceptable_value_type<TestMoveConstructOnly, yan::impl::special_operation_movable>::value == true, "TestCopyConstructOnly should be acceptable type" );
 
@@ -416,6 +471,21 @@ TEST( TestConstrainedAny, HasValue_CanCopyAssign )
 	EXPECT_EQ( sut.type(), typeid( int ) );
 	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), value );
 	EXPECT_EQ( yan::constrained_any_cast<int>( src ), value );
+}
+
+TEST( TestConstrainedAny, DefaultConstructedAny_CanCopyAssignToWithNonDefaultConstructibleType )
+{
+	// Arrange
+	TestCopyOnlyTypeWithoutDefaultCtor src( 42 );
+	yan::copyable_any                  sut;
+
+	// Act
+	sut = src;
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( TestCopyOnlyTypeWithoutDefaultCtor ) );
+	EXPECT_EQ( yan::constrained_any_cast<TestCopyOnlyTypeWithoutDefaultCtor>( sut ).v_, 42 );
 }
 
 TEST( TestConstrainedAny, HasValue_CanCopyAssignBySameType )

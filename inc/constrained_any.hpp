@@ -1190,8 +1190,9 @@ using copyable_any = constrained_any<impl::special_operation_copyable>;
  * @brief any type that could stores the move constructible type
  *
  * This constrained any has move constructor and move assigner.
+ * On the other hand, this constrained any does not have copy constructor and copy assigner.
  */
-using movable_any = constrained_any<impl::special_operation_movable>;
+using move_only_any = constrained_any<impl::special_operation_movable>;
 
 /**
  * @brief constrained_any with weak ordering

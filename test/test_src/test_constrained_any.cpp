@@ -710,8 +710,8 @@ TEST( TestConstrainedAny, StoreMoveConstructOnly_CanMoveAssignToDifferentTypeSto
 {
 	// Arrange
 	TestMoveConstructOnly tv( 1 );
-	yan::movable_any      sut( static_cast<int>( 42 ) );
-	yan::movable_any      src( std::move( tv ) );
+	yan::move_only_any    sut( static_cast<int>( 42 ) );
+	yan::move_only_any    src( std::move( tv ) );
 
 	// Act
 	sut = std::move( src );
@@ -731,8 +731,8 @@ TEST( TestConstrainedAny, StoreMoveConstructOnly_CanMoveAssignToSameTypeStoredAn
 	// Arrange
 	TestMoveConstructOnly sut_v( 2 );
 	TestMoveConstructOnly src_v( 1 );
-	yan::movable_any      sut( std::move( sut_v ) );
-	yan::movable_any      src( std::move( src_v ) );
+	yan::move_only_any    sut( std::move( sut_v ) );
+	yan::move_only_any    src( std::move( src_v ) );
 
 	// Act
 	sut = std::move( src );
@@ -834,7 +834,7 @@ TEST( TestMovableAny, CanConstruct )
 	// Arrange
 
 	// Act
-	yan::movable_any sut;
+	yan::move_only_any sut;
 
 	// Assert
 	EXPECT_FALSE( sut.has_value() );
@@ -844,10 +844,10 @@ TEST( TestMovableAny, CanConstruct )
 TEST( TestMovableAny, Empty_CanMoveConstruct_ThenEmpty )
 {
 	// Arrange
-	yan::movable_any src;
+	yan::move_only_any src;
 
 	// Act
-	yan::movable_any sut( std::move( src ) );
+	yan::move_only_any sut( std::move( src ) );
 
 	// Assert
 	EXPECT_FALSE( sut.has_value() );
@@ -857,8 +857,8 @@ TEST( TestMovableAny, Empty_CanMoveConstruct_ThenEmpty )
 TEST( TestMovableAny, Empty_CanMoveAssignToEmpty_ThenEmpty )
 {
 	// Arrange
-	yan::movable_any src;
-	yan::movable_any sut;
+	yan::move_only_any src;
+	yan::move_only_any sut;
 
 	// Act
 	sut = std::move( src );
@@ -871,8 +871,8 @@ TEST( TestMovableAny, Empty_CanMoveAssignToEmpty_ThenEmpty )
 TEST( TestMovableAny, Empty_CanMoveAssignToValid_ThenEmpty )
 {
 	// Arrange
-	yan::movable_any src;
-	yan::movable_any sut( 1 );
+	yan::move_only_any src;
+	yan::move_only_any sut( 1 );
 
 	// Act
 	sut = std::move( src );
@@ -885,10 +885,10 @@ TEST( TestMovableAny, Empty_CanMoveAssignToValid_ThenEmpty )
 TEST( TestMovableAny, Valid_CanMoveConstruct_ThenValid )
 {
 	// Arrange
-	yan::movable_any src( TestMoveOnlyType( 1 ) );
+	yan::move_only_any src( TestMoveOnlyType( 1 ) );
 
 	// Act
-	yan::movable_any sut( std::move( src ) );
+	yan::move_only_any sut( std::move( src ) );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -899,8 +899,8 @@ TEST( TestMovableAny, Valid_CanMoveConstruct_ThenValid )
 TEST( TestMovableAny, Valid_CanMoveAssignBySameType_ThenValid )
 {
 	// Arrange
-	yan::movable_any src( TestMoveOnlyType( 1 ) );
-	yan::movable_any sut( TestMoveOnlyType( 2 ) );
+	yan::move_only_any src( TestMoveOnlyType( 1 ) );
+	yan::move_only_any sut( TestMoveOnlyType( 2 ) );
 
 	// Act
 	sut = std::move( src );

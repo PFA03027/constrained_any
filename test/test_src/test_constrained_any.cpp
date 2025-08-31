@@ -1432,15 +1432,18 @@ TEST( TestWeakOrderingAny, CanUseMapWithWeakOrderingAny )
 {
 	// Arrange
 	std::map<yan::weak_ordering_any, int> map;
+	yan::weak_ordering_any                key0;
 	yan::weak_ordering_any                key1( 42 );
 	yan::weak_ordering_any                key2( 43 );
 
 	// Act
+	map[key0] = 0;
 	map[key1] = 1;
 	map[key2] = 2;
 
 	// Assert
-	EXPECT_EQ( map.size(), 2 );
+	EXPECT_EQ( map.size(), 3 );
+	EXPECT_EQ( map[key0], 0 );
 	EXPECT_EQ( map[key1], 1 );
 	EXPECT_EQ( map[key2], 2 );
 }
@@ -1571,17 +1574,20 @@ TEST( TestUnorderedKeyAny, CanUseUnorderedMapWithUnorderedKeyAny )
 {
 	// Arrange
 	std::unordered_map<yan::unordered_key_any, int> map;
+	yan::unordered_key_any                          key0;
 	yan::unordered_key_any                          key1( 42 );
 	yan::unordered_key_any                          key2( 43 );
 	yan::unordered_key_any                          key3( std::string( "Hello" ) );
 
 	// Act
+	map[key0] = 0;
 	map[key1] = 1;
 	map[key2] = 2;
 	map[key3] = 3;
 
 	// Assert
-	EXPECT_EQ( map.size(), 3 );
+	EXPECT_EQ( map.size(), 4 );
+	EXPECT_EQ( map[key0], 0 );
 	EXPECT_EQ( map[key1], 1 );
 	EXPECT_EQ( map[key2], 2 );
 	EXPECT_EQ( map[key3], 3 );
@@ -1728,17 +1734,20 @@ TEST( TestKeyableAny, CanUseUnorderedMapWithKeyableAny )
 {
 	// Arrange
 	std::unordered_map<yan::keyable_any, int> map;
+	yan::keyable_any                          key0;
 	yan::keyable_any                          key1( 42 );
 	yan::keyable_any                          key2( 43 );
 	yan::keyable_any                          key3( std::string( "Hello" ) );
 
 	// Act
+	map[key0] = 0;
 	map[key1] = 1;
 	map[key2] = 2;
 	map[key3] = 3;
 
 	// Assert
-	EXPECT_EQ( map.size(), 3 );
+	EXPECT_EQ( map.size(), 4 );
+	EXPECT_EQ( map[key0], 0 );
 	EXPECT_EQ( map[key1], 1 );
 	EXPECT_EQ( map[key2], 2 );
 	EXPECT_EQ( map[key3], 3 );
@@ -1748,17 +1757,20 @@ TEST( TestKeyableAny, CanUseMapWithKeyableAny )
 {
 	// Arrange
 	std::map<yan::keyable_any, int> map;
+	yan::keyable_any                key0;
 	yan::keyable_any                key1( 42 );
 	yan::keyable_any                key2( 43 );
 	yan::keyable_any                key3( std::string( "Hello" ) );
 
 	// Act
+	map[key0] = 0;
 	map[key1] = 1;
 	map[key2] = 2;
 	map[key3] = 3;
 
 	// Assert
-	EXPECT_EQ( map.size(), 3 );
+	EXPECT_EQ( map.size(), 4 );
+	EXPECT_EQ( map[key0], 0 );
 	EXPECT_EQ( map[key1], 1 );
 	EXPECT_EQ( map[key2], 2 );
 	EXPECT_EQ( map[key3], 3 );

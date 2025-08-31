@@ -141,9 +141,9 @@ And also, you can use the key of not only std::set, std::map but also std::unord
 yan::copyable_any is a type aliased from yan::constrained_any without any constraint and any special operation.<br>
 This is mostly same as std::any.<br>
 
-## yan::movable_any
-yan::movable_any is a type aliased from yan::constrained_any that requires move constructible.
-Therefore, yan::movable_any support move constructor but not support copy constructor.
+## yan::move_only_any
+yan::move_only_any is a type aliased from yan::constrained_any that requires move constructible.
+Therefore, yan::move_only_any support move constructor but not support copy constructor.
 
 # yan::constrained_any is fundamental type of constrained any
 yan::constrained_any is a generalized any type that has the template parameter pack named ConstrainAndOperationArgs for the multiple constraints and the specialized member functions.<br> This paramter pack ConstrainAndOperationArgs supports to composite the multiple specialized operators mixin.

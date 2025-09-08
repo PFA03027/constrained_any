@@ -1415,6 +1415,59 @@ TEST( TestConstrainedAny_NonMemberFunction, CanNotMakeConstrainedAnyWithKeyableA
 #endif
 
 // ================================================
+#if __cpp_concepts >= 201907L
+
+static_assert( !std::is_copy_constructible<yan::move_only_any>::value, "move_only_any is not copy constructible." );
+static_assert( !std::is_copy_assignable<yan::move_only_any>::value, "move_only_any is not copy assignable." );
+static_assert( std::is_move_constructible<yan::move_only_any>::value, "move_only_any is move constructible." );
+static_assert( std::is_move_assignable<yan::move_only_any>::value, "move_only_any is move assignable." );
+#endif
+
+template <bool IsDefaultConstructible>
+struct select_default_constructible;
+
+template <>
+struct select_default_constructible<true> {
+	~select_default_constructible()                                                = default;
+	select_default_constructible( void )                                           = default;
+	select_default_constructible( const select_default_constructible& )            = default;
+	select_default_constructible( select_default_constructible&& )                 = default;
+	select_default_constructible& operator=( const select_default_constructible& ) = default;
+	select_default_constructible& operator=( select_default_constructible&& )      = default;
+};
+
+template <>
+struct select_default_constructible<false> {
+	~select_default_constructible()                                                = default;
+	select_default_constructible( void )                                           = delete;
+	select_default_constructible( const select_default_constructible& )            = default;
+	select_default_constructible( select_default_constructible&& )                 = default;
+	select_default_constructible& operator=( const select_default_constructible& ) = default;
+	select_default_constructible& operator=( select_default_constructible&& )      = default;
+};
+
+template <bool IsDefaultConstructible>
+struct test_final_class : public select_default_constructible<IsDefaultConstructible> {
+	~test_final_class()                                    = default;
+	test_final_class()                                     = default;
+	test_final_class( const test_final_class& )            = default;
+	test_final_class( test_final_class&& )                 = default;
+	test_final_class& operator=( const test_final_class& ) = default;
+	test_final_class& operator=( test_final_class&& )      = default;
+};
+
+static_assert( std::is_default_constructible<test_final_class<true>>::value, "test_final_class is not copy constructible." );
+static_assert( std::is_copy_constructible<test_final_class<true>>::value, "test_final_class is not copy constructible." );
+static_assert( std::is_copy_assignable<test_final_class<true>>::value, "test_final_class is not copy assignable." );
+static_assert( std::is_move_constructible<test_final_class<true>>::value, "test_final_class is move constructible." );
+static_assert( std::is_move_assignable<test_final_class<true>>::value, "test_final_class is move assignable." );
+static_assert( !std::is_default_constructible<test_final_class<false>>::value, "test_final_class is not copy constructible." );
+static_assert( std::is_copy_constructible<test_final_class<true>>::value, "test_final_class is not copy constructible." );
+static_assert( std::is_copy_assignable<test_final_class<true>>::value, "test_final_class is not copy assignable." );
+static_assert( std::is_move_constructible<test_final_class<true>>::value, "test_final_class is move constructible." );
+static_assert( std::is_move_assignable<test_final_class<true>>::value, "test_final_class is move assignable." );
+
+// ================================================
 
 TEST( TestWeakOrderingAny, CanConstruct )
 {

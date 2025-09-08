@@ -779,13 +779,15 @@ TEST( TestConstrainedAny, NoValue_CanEmplace_ThenHasValueReturnTrue )
 	yan::copyable_any sut;
 
 	// Act
-	auto ret = sut.emplace<int>( 42 );
+	decltype( auto ) ret = sut.emplace<int>( 42 );   // 参照型の戻り値型をretの型とするためにdecltype(auto)を使用している
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( int ) );
 	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), 42 );
 	EXPECT_EQ( ret, 42 );
+	ret = 43;
+	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), 43 );
 }
 
 TEST( TestConstrainedAny, HasValue_CanEmplace_ThenHasValueReturnTrue )
@@ -794,13 +796,15 @@ TEST( TestConstrainedAny, HasValue_CanEmplace_ThenHasValueReturnTrue )
 	yan::copyable_any sut( static_cast<double>( 1.0f ) );
 
 	// Act
-	auto ret = sut.emplace<int>( 42 );
+	decltype( auto ) ret = sut.emplace<int>( 42 );   // 参照型の戻り値型をretの型とするためにdecltype(auto)を使用している
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( int ) );
 	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), 42 );
 	EXPECT_EQ( ret, 42 );
+	ret = 43;
+	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), 43 );
 }
 
 #if 0

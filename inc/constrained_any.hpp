@@ -719,7 +719,7 @@ public:
 				  !is_related_type_of_constrained_any<typename impl::remove_cvref<T>::type>::value &&
 				  impl::is_acceptable_value_type<VT, ConstrainAndOperationArgs...>::value &&
 				  std::is_constructible<VT, Args...>::value>::type* = nullptr>
-	auto emplace( Args&&... args )
+	decltype( auto ) emplace( Args&&... args )
 	{
 #if 0
 		if constexpr ( std::is_void<VT>::value ) {

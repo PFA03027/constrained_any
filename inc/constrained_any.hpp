@@ -719,11 +719,22 @@ public:
 				  !is_related_type_of_constrained_any<typename impl::remove_cvref<T>::type>::value &&
 				  impl::is_acceptable_value_type<VT, ConstrainAndOperationArgs...>::value &&
 				  std::is_constructible<VT, Args...>::value>::type* = nullptr>
-	std::decay_t<T>& emplace( Args&&... args )
+	auto emplace( Args&&... args )
 	{
-		std::decay_t<T>* p_ans = reconstruct_value_carrier_info<VT>( std::forward<Args>( args )... );
-
-		return *p_ans;
+#if 0
+		if constexpr ( std::is_void<VT>::value ) {
+			reconstruct_value_carrier_info<void>();
+			return;
+		} else {
+			std::decay_t<T>* p_ans   = reconstruct_value_carrier_info<VT>( std::forward<Args>( args )... );
+			std::decay_t<T>& ref_ans = *p_ans;
+			return ref_ans;
+		}
+#else
+		std::decay_t<T>* p_ans   = reconstruct_value_carrier_info<VT>( std::forward<Args>( args )... );
+		std::decay_t<T>& ref_ans = *p_ans;
+		return ref_ans;
+#endif
 	}
 
 	template <class T, typename VT = std::decay_t<T>,
@@ -798,25 +809,34 @@ private:
 	}
 
 	template <typename T, class... Args, typename std::enable_if<!is_possible_sso<T>>::type* = nullptr>
-	std::decay_t<T>* reconstruct_value_carrier_info( Args&&... args )
+	auto reconstruct_value_carrier_info( Args&&... args )
 	{
 		auto up_vc = std::make_unique<value_carrier_t<T>>( std::in_place_type_t<T> {}, std::forward<Args>( args )... );
 		destruct_value_carrier();
-		std::decay_t<T>* p_ans = &( up_vc->ref() );
-		p_cur_carrier_         = up_vc.get();
-		up_carrier_            = std::move( up_vc );
-		return p_ans;
+		if constexpr ( std::is_void<T>::value ) {
+			p_cur_carrier_ = up_vc.get();
+			up_carrier_    = std::move( up_vc );
+		} else {
+			std::decay_t<T>* p_ans = &( up_vc->ref() );
+			p_cur_carrier_         = up_vc.get();
+			up_carrier_            = std::move( up_vc );
+			return p_ans;
+		}
 	}
 
 	template <typename T, class... Args, typename std::enable_if<is_possible_sso<T>>::type* = nullptr>
-	std::decay_t<T>* reconstruct_value_carrier_info( Args&&... args )
+	auto reconstruct_value_carrier_info( Args&&... args )
 	{
 		value_carrier_t<T> tmp( std::in_place_type_t<T> {}, std::forward<Args>( args )... );
 		destruct_value_carrier();
-		auto             p_vc  = new ( buff_ ) value_carrier_t<T>( std::move( tmp ) );
-		std::decay_t<T>* p_ans = &( p_vc->ref() );
-		p_cur_carrier_         = p_vc;
-		return p_ans;
+		auto p_vc      = new ( buff_ ) value_carrier_t<T>( std::move( tmp ) );
+		p_cur_carrier_ = p_vc;
+		if constexpr ( std::is_void<T>::value ) {
+			return;
+		} else {
+			std::decay_t<T>* p_ans = &( p_vc->ref() );
+			return p_ans;
+		}
 	}
 
 	template <typename T>

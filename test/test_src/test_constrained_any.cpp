@@ -747,6 +747,100 @@ TEST( TestConstrainedAny, StoreMoveConstructOnly_CanMoveAssignToSameTypeStoredAn
 	// EXPECT_EQ( yan::constrained_any_cast<TestMoveConstructOnly&>( src ).v_, 1 );
 }
 
+TEST( TestConstrainedAny, NoValue_CanReset_ThenHasValueReturnFalse )
+{
+	// Arrange
+	yan::copyable_any sut;
+
+	// Act
+	sut.reset();
+
+	// Assert
+	EXPECT_FALSE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( void ) );
+}
+
+TEST( TestConstrainedAny, HasValue_CanReset_ThenHasValueReturnFalse )
+{
+	// Arrange
+	yan::copyable_any sut( static_cast<int>( 42 ) );
+
+	// Act
+	sut.reset();
+
+	// Assert
+	EXPECT_FALSE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( void ) );
+}
+
+TEST( TestConstrainedAny, NoValue_CanEmplace_ThenHasValueReturnTrue )
+{
+	// Arrange
+	yan::copyable_any sut;
+
+	// Act
+	auto ret = sut.emplace<int>( 42 );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( int ) );
+	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), 42 );
+	EXPECT_EQ( ret, 42 );
+}
+
+TEST( TestConstrainedAny, HasValue_CanEmplace_ThenHasValueReturnTrue )
+{
+	// Arrange
+	yan::copyable_any sut( static_cast<double>( 1.0f ) );
+
+	// Act
+	auto ret = sut.emplace<int>( 42 );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( int ) );
+	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), 42 );
+	EXPECT_EQ( ret, 42 );
+}
+
+#if 0
+TEST( TestConstrainedAny, NoValue_CanEmplaceWithVoid_ThenHasValueReturnFalse )
+{
+#if 0
+	// Arrange
+	yan::copyable_any sut;
+
+	// Act
+	sut.emplace<void>();
+#else
+	std::any sut;
+	sut.emplace<void>();
+#endif
+
+	// Assert
+	EXPECT_FALSE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( void ) );
+}
+
+TEST( TestConstrainedAny, HasValue_CanEmplaceWithVoid_ThenHasValueReturnFalse )
+{
+#if 0
+	// Arrange
+	yan::copyable_any sut( static_cast<double>( 1.0f ) );
+
+	// Act
+	sut.emplace<void>();
+#else
+	std::any sut( static_cast<double>( 1.0f ) );
+	sut.emplace<void>();
+#endif
+
+	// Assert
+	EXPECT_FALSE( sut.has_value() );
+	EXPECT_EQ( sut.type(), typeid( void ) );
+}
+#endif
+
 // ================================================================
 
 TEST( TestConstrainedAnyCast, ConstAny_CanMatchType )

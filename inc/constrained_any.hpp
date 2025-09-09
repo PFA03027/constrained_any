@@ -432,7 +432,7 @@ struct value_carrier<T, true, SupportUseMove, ConstrainAndOperationArgs...> : pu
 
 			return nullptr;
 		} else {
-			( *pp_k )->~abst_if_t();   // TODO: ソース変更に対して不安に艇になりやすい、危険なコード
+			( *pp_k )->~abst_if_t();   // TODO: ソース変更に対して不安定になりやすい、危険なコード
 			return mk_clone_by_copy_construction( pp_k, p_buff );
 		}
 	}
@@ -444,7 +444,7 @@ struct value_carrier<T, true, SupportUseMove, ConstrainAndOperationArgs...> : pu
 
 			return nullptr;
 		} else {
-			( *pp_k )->~abst_if_t();   // TODO: ソース変更に対して不安に艇になりやすい、危険なコード
+			( *pp_k )->~abst_if_t();   // TODO: ソース変更に対して不安定になりやすい、危険なコード
 			return mk_clone_by_move_construction( pp_k, p_buff );
 		}
 	}
@@ -509,7 +509,7 @@ struct value_carrier<T, false, true, ConstrainAndOperationArgs...> : public valu
 
 			return nullptr;
 		} else {
-			( *pp_k )->~abst_if_t();   // TODO: ソース変更に対して不安に艇になりやすい、危険なコード
+			( *pp_k )->~abst_if_t();   // TODO: ソース変更に対して不安定になりやすい、危険なコード
 			return mk_clone_by_move_construction( pp_k, p_buff );
 		}
 	}

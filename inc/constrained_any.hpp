@@ -982,6 +982,12 @@ T* constrained_any_cast( constrained_any<ConstrainAndOperationArgs...>* operand 
 	return &( p->ref() );
 }
 
+template <class T>
+std::nullptr_t constrained_any_cast( std::nullptr_t ) noexcept
+{
+	return nullptr;
+}
+
 namespace impl {
 
 // -----------------------------------------

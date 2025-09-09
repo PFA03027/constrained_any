@@ -953,6 +953,18 @@ TEST( TestConstrainedAnyCast, PointerConstAny_CanMatchType_ThenReturnNonNullptr 
 	EXPECT_EQ( *ret, 42 );
 }
 
+TEST( TestConstrainedAnyCast, Nullptr_CanConstrainedAnyCast_ThenReturnNullptr )
+{
+	// Arrange
+	const int* ret = nullptr;
+
+	// Act
+	EXPECT_NO_THROW( ret = yan::constrained_any_cast<int>( nullptr ) );
+
+	// Assert
+	ASSERT_EQ( ret, nullptr );
+}
+
 // ================================================================
 
 TEST( TestMovableAny, CanConstruct )

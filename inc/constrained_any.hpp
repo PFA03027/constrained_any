@@ -959,7 +959,7 @@ const T* constrained_any_cast( const constrained_any<ConstrainAndOperationArgs..
 
 	if ( operand == nullptr ) return nullptr;
 
-	auto p = operand.template static_cast_T_carrier<T>();
+	auto p = operand->template static_cast_T_carrier<T>();
 	if ( p == nullptr ) {
 		return nullptr;
 	}
@@ -974,7 +974,7 @@ T* constrained_any_cast( constrained_any<ConstrainAndOperationArgs...>* operand 
 
 	if ( operand == nullptr ) return nullptr;
 
-	auto p = operand.template static_cast_T_carrier<T>();
+	auto p = operand->template static_cast_T_carrier<T>();
 	if ( p == nullptr ) {
 		return nullptr;
 	}

@@ -925,6 +925,34 @@ TEST( TestConstrainedAnyCast, RvalueNonConstAny_CanUnMatchType )
 	EXPECT_EQ( ret, 0.0 );
 }
 
+TEST( TestConstrainedAnyCast, PointerNonConstAny_CanMatchType_ThenReturnNonNullptr )
+{
+	// Arrange
+	yan::copyable_any sut( static_cast<int>( 42 ) );
+	int*              ret = nullptr;
+
+	// Act
+	EXPECT_NO_THROW( ret = yan::constrained_any_cast<int>( &sut ) );
+
+	// Assert
+	ASSERT_NE( ret, nullptr );
+	EXPECT_EQ( *ret, 42 );
+}
+
+TEST( TestConstrainedAnyCast, PointerConstAny_CanMatchType_ThenReturnNonNullptr )
+{
+	// Arrange
+	const yan::copyable_any sut( static_cast<int>( 42 ) );
+	const int*              ret = nullptr;
+
+	// Act
+	EXPECT_NO_THROW( ret = yan::constrained_any_cast<int>( &sut ) );
+
+	// Assert
+	ASSERT_NE( ret, nullptr );
+	EXPECT_EQ( *ret, 42 );
+}
+
 // ================================================================
 
 TEST( TestMovableAny, CanConstruct )

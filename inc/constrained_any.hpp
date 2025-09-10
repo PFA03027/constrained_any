@@ -575,9 +575,6 @@ class constrained_any : public ConstrainAndOperationArgs<constrained_any<Constra
 	static constexpr bool RequiresMove = impl::do_any_constraints_requir_move_constructible<ConstrainAndOperationArgs...>::value;
 
 public:
-	template <typename T>
-	using value_carrier_t = impl::value_carrier<std::decay_t<T>, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>;
-
 	~constrained_any()
 	{
 		destruct_value_carrier();
@@ -778,6 +775,9 @@ public:
 	}
 
 private:
+	template <typename T>
+	using value_carrier_t = impl::value_carrier<std::decay_t<T>, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>;
+
 	using value_carrier_keeper_t = impl::value_carrier_if<RequiresCopy, RequiresMove>;
 
 	template <typename T>

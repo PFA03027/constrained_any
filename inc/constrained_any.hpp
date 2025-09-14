@@ -211,366 +211,13 @@ struct is_acceptable_value_type<std::any, UConstrainAndOperationArgs...> {
 	static constexpr bool value = false;
 };
 
+}   // namespace impl
+
 // =====================
 
 #if __cpp_concepts >= 201907L
 
-template <bool SupportUseCopy, bool SupportUseMove>
-struct value_carrier_if;
-
-template <bool SupportUseMove>
-struct value_carrier_if<true, SupportUseMove> : public value_carrier_if_common {
-	using abst_if_t = value_carrier_if<true, SupportUseMove>;
-
-	virtual std::unique_ptr<abst_if_t> mk_clone_by_copy_construction( abst_if_t**, unsigned char* ) const      = 0;
-	virtual std::unique_ptr<abst_if_t> mk_clone_by_move_construction( abst_if_t**, unsigned char* )            = 0;
-	virtual std::unique_ptr<abst_if_t> copy_my_value_to_other( abst_if_t&, abst_if_t**, unsigned char* ) const = 0;
-	virtual std::unique_ptr<abst_if_t> move_my_value_to_other( abst_if_t&, abst_if_t**, unsigned char* )       = 0;
-};
-
-template <>
-struct value_carrier_if<false, true> : public value_carrier_if_common {
-	using abst_if_t = value_carrier_if<false, true>;
-
-	virtual std::unique_ptr<abst_if_t> mk_clone_by_move_construction( abst_if_t**, unsigned char* )      = 0;
-	virtual std::unique_ptr<abst_if_t> move_my_value_to_other( abst_if_t&, abst_if_t**, unsigned char* ) = 0;
-};
-
-template <>
-struct value_carrier_if<false, false> : public value_carrier_if_common {
-	using abst_if_t = value_carrier_if<false, false>;
-};
-
-// primary template for value_carrier
-template <typename T, bool SupportUseCopy, bool SupportUseMove, template <class> class... ConstrainAndOperationArgs>
-struct value_carrier;
-
-// specialization for void
-template <bool SupportUseMove, template <class> class... ConstrainAndOperationArgs>
-struct value_carrier<void, true, SupportUseMove, ConstrainAndOperationArgs...> : public value_carrier_if<true, SupportUseMove> {
-	using abst_if_t  = typename value_carrier_if<true, SupportUseMove>::abst_if_t;
-	using value_type = void;
-
-	static constexpr bool is_possible_sso = ( sizeof( value_carrier ) < yan::impl::sso_buff_size ) &&
-	                                        std::is_nothrow_move_constructible<value_carrier>::value;
-
-	~value_carrier()                                 = default;
-	value_carrier()                                  = default;
-	value_carrier( const value_carrier& )            = default;
-	value_carrier( value_carrier&& )                 = default;
-	value_carrier& operator=( const value_carrier& ) = default;
-	value_carrier& operator=( value_carrier&& )      = default;
-
-	template <typename... Args>
-	value_carrier( std::in_place_type_t<void>, Args&&... args ) noexcept
-	{
-	}
-
-	const std::type_info& get_type_info() const noexcept override
-	{
-		return typeid( void );
-	}
-
-	std::unique_ptr<abst_if_t> mk_clone_by_copy_construction( abst_if_t** pp_k, unsigned char* p_buff ) const override
-	{
-		std::unique_ptr<abst_if_t> up_ans;
-		if constexpr ( is_possible_sso ) {
-			*pp_k = new ( p_buff ) value_carrier( *this );
-		} else {
-			up_ans = std::make_unique<value_carrier>( *this );
-			*pp_k  = up_ans.get();
-		}
-		return up_ans;
-	}
-
-	std::unique_ptr<abst_if_t> mk_clone_by_move_construction( abst_if_t** pp_k, unsigned char* p_buff ) override
-	{
-		std::unique_ptr<abst_if_t> up_ans;
-		if constexpr ( is_possible_sso ) {
-			*pp_k = new ( p_buff ) value_carrier( std::move( *this ) );
-		} else {
-			up_ans = std::make_unique<value_carrier>( std::move( *this ) );
-			*pp_k  = up_ans.get();
-		}
-		return up_ans;
-	}
-
-	std::unique_ptr<abst_if_t> copy_my_value_to_other( abst_if_t& other, abst_if_t** pp_k, unsigned char* p_buff ) const override
-	{
-		return nullptr;
-	}
-	std::unique_ptr<abst_if_t> move_my_value_to_other( abst_if_t& other, abst_if_t** pp_k, unsigned char* p_buff ) override
-	{
-		return nullptr;
-	}
-};
-
-// specialization for void
-template <template <class> class... ConstrainAndOperationArgs>
-struct value_carrier<void, false, true, ConstrainAndOperationArgs...> : public value_carrier_if<false, true> {
-	using abst_if_t  = typename value_carrier_if<false, true>::abst_if_t;
-	using value_type = void;
-
-	static constexpr bool is_possible_sso = ( sizeof( value_carrier ) < yan::impl::sso_buff_size ) &&
-	                                        std::is_nothrow_move_constructible<value_carrier>::value;
-
-	~value_carrier()                                 = default;
-	value_carrier()                                  = default;
-	value_carrier( const value_carrier& )            = default;
-	value_carrier( value_carrier&& )                 = default;
-	value_carrier& operator=( const value_carrier& ) = default;
-	value_carrier& operator=( value_carrier&& )      = default;
-
-	template <typename... Args>
-	value_carrier( std::in_place_type_t<void>, Args&&... args ) noexcept
-	{
-	}
-
-	const std::type_info& get_type_info() const noexcept override
-	{
-		return typeid( void );
-	}
-
-	std::unique_ptr<abst_if_t> mk_clone_by_move_construction( abst_if_t** pp_k, unsigned char* p_buff ) override
-	{
-		std::unique_ptr<abst_if_t> up_ans;
-		if constexpr ( is_possible_sso ) {
-			*pp_k = new ( p_buff ) value_carrier( std::move( *this ) );
-		} else {
-			up_ans = std::make_unique<value_carrier>( std::move( *this ) );
-			*pp_k  = up_ans.get();
-		}
-		return up_ans;
-	}
-
-	std::unique_ptr<abst_if_t> move_my_value_to_other( abst_if_t& other, abst_if_t** pp_k, unsigned char* p_buff ) override
-	{
-		return nullptr;
-	}
-};
-
-// specialization for void
-template <template <class> class... ConstrainAndOperationArgs>
-struct value_carrier<void, false, false, ConstrainAndOperationArgs...> : public value_carrier_if<false, false> {
-	using abst_if_t  = typename value_carrier_if<false, false>::abst_if_t;
-	using value_type = void;
-
-	static constexpr bool is_possible_sso = ( sizeof( value_carrier ) < yan::impl::sso_buff_size ) &&
-	                                        std::is_nothrow_move_constructible<value_carrier>::value;
-
-	~value_carrier()                                 = default;
-	value_carrier()                                  = default;
-	value_carrier( const value_carrier& )            = default;
-	value_carrier( value_carrier&& )                 = default;
-	value_carrier& operator=( const value_carrier& ) = default;
-	value_carrier& operator=( value_carrier&& )      = default;
-
-	template <typename... Args>
-	value_carrier( std::in_place_type_t<void>, Args&&... args ) noexcept
-	{
-	}
-
-	const std::type_info& get_type_info() const noexcept override
-	{
-		return typeid( void );
-	}
-};
-
-template <typename T, bool SupportUseMove, template <class> class... ConstrainAndOperationArgs>
-struct value_carrier<T, true, SupportUseMove, ConstrainAndOperationArgs...> : public value_carrier_if<true, SupportUseMove>, public ConstrainAndOperationArgs<value_carrier<T, true, SupportUseMove, ConstrainAndOperationArgs...>>... {
-	using abst_if_t  = typename value_carrier_if<true, SupportUseMove>::abst_if_t;
-	using value_type = T;
-
-	static constexpr bool is_possible_sso = ( sizeof( value_carrier ) < yan::impl::sso_buff_size ) &&
-	                                        std::is_nothrow_move_constructible<value_carrier>::value;
-
-	~value_carrier()                                 = default;
-	value_carrier()                                  = default;
-	value_carrier( const value_carrier& )            = default;
-	value_carrier( value_carrier&& )                 = default;
-	value_carrier& operator=( const value_carrier& ) = default;
-	value_carrier& operator=( value_carrier&& )      = default;
-
-	template <typename... Args>
-	value_carrier( std::in_place_type_t<T>, Args&&... args )
-	  : value_( std::forward<Args>( args )... )
-	{
-	}
-
-	T& ref( void ) noexcept
-	{
-		return value_;
-	}
-
-	const T& ref( void ) const noexcept
-	{
-		return value_;
-	}
-
-	const std::type_info& get_type_info() const noexcept override
-	{
-		return typeid( value_type );
-	}
-
-	std::unique_ptr<abst_if_t> mk_clone_by_copy_construction( abst_if_t** pp_k, unsigned char* p_buff ) const override
-	{
-		std::unique_ptr<abst_if_t> up_ans;
-		if constexpr ( is_possible_sso ) {
-			*pp_k = new ( p_buff ) value_carrier( *this );
-		} else {
-			up_ans = std::make_unique<value_carrier>( *this );
-			*pp_k  = up_ans.get();
-		}
-		return up_ans;
-	}
-
-	std::unique_ptr<abst_if_t> mk_clone_by_move_construction( abst_if_t** pp_k, unsigned char* p_buff ) override
-	{
-		std::unique_ptr<abst_if_t> up_ans;
-		if constexpr ( is_possible_sso ) {
-			*pp_k = new ( p_buff ) value_carrier( std::move( *this ) );
-		} else {
-			up_ans = std::make_unique<value_carrier>( std::move( *this ) );
-			*pp_k  = up_ans.get();
-		}
-		return up_ans;
-	}
-
-	std::unique_ptr<abst_if_t> copy_my_value_to_other( abst_if_t& other, abst_if_t** pp_k, unsigned char* p_buff ) const override
-	{
-		value_carrier& ref_other = dynamic_cast<value_carrier&>( other );
-		if constexpr ( std::is_copy_assignable<value_carrier>::value ) {
-			ref_other = *this;
-
-			return nullptr;
-		} else {
-			( *pp_k )->~abst_if_t();   // TODO: ソース変更に対して不安定になりやすい、危険なコード
-			return mk_clone_by_copy_construction( pp_k, p_buff );
-		}
-	}
-	std::unique_ptr<abst_if_t> move_my_value_to_other( abst_if_t& other, abst_if_t** pp_k, unsigned char* p_buff ) override
-	{
-		value_carrier& ref_other = dynamic_cast<value_carrier&>( other );
-		if constexpr ( std::is_copy_assignable<value_carrier>::value ) {
-			ref_other = std::move( *this );
-
-			return nullptr;
-		} else {
-			( *pp_k )->~abst_if_t();   // TODO: ソース変更に対して不安定になりやすい、危険なコード
-			return mk_clone_by_move_construction( pp_k, p_buff );
-		}
-	}
-
-private:
-	value_type value_;
-};
-
-template <typename T, template <class> class... ConstrainAndOperationArgs>
-struct value_carrier<T, false, true, ConstrainAndOperationArgs...> : public value_carrier_if<false, true>, public ConstrainAndOperationArgs<value_carrier<T, false, true, ConstrainAndOperationArgs...>>... {
-	using abst_if_t  = typename value_carrier_if<false, true>::abst_if_t;
-	using value_type = T;
-
-	static constexpr bool is_possible_sso = ( sizeof( value_carrier ) < yan::impl::sso_buff_size ) &&
-	                                        std::is_nothrow_move_constructible<value_carrier>::value;
-
-	~value_carrier()                                 = default;
-	value_carrier()                                  = default;
-	value_carrier( const value_carrier& )            = default;
-	value_carrier( value_carrier&& )                 = default;
-	value_carrier& operator=( const value_carrier& ) = default;
-	value_carrier& operator=( value_carrier&& )      = default;
-
-	template <typename... Args>
-	value_carrier( std::in_place_type_t<T>, Args&&... args )
-	  : value_( std::forward<Args>( args )... )
-	{
-	}
-
-	T& ref( void ) noexcept
-	{
-		return value_;
-	}
-
-	const T& ref( void ) const noexcept
-	{
-		return value_;
-	}
-
-	const std::type_info& get_type_info() const noexcept override
-	{
-		return typeid( value_type );
-	}
-
-	std::unique_ptr<abst_if_t> mk_clone_by_move_construction( abst_if_t** pp_k, unsigned char* p_buff ) override
-	{
-		std::unique_ptr<abst_if_t> up_ans;
-		if constexpr ( is_possible_sso ) {
-			*pp_k = new ( p_buff ) value_carrier( std::move( *this ) );
-		} else {
-			up_ans = std::make_unique<value_carrier>( std::move( *this ) );
-			*pp_k  = up_ans.get();
-		}
-		return up_ans;
-	}
-
-	std::unique_ptr<abst_if_t> move_my_value_to_other( abst_if_t& other, abst_if_t** pp_k, unsigned char* p_buff ) override
-	{
-		value_carrier& ref_other = dynamic_cast<value_carrier&>( other );
-		if constexpr ( std::is_copy_assignable<value_carrier>::value ) {
-			ref_other = std::move( *this );
-
-			return nullptr;
-		} else {
-			( *pp_k )->~abst_if_t();   // TODO: ソース変更に対して不安定になりやすい、危険なコード
-			return mk_clone_by_move_construction( pp_k, p_buff );
-		}
-	}
-
-private:
-	value_type value_;
-};
-
-template <typename T, template <class> class... ConstrainAndOperationArgs>
-struct value_carrier<T, false, false, ConstrainAndOperationArgs...> : public value_carrier_if<false, false>, public ConstrainAndOperationArgs<value_carrier<T, false, false, ConstrainAndOperationArgs...>>... {
-	using abst_if_t  = typename value_carrier_if<false, false>::abst_if_t;
-	using value_type = T;
-
-	static constexpr bool is_possible_sso = ( sizeof( value_carrier ) < yan::impl::sso_buff_size ) &&
-	                                        std::is_nothrow_move_constructible<value_carrier>::value;
-
-	~value_carrier()                                 = default;
-	value_carrier()                                  = default;
-	value_carrier( const value_carrier& )            = default;
-	value_carrier( value_carrier&& )                 = default;
-	value_carrier& operator=( const value_carrier& ) = default;
-	value_carrier& operator=( value_carrier&& )      = default;
-
-	template <typename... Args>
-	value_carrier( std::in_place_type_t<T>, Args&&... args )
-	  : value_( std::forward<Args>( args )... )
-	{
-	}
-
-	T& ref( void ) noexcept
-	{
-		return value_;
-	}
-
-	const T& ref( void ) const noexcept
-	{
-		return value_;
-	}
-
-	const std::type_info& get_type_info() const noexcept override
-	{
-		return typeid( value_type );
-	}
-
-private:
-	value_type value_;
-};
-
-#else   // #if __cpp_concepts >= 201907L
+namespace impl {
 
 template <bool SupportUseCopy, bool SupportUseMove>
 struct value_carrier_if;
@@ -926,12 +573,8 @@ struct value_carrier<T, false, false, ConstrainAndOperationArgs...> : public val
 private:
 	value_type value_;
 };
-
-#endif   // #if __cpp_concepts >= 201907L
 
 }   // namespace impl
-
-#if __cpp_concepts >= 201907L
 
 /**
  * @brief Constrained any type
@@ -1243,6 +886,365 @@ private:
 };
 
 #else   // #if __cpp_concepts >= 201907L
+
+namespace impl {
+
+template <bool SupportUseCopy, bool SupportUseMove>
+struct value_carrier_if;
+
+template <bool SupportUseMove>
+struct value_carrier_if<true, SupportUseMove> : public value_carrier_if_common {
+	using abst_if_t = value_carrier_if<true, SupportUseMove>;
+
+	virtual std::unique_ptr<abst_if_t> mk_clone_by_copy_construction( abst_if_t**, unsigned char* ) const      = 0;
+	virtual std::unique_ptr<abst_if_t> mk_clone_by_move_construction( abst_if_t**, unsigned char* )            = 0;
+	virtual std::unique_ptr<abst_if_t> copy_my_value_to_other( abst_if_t&, abst_if_t**, unsigned char* ) const = 0;
+	virtual std::unique_ptr<abst_if_t> move_my_value_to_other( abst_if_t&, abst_if_t**, unsigned char* )       = 0;
+};
+
+template <>
+struct value_carrier_if<false, true> : public value_carrier_if_common {
+	using abst_if_t = value_carrier_if<false, true>;
+
+	virtual std::unique_ptr<abst_if_t> mk_clone_by_move_construction( abst_if_t**, unsigned char* )      = 0;
+	virtual std::unique_ptr<abst_if_t> move_my_value_to_other( abst_if_t&, abst_if_t**, unsigned char* ) = 0;
+};
+
+template <>
+struct value_carrier_if<false, false> : public value_carrier_if_common {
+	using abst_if_t = value_carrier_if<false, false>;
+};
+
+// primary template for value_carrier
+template <typename T, bool SupportUseCopy, bool SupportUseMove, template <class> class... ConstrainAndOperationArgs>
+struct value_carrier;
+
+// specialization for void
+template <bool SupportUseMove, template <class> class... ConstrainAndOperationArgs>
+struct value_carrier<void, true, SupportUseMove, ConstrainAndOperationArgs...> : public value_carrier_if<true, SupportUseMove> {
+	using abst_if_t  = typename value_carrier_if<true, SupportUseMove>::abst_if_t;
+	using value_type = void;
+
+	static constexpr bool is_possible_sso = ( sizeof( value_carrier ) < yan::impl::sso_buff_size ) &&
+	                                        std::is_nothrow_move_constructible<value_carrier>::value;
+
+	~value_carrier()                                 = default;
+	value_carrier()                                  = default;
+	value_carrier( const value_carrier& )            = default;
+	value_carrier( value_carrier&& )                 = default;
+	value_carrier& operator=( const value_carrier& ) = default;
+	value_carrier& operator=( value_carrier&& )      = default;
+
+	template <typename... Args>
+	value_carrier( std::in_place_type_t<void>, Args&&... args ) noexcept
+	{
+	}
+
+	const std::type_info& get_type_info() const noexcept override
+	{
+		return typeid( void );
+	}
+
+	std::unique_ptr<abst_if_t> mk_clone_by_copy_construction( abst_if_t** pp_k, unsigned char* p_buff ) const override
+	{
+		std::unique_ptr<abst_if_t> up_ans;
+		if constexpr ( is_possible_sso ) {
+			*pp_k = new ( p_buff ) value_carrier( *this );
+		} else {
+			up_ans = std::make_unique<value_carrier>( *this );
+			*pp_k  = up_ans.get();
+		}
+		return up_ans;
+	}
+
+	std::unique_ptr<abst_if_t> mk_clone_by_move_construction( abst_if_t** pp_k, unsigned char* p_buff ) override
+	{
+		std::unique_ptr<abst_if_t> up_ans;
+		if constexpr ( is_possible_sso ) {
+			*pp_k = new ( p_buff ) value_carrier( std::move( *this ) );
+		} else {
+			up_ans = std::make_unique<value_carrier>( std::move( *this ) );
+			*pp_k  = up_ans.get();
+		}
+		return up_ans;
+	}
+
+	std::unique_ptr<abst_if_t> copy_my_value_to_other( abst_if_t& other, abst_if_t** pp_k, unsigned char* p_buff ) const override
+	{
+		return nullptr;
+	}
+	std::unique_ptr<abst_if_t> move_my_value_to_other( abst_if_t& other, abst_if_t** pp_k, unsigned char* p_buff ) override
+	{
+		return nullptr;
+	}
+};
+
+// specialization for void
+template <template <class> class... ConstrainAndOperationArgs>
+struct value_carrier<void, false, true, ConstrainAndOperationArgs...> : public value_carrier_if<false, true> {
+	using abst_if_t  = typename value_carrier_if<false, true>::abst_if_t;
+	using value_type = void;
+
+	static constexpr bool is_possible_sso = ( sizeof( value_carrier ) < yan::impl::sso_buff_size ) &&
+	                                        std::is_nothrow_move_constructible<value_carrier>::value;
+
+	~value_carrier()                                 = default;
+	value_carrier()                                  = default;
+	value_carrier( const value_carrier& )            = default;
+	value_carrier( value_carrier&& )                 = default;
+	value_carrier& operator=( const value_carrier& ) = default;
+	value_carrier& operator=( value_carrier&& )      = default;
+
+	template <typename... Args>
+	value_carrier( std::in_place_type_t<void>, Args&&... args ) noexcept
+	{
+	}
+
+	const std::type_info& get_type_info() const noexcept override
+	{
+		return typeid( void );
+	}
+
+	std::unique_ptr<abst_if_t> mk_clone_by_move_construction( abst_if_t** pp_k, unsigned char* p_buff ) override
+	{
+		std::unique_ptr<abst_if_t> up_ans;
+		if constexpr ( is_possible_sso ) {
+			*pp_k = new ( p_buff ) value_carrier( std::move( *this ) );
+		} else {
+			up_ans = std::make_unique<value_carrier>( std::move( *this ) );
+			*pp_k  = up_ans.get();
+		}
+		return up_ans;
+	}
+
+	std::unique_ptr<abst_if_t> move_my_value_to_other( abst_if_t& other, abst_if_t** pp_k, unsigned char* p_buff ) override
+	{
+		return nullptr;
+	}
+};
+
+// specialization for void
+template <template <class> class... ConstrainAndOperationArgs>
+struct value_carrier<void, false, false, ConstrainAndOperationArgs...> : public value_carrier_if<false, false> {
+	using abst_if_t  = typename value_carrier_if<false, false>::abst_if_t;
+	using value_type = void;
+
+	static constexpr bool is_possible_sso = ( sizeof( value_carrier ) < yan::impl::sso_buff_size ) &&
+	                                        std::is_nothrow_move_constructible<value_carrier>::value;
+
+	~value_carrier()                                 = default;
+	value_carrier()                                  = default;
+	value_carrier( const value_carrier& )            = default;
+	value_carrier( value_carrier&& )                 = default;
+	value_carrier& operator=( const value_carrier& ) = default;
+	value_carrier& operator=( value_carrier&& )      = default;
+
+	template <typename... Args>
+	value_carrier( std::in_place_type_t<void>, Args&&... args ) noexcept
+	{
+	}
+
+	const std::type_info& get_type_info() const noexcept override
+	{
+		return typeid( void );
+	}
+};
+
+template <typename T, bool SupportUseMove, template <class> class... ConstrainAndOperationArgs>
+struct value_carrier<T, true, SupportUseMove, ConstrainAndOperationArgs...> : public value_carrier_if<true, SupportUseMove>, public ConstrainAndOperationArgs<value_carrier<T, true, SupportUseMove, ConstrainAndOperationArgs...>>... {
+	using abst_if_t  = typename value_carrier_if<true, SupportUseMove>::abst_if_t;
+	using value_type = T;
+
+	static constexpr bool is_possible_sso = ( sizeof( value_carrier ) < yan::impl::sso_buff_size ) &&
+	                                        std::is_nothrow_move_constructible<value_carrier>::value;
+
+	~value_carrier()                                 = default;
+	value_carrier()                                  = default;
+	value_carrier( const value_carrier& )            = default;
+	value_carrier( value_carrier&& )                 = default;
+	value_carrier& operator=( const value_carrier& ) = default;
+	value_carrier& operator=( value_carrier&& )      = default;
+
+	template <typename... Args>
+	value_carrier( std::in_place_type_t<T>, Args&&... args )
+	  : value_( std::forward<Args>( args )... )
+	{
+	}
+
+	T& ref( void ) noexcept
+	{
+		return value_;
+	}
+
+	const T& ref( void ) const noexcept
+	{
+		return value_;
+	}
+
+	const std::type_info& get_type_info() const noexcept override
+	{
+		return typeid( value_type );
+	}
+
+	std::unique_ptr<abst_if_t> mk_clone_by_copy_construction( abst_if_t** pp_k, unsigned char* p_buff ) const override
+	{
+		std::unique_ptr<abst_if_t> up_ans;
+		if constexpr ( is_possible_sso ) {
+			*pp_k = new ( p_buff ) value_carrier( *this );
+		} else {
+			up_ans = std::make_unique<value_carrier>( *this );
+			*pp_k  = up_ans.get();
+		}
+		return up_ans;
+	}
+
+	std::unique_ptr<abst_if_t> mk_clone_by_move_construction( abst_if_t** pp_k, unsigned char* p_buff ) override
+	{
+		std::unique_ptr<abst_if_t> up_ans;
+		if constexpr ( is_possible_sso ) {
+			*pp_k = new ( p_buff ) value_carrier( std::move( *this ) );
+		} else {
+			up_ans = std::make_unique<value_carrier>( std::move( *this ) );
+			*pp_k  = up_ans.get();
+		}
+		return up_ans;
+	}
+
+	std::unique_ptr<abst_if_t> copy_my_value_to_other( abst_if_t& other, abst_if_t** pp_k, unsigned char* p_buff ) const override
+	{
+		value_carrier& ref_other = dynamic_cast<value_carrier&>( other );
+		if constexpr ( std::is_copy_assignable<value_carrier>::value ) {
+			ref_other = *this;
+
+			return nullptr;
+		} else {
+			( *pp_k )->~abst_if_t();   // TODO: ソース変更に対して不安定になりやすい、危険なコード
+			return mk_clone_by_copy_construction( pp_k, p_buff );
+		}
+	}
+	std::unique_ptr<abst_if_t> move_my_value_to_other( abst_if_t& other, abst_if_t** pp_k, unsigned char* p_buff ) override
+	{
+		value_carrier& ref_other = dynamic_cast<value_carrier&>( other );
+		if constexpr ( std::is_copy_assignable<value_carrier>::value ) {
+			ref_other = std::move( *this );
+
+			return nullptr;
+		} else {
+			( *pp_k )->~abst_if_t();   // TODO: ソース変更に対して不安定になりやすい、危険なコード
+			return mk_clone_by_move_construction( pp_k, p_buff );
+		}
+	}
+
+private:
+	value_type value_;
+};
+
+template <typename T, template <class> class... ConstrainAndOperationArgs>
+struct value_carrier<T, false, true, ConstrainAndOperationArgs...> : public value_carrier_if<false, true>, public ConstrainAndOperationArgs<value_carrier<T, false, true, ConstrainAndOperationArgs...>>... {
+	using abst_if_t  = typename value_carrier_if<false, true>::abst_if_t;
+	using value_type = T;
+
+	static constexpr bool is_possible_sso = ( sizeof( value_carrier ) < yan::impl::sso_buff_size ) &&
+	                                        std::is_nothrow_move_constructible<value_carrier>::value;
+
+	~value_carrier()                                 = default;
+	value_carrier()                                  = default;
+	value_carrier( const value_carrier& )            = default;
+	value_carrier( value_carrier&& )                 = default;
+	value_carrier& operator=( const value_carrier& ) = default;
+	value_carrier& operator=( value_carrier&& )      = default;
+
+	template <typename... Args>
+	value_carrier( std::in_place_type_t<T>, Args&&... args )
+	  : value_( std::forward<Args>( args )... )
+	{
+	}
+
+	T& ref( void ) noexcept
+	{
+		return value_;
+	}
+
+	const T& ref( void ) const noexcept
+	{
+		return value_;
+	}
+
+	const std::type_info& get_type_info() const noexcept override
+	{
+		return typeid( value_type );
+	}
+
+	std::unique_ptr<abst_if_t> mk_clone_by_move_construction( abst_if_t** pp_k, unsigned char* p_buff ) override
+	{
+		std::unique_ptr<abst_if_t> up_ans;
+		if constexpr ( is_possible_sso ) {
+			*pp_k = new ( p_buff ) value_carrier( std::move( *this ) );
+		} else {
+			up_ans = std::make_unique<value_carrier>( std::move( *this ) );
+			*pp_k  = up_ans.get();
+		}
+		return up_ans;
+	}
+
+	std::unique_ptr<abst_if_t> move_my_value_to_other( abst_if_t& other, abst_if_t** pp_k, unsigned char* p_buff ) override
+	{
+		value_carrier& ref_other = dynamic_cast<value_carrier&>( other );
+		if constexpr ( std::is_copy_assignable<value_carrier>::value ) {
+			ref_other = std::move( *this );
+
+			return nullptr;
+		} else {
+			( *pp_k )->~abst_if_t();   // TODO: ソース変更に対して不安定になりやすい、危険なコード
+			return mk_clone_by_move_construction( pp_k, p_buff );
+		}
+	}
+
+private:
+	value_type value_;
+};
+
+template <typename T, template <class> class... ConstrainAndOperationArgs>
+struct value_carrier<T, false, false, ConstrainAndOperationArgs...> : public value_carrier_if<false, false>, public ConstrainAndOperationArgs<value_carrier<T, false, false, ConstrainAndOperationArgs...>>... {
+	using abst_if_t  = typename value_carrier_if<false, false>::abst_if_t;
+	using value_type = T;
+
+	static constexpr bool is_possible_sso = ( sizeof( value_carrier ) < yan::impl::sso_buff_size ) &&
+	                                        std::is_nothrow_move_constructible<value_carrier>::value;
+
+	~value_carrier()                                 = default;
+	value_carrier()                                  = default;
+	value_carrier( const value_carrier& )            = default;
+	value_carrier( value_carrier&& )                 = default;
+	value_carrier& operator=( const value_carrier& ) = default;
+	value_carrier& operator=( value_carrier&& )      = default;
+
+	template <typename... Args>
+	value_carrier( std::in_place_type_t<T>, Args&&... args )
+	  : value_( std::forward<Args>( args )... )
+	{
+	}
+
+	T& ref( void ) noexcept
+	{
+		return value_;
+	}
+
+	const T& ref( void ) const noexcept
+	{
+		return value_;
+	}
+
+	const std::type_info& get_type_info() const noexcept override
+	{
+		return typeid( value_type );
+	}
+
+private:
+	value_type value_;
+};
+
+}   // namespace impl
 
 /**
  * @brief Constrained any type

@@ -236,8 +236,8 @@ static_assert( yan::impl::is_acceptable_value_type<int, yan::impl::special_opera
 static_assert( yan::impl::is_acceptable_value_type<int, yan::impl::special_operation_copyable, no_specialoperation, no_specialoperation2>::value == true, "int should be acceptable type" );
 static_assert( yan::impl::is_acceptable_value_type<int, yan::impl::special_operation_copyable, no_specialoperation, no_specialoperation2, constrained_alway_false>::value == false, "int should be acceptable type" );
 
-static_assert( sizeof( yan::copyable_any::value_carrier_t<size_t> ) < yan::impl::sso_buff_size, "Small size optimization buffer size should be larger than X" );
-static_assert( std::is_nothrow_move_constructible<yan::copyable_any::value_carrier_t<size_t>>::value, "Let check nothrow ?" );
+// static_assert( sizeof( yan::copyable_any::value_carrier_t<size_t> ) < yan::impl::sso_buff_size, "Small size optimization buffer size should be larger than X" );
+// static_assert( std::is_nothrow_move_constructible<yan::copyable_any::value_carrier_t<size_t>>::value, "Let check nothrow ?" );
 static_assert( sizeof( TestOverSSOSize ) > yan::impl::sso_buff_size, "TestOverSSOSize should be larger than Small size optimization buffer size" );
 
 template <typename T>

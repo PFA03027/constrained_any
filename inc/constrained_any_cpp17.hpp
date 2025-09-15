@@ -110,7 +110,7 @@ struct value_carrier<void, false, true, ConstrainAndOperationArgs...> : public v
 		return typeid( void );
 	}
 
-	std::unique_ptr<abst_if_t> mk_clone_by_move_construction(  ) override
+	std::unique_ptr<abst_if_t> mk_clone_by_move_construction() override
 	{
 		return std::make_unique<value_carrier>( *this );
 	}
@@ -451,24 +451,36 @@ protected:
 		}
 	}
 
+	// for constrained_any_cast
 	template <typename T>
-	auto static_cast_T_carrier() const -> const value_carrier_t<T>*
+	auto cast_T_carrier() const -> const value_carrier_t<T>*
 	{
+		// dynamic_castとどちらが速いかわからない。。。
+#if 0
 		if ( this->type() != typeid( T ) ) {
 			return nullptr;
 		}
 
 		return static_cast<const value_carrier_t<T>*>( up_carrier_.get() );
+#else
+		return dynamic_cast<const value_carrier_t<T>*>( up_carrier_.get() );
+#endif
 	}
 
+	// for constrained_any_cast
 	template <typename T>
-	auto static_cast_T_carrier() -> value_carrier_t<T>*
+	auto cast_T_carrier() -> value_carrier_t<T>*
 	{
+		// dynamic_castとどちらが速いかわからない。。。
+#if 0
 		if ( this->type() != typeid( T ) ) {
 			return nullptr;
 		}
 
 		return static_cast<value_carrier_t<T>*>( up_carrier_.get() );
+#else
+		return dynamic_cast<value_carrier_t<T>*>( up_carrier_.get() );
+#endif
 	}
 
 	std::unique_ptr<value_carrier_keeper_t> up_carrier_;

@@ -845,8 +845,9 @@ private:
 		}
 	}
 
+	// for constrained_any_cast
 	template <typename T>
-	auto static_cast_T_carrier() const -> const value_carrier_t<T>*
+	auto cast_T_carrier() const -> const value_carrier_t<T>*
 	{
 		if ( this->type() != typeid( T ) ) {
 			return nullptr;
@@ -855,8 +856,9 @@ private:
 		return static_cast<const value_carrier_t<T>*>( p_cur_carrier_ );
 	}
 
+	// for constrained_any_cast
 	template <typename T>
-	auto static_cast_T_carrier() -> value_carrier_t<T>*
+	auto cast_T_carrier() -> value_carrier_t<T>*
 	{
 		if ( this->type() != typeid( T ) ) {
 			return nullptr;
@@ -928,7 +930,7 @@ T constrained_any_cast( const constrained_any<ConstrainAndOperationArgs...>& ope
 	using U = typename std::remove_cv_t<std::remove_reference_t<T>>;
 	static_assert( std::is_constructible<T, const U&>::value, "T must be constructible from const U&(=std::remove_cvref<T>::type&)" );
 
-	auto p = operand.template static_cast_T_carrier<U>();
+	auto p = operand.template cast_T_carrier<U>();
 	if ( p == nullptr ) {
 		throw std::bad_any_cast();
 	}
@@ -942,7 +944,7 @@ T constrained_any_cast( constrained_any<ConstrainAndOperationArgs...>& operand )
 	using U = typename std::remove_cv_t<std::remove_reference_t<T>>;
 	static_assert( std::is_constructible<T, U&>::value, "T must be constructible from U&(=std::remove_cvref<T>::type&)" );
 
-	auto p = operand.template static_cast_T_carrier<U>();
+	auto p = operand.template cast_T_carrier<U>();
 	if ( p == nullptr ) {
 		throw std::bad_any_cast();
 	}
@@ -956,7 +958,7 @@ T constrained_any_cast( constrained_any<ConstrainAndOperationArgs...>&& operand 
 	using U = typename std::remove_cv_t<std::remove_reference_t<T>>;
 	static_assert( std::is_constructible<T, U>::value, "T must be constructible from U(=std::remove_cvref<T>::type)" );
 
-	auto p = operand.template static_cast_T_carrier<U>();
+	auto p = operand.template cast_T_carrier<U>();
 	if ( p == nullptr ) {
 		throw std::bad_any_cast();
 	}
@@ -971,7 +973,7 @@ const T* constrained_any_cast( const constrained_any<ConstrainAndOperationArgs..
 
 	if ( operand == nullptr ) return nullptr;
 
-	auto p = operand->template static_cast_T_carrier<T>();
+	auto p = operand->template cast_T_carrier<T>();
 	if ( p == nullptr ) {
 		return nullptr;
 	}
@@ -986,7 +988,7 @@ T* constrained_any_cast( constrained_any<ConstrainAndOperationArgs...>* operand 
 
 	if ( operand == nullptr ) return nullptr;
 
-	auto p = operand->template static_cast_T_carrier<T>();
+	auto p = operand->template cast_T_carrier<T>();
 	if ( p == nullptr ) {
 		return nullptr;
 	}

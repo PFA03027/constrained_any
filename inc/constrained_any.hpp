@@ -45,7 +45,7 @@ template <template <class> class... ConstrainAndOperationArgs>
 class constrained_any;
 #if __cpp_concepts >= 201907L
 #else    // __cpp_concepts >= 201907L
-template <template <class> class... ConstrainAndOperationArgs>
+template <bool RequiresCopy, bool RequiresMove>
 class constrained_any_impl;
 #endif   // __cpp_concepts >= 201907L
 
@@ -73,8 +73,8 @@ template <template <class> class... ConstrainAndOperationArgs>
 struct is_specialized_of_constrained_any<constrained_any<ConstrainAndOperationArgs...>> : public std::true_type {};
 #if __cpp_concepts >= 201907L
 #else    // __cpp_concepts >= 201907L
-template <template <class> class... ConstrainAndOperationArgs>
-struct is_specialized_of_constrained_any<constrained_any_impl<ConstrainAndOperationArgs...>> : public std::true_type {};
+template <bool RequiresCopy, bool RequiresMove>
+struct is_specialized_of_constrained_any<constrained_any_impl<RequiresCopy, RequiresMove>> : public std::true_type {};
 #endif   // __cpp_concepts >= 201907L
 
 template <>

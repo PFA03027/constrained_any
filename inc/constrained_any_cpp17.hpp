@@ -333,10 +333,7 @@ protected:
 	static constexpr bool RequiresMove = impl::do_any_constraints_requir_move_constructible<ConstrainAndOperationArgs...>::value;
 
 public:
-	~constrained_any_impl()
-	{
-		destruct_value_carrier();
-	}
+	~constrained_any_impl() = default;
 
 	constrained_any_impl()
 	  : up_carrier_( construct_value_carrier_info<void>() )
@@ -425,11 +422,6 @@ protected:
 
 	using value_carrier_keeper_t = impl::value_carrier_if<RequiresCopy, RequiresMove>;
 
-	void destruct_value_carrier( void )
-	{
-		up_carrier_.reset();
-	}
-
 	template <typename T, class... Args>
 	static auto construct_value_carrier_info( Args&&... args ) -> std::unique_ptr<value_carrier_t<T>>
 	{
@@ -441,7 +433,6 @@ protected:
 	auto reconstruct_value_carrier_info( Args&&... args )
 	{
 		auto up_vc = std::make_unique<value_carrier_t<T>>( std::in_place_type_t<T> {}, std::forward<Args>( args )... );
-		destruct_value_carrier();
 		if constexpr ( std::is_void<T>::value ) {
 			up_carrier_ = std::move( up_vc );
 		} else {

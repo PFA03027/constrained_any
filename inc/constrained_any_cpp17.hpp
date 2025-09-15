@@ -333,10 +333,12 @@ protected:
 	static constexpr bool RequiresMove = impl::do_any_constraints_requir_move_constructible<ConstrainAndOperationArgs...>::value;
 
 public:
+	using value_carrier_keeper_t = impl::value_carrier_if<RequiresCopy, RequiresMove>;
+
 	~constrained_any_impl() = default;
 
-	constrained_any_impl()
-	  : up_carrier_( construct_value_carrier_info<void>() )
+	constrained_any_impl( std::unique_ptr<value_carrier_keeper_t>&& up_carrier )
+	  : up_carrier_( std::move( up_carrier ) )
 	{
 	}
 
@@ -384,6 +386,7 @@ public:
 		return *this;
 	}
 
+#if 0
 	template <class T, class... Args, typename VT = std::decay_t<T>,
 	          typename std::enable_if<
 				  impl::is_acceptable_value_type<VT, ConstrainAndOperationArgs...>::value &&
@@ -392,8 +395,8 @@ public:
 	  : up_carrier_( construct_value_carrier_info<VT>( std::forward<Args>( args )... ) )
 	{
 	}
+#endif
 
-	template <bool Enable = ( RequiresCopy || RequiresMove ), typename std::enable_if<Enable>::type* = nullptr>
 	void swap( constrained_any_impl& src )
 	{
 		if ( this == &src ) return;
@@ -417,73 +420,22 @@ public:
 	}
 
 protected:
-	template <typename T>
-	using value_carrier_t = impl::value_carrier<std::decay_t<T>, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>;
-
-	using value_carrier_keeper_t = impl::value_carrier_if<RequiresCopy, RequiresMove>;
-
-	template <typename T, class... Args>
-	static auto construct_value_carrier_info( Args&&... args ) -> std::unique_ptr<value_carrier_t<T>>
-	{
-		auto up_ans = std::make_unique<value_carrier_t<T>>( std::in_place_type_t<T> {}, std::forward<Args>( args )... );
-		return up_ans;
-	}
-
-	template <typename T, class... Args>
-	auto reconstruct_value_carrier_info( Args&&... args )
-	{
-		auto up_vc = std::make_unique<value_carrier_t<T>>( std::in_place_type_t<T> {}, std::forward<Args>( args )... );
-		if constexpr ( std::is_void<T>::value ) {
-			up_carrier_ = std::move( up_vc );
-		} else {
-			std::decay_t<T>* p_ans = &( up_vc->ref() );
-			up_carrier_            = std::move( up_vc );
-			return p_ans;
-		}
-	}
-
-	// for constrained_any_cast
-	template <typename T>
-	auto cast_T_carrier() const -> const value_carrier_t<T>*
-	{
-		// dynamic_castとどちらが速いかわからない。。。
-#if 0
-		if ( this->type() != typeid( T ) ) {
-			return nullptr;
-		}
-
-		return static_cast<const value_carrier_t<T>*>( up_carrier_.get() );
-#else
-		return dynamic_cast<const value_carrier_t<T>*>( up_carrier_.get() );
-#endif
-	}
-
-	// for constrained_any_cast
-	template <typename T>
-	auto cast_T_carrier() -> value_carrier_t<T>*
-	{
-		// dynamic_castとどちらが速いかわからない。。。
-#if 0
-		if ( this->type() != typeid( T ) ) {
-			return nullptr;
-		}
-
-		return static_cast<value_carrier_t<T>*>( up_carrier_.get() );
-#else
-		return dynamic_cast<value_carrier_t<T>*>( up_carrier_.get() );
-#endif
-	}
-
 	std::unique_ptr<value_carrier_keeper_t> up_carrier_;
 };
 
 template <template <class> class... ConstrainAndOperationArgs>
 class constrained_any : public constrained_any_impl<ConstrainAndOperationArgs...> {
+	static constexpr bool RequiresCopy = impl::do_any_constraints_requir_copy_constructible<ConstrainAndOperationArgs...>::value;
+	static constexpr bool RequiresMove = impl::do_any_constraints_requir_move_constructible<ConstrainAndOperationArgs...>::value;
+
 	using base_t = constrained_any_impl<ConstrainAndOperationArgs...>;
 
 public:
-	~constrained_any()                                   = default;
-	constrained_any( void )                              = default;
+	~constrained_any() = default;
+	constrained_any( void )
+	  : base_t( construct_value_carrier_info<void>() )
+	{
+	}
 	constrained_any( const constrained_any& )            = default;
 	constrained_any( constrained_any&& )                 = default;
 	constrained_any& operator=( const constrained_any& ) = default;
@@ -494,7 +446,7 @@ public:
 				  impl::is_acceptable_value_type<VT, ConstrainAndOperationArgs...>::value &&
 				  std::is_constructible<VT, Args...>::value>::type* = nullptr>
 	explicit constrained_any( std::in_place_type_t<T>, Args&&... args )
-	  : constrained_any_impl<ConstrainAndOperationArgs...>( std::in_place_type<T>, std::forward<Args>( args )... )
+	  : constrained_any_impl<ConstrainAndOperationArgs...>( construct_value_carrier_info<VT>( std::forward<Args>( args )... ) )
 	{
 	}
 
@@ -508,7 +460,6 @@ public:
 	{
 	}
 
-	template <bool Enable = ( base_t::RequiresCopy || base_t::RequiresMove ), typename std::enable_if<Enable>::type* = nullptr>
 	void swap( constrained_any& src )
 	{
 		base_t::swap( src );
@@ -521,7 +472,7 @@ public:
 
 	void reset() noexcept
 	{
-		base_t::template reconstruct_value_carrier_info<void>();
+		this->template reconstruct_value_carrier_info<void>();
 	}
 
 	template <class T, class... Args,
@@ -537,12 +488,12 @@ public:
 			reconstruct_value_carrier_info<void>();
 			return;
 		} else {
-			std::decay_t<T>* p_ans   = base_t::template reconstruct_value_carrier_info<VT>( std::forward<Args>( args )... );
+			std::decay_t<T>* p_ans   = this->template reconstruct_value_carrier_info<VT>( std::forward<Args>( args )... );
 			std::decay_t<T>& ref_ans = *p_ans;
 			return ref_ans;
 		}
 #else
-		std::decay_t<T>* p_ans   = base_t::template reconstruct_value_carrier_info<VT>( std::forward<Args>( args )... );
+		std::decay_t<T>* p_ans   = this->template reconstruct_value_carrier_info<VT>( std::forward<Args>( args )... );
 		std::decay_t<T>& ref_ans = *p_ans;
 		return ref_ans;
 #endif
@@ -562,9 +513,65 @@ public:
 			return *this;
 		}
 
-		base_t::template reconstruct_value_carrier_info<VT>( std::forward<T>( rhs ) );
+		this->template reconstruct_value_carrier_info<VT>( std::forward<T>( rhs ) );
 
 		return *this;
+	}
+
+private:
+	template <typename T>
+	using value_carrier_t = impl::value_carrier<std::decay_t<T>, RequiresCopy, RequiresMove, ConstrainAndOperationArgs...>;
+
+	template <typename T, class... Args>
+	static auto construct_value_carrier_info( Args&&... args ) -> std::unique_ptr<value_carrier_t<T>>
+	{
+		auto up_ans = std::make_unique<value_carrier_t<T>>( std::in_place_type_t<T> {}, std::forward<Args>( args )... );
+		return up_ans;
+	}
+
+	template <typename T, class... Args>
+	auto reconstruct_value_carrier_info( Args&&... args )
+	{
+		auto up_vc = std::make_unique<value_carrier_t<T>>( std::in_place_type_t<T> {}, std::forward<Args>( args )... );
+		if constexpr ( std::is_void<T>::value ) {
+			base_t::up_carrier_ = std::move( up_vc );
+		} else {
+			std::decay_t<T>* p_ans = &( up_vc->ref() );
+			base_t::up_carrier_    = std::move( up_vc );
+			return p_ans;
+		}
+	}
+
+	// for constrained_any_cast
+	template <typename T>
+	auto cast_T_carrier() const -> const value_carrier_t<T>*
+	{
+		// dynamic_castとどちらが速いかわからない。。。
+#if 0
+		if ( this->type() != typeid( T ) ) {
+			return nullptr;
+		}
+
+		return static_cast<const value_carrier_t<T>*>( base_t::up_carrier_.get() );
+#else
+		return dynamic_cast<const value_carrier_t<T>*>( base_t::up_carrier_.get() );
+#endif
+	}
+
+	// for constrained_any_cast
+	template <typename T>
+	auto cast_T_carrier() -> value_carrier_t<T>*
+	{
+		// dynamic_castとどちらが速いかわからない。。。
+#if 0
+		if ( this->type() != typeid( T ) ) {
+			return nullptr;
+		}
+
+		return static_cast<value_carrier_t<T>*>( base_t::up_carrier_.get() );
+#else
+		return dynamic_cast<value_carrier_t<T>*>( base_t::up_carrier_.get() );
+#endif
 	}
 
 	template <class T, template <class> class... USpecializedOperator>

@@ -96,6 +96,9 @@ struct TestCopyAndMoveType {
 	  : v_( v ) {}
 };
 
+static_assert( std::is_copy_constructible<TestCopyAndMoveType>::value, "TestCopyAndMoveType should be copy constructible" );
+static_assert( std::is_move_constructible<TestCopyAndMoveType>::value, "TestCopyAndMoveType should be move constructible" );
+
 struct TestCopyConstructOnly {
 	int v_;
 
@@ -1459,7 +1462,6 @@ TEST( TestConstrainedAny_NonMemberFunction, CanNotMakeConstrainedAnyWithKeyableA
 #endif
 
 // ================================================
-#if __cpp_concepts >= 201907L
 
 static_assert( std::is_copy_constructible<yan::copyable_any>::value, "copyable_any is copy constructible." );
 static_assert( std::is_copy_assignable<yan::copyable_any>::value, "copyable_any is copy assignable." );
@@ -1470,7 +1472,8 @@ static_assert( !std::is_copy_constructible<yan::move_only_any>::value, "move_onl
 static_assert( !std::is_copy_assignable<yan::move_only_any>::value, "move_only_any is not copy assignable." );
 static_assert( std::is_move_constructible<yan::move_only_any>::value, "move_only_any is move constructible." );
 static_assert( std::is_move_assignable<yan::move_only_any>::value, "move_only_any is move assignable." );
-#endif
+
+// ================================================
 
 template <bool IsDefaultConstructible>
 struct select_default_constructible;

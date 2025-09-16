@@ -317,77 +317,152 @@ private:
 
 }   // namespace impl
 
-/**
- * @brief Constrained any type
- *
- * @tparam ConstrainAndOperationArgs template parameter packs for multiple specialized operator classes.
- *
- * @note
- * It is implemented based on the following concepts:
- * member variable p_cur_carrier_ is always valid (= non nullptr).
- */
 template <bool RequiresCopy, bool RequiresMove>
-struct constrained_any_impl {
+struct constrained_any_impl_base {
 	using value_carrier_keeper_t = impl::value_carrier_if<RequiresCopy, RequiresMove>;
 
-	~constrained_any_impl() = default;
+	virtual ~constrained_any_impl_base() = default;
 
-	constrained_any_impl( std::unique_ptr<value_carrier_keeper_t>&& up_carrier )
+	constrained_any_impl_base( std::unique_ptr<value_carrier_keeper_t>&& up_carrier )
 	  : up_carrier_( std::move( up_carrier ) )
 	{
 	}
 
-	constrained_any_impl( const constrained_any_impl& src )
-	  : up_carrier_( src.up_carrier_->mk_clone_by_copy_construction() )
-	{
-	}
+	constrained_any_impl_base( const constrained_any_impl_base& src )                = delete;
+	constrained_any_impl_base& operator=( const constrained_any_impl_base& rhs )     = delete;
+	constrained_any_impl_base( constrained_any_impl_base&& src )                     = delete;
+	constrained_any_impl_base& operator=( constrained_any_impl_base&& rhs ) noexcept = delete;
 
-	constrained_any_impl( constrained_any_impl&& src )
-	  : up_carrier_( src.up_carrier_->mk_clone_by_move_construction() )
-	{
-	}
-
-	constrained_any_impl& operator=( const constrained_any_impl& rhs )
-	{
-		if ( this == &rhs ) return *this;
-
-		if ( up_carrier_->get_type_info() == rhs.up_carrier_->get_type_info() ) {
-			auto up_copy = rhs.up_carrier_->copy_my_value_to_other( *up_carrier_ );
-			if ( up_copy != nullptr ) {
-				up_carrier_ = std::move( up_copy );
-			}
-			return *this;
-		}
-
-		constrained_any_impl( rhs ).swap( *this );
-
-		return *this;
-	}
-
-	constrained_any_impl& operator=( constrained_any_impl&& rhs ) noexcept
-	{
-		if ( this == &rhs ) return *this;
-
-		if ( up_carrier_->get_type_info() == rhs.up_carrier_->get_type_info() ) {
-			auto up_move = rhs.up_carrier_->move_my_value_to_other( *up_carrier_ );
-			if ( up_move != nullptr ) {
-				up_carrier_ = std::move( up_move );
-			}
-			return *this;
-		}
-
-		constrained_any_impl( std::move( rhs ) ).swap( *this );
-
-		return *this;
-	}
-
-	void swap( constrained_any_impl& src )
+	void swap( constrained_any_impl_base& src )
 	{
 		if ( this == &src ) return;
 		up_carrier_.swap( src.up_carrier_ );
 	}
 
 	std::unique_ptr<value_carrier_keeper_t> up_carrier_;
+};
+
+template <bool RequiresCopy, bool RequiresMove>
+struct constrained_any_impl_copy_move_layer;
+
+template <bool RequiresMove>
+struct constrained_any_impl_copy_move_layer<true, RequiresMove> : public constrained_any_impl_base<true, RequiresMove> {
+	using base_t                 = constrained_any_impl_base<true, RequiresMove>;
+	using value_carrier_keeper_t = impl::value_carrier_if<true, RequiresMove>;
+
+	~constrained_any_impl_copy_move_layer() = default;
+
+	constrained_any_impl_copy_move_layer( std::unique_ptr<value_carrier_keeper_t>&& up_carrier )
+	  : base_t( std::move( up_carrier ) )
+	{
+	}
+	constrained_any_impl_copy_move_layer( const constrained_any_impl_copy_move_layer& src )
+	  : base_t( src.up_carrier_->mk_clone_by_copy_construction() )
+	{
+	}
+	constrained_any_impl_copy_move_layer& operator=( const constrained_any_impl_copy_move_layer& rhs )
+	{
+		if ( this == &rhs ) return *this;
+
+		if ( base_t::up_carrier_->get_type_info() == rhs.up_carrier_->get_type_info() ) {
+			auto up_copy = rhs.up_carrier_->copy_my_value_to_other( *base_t::up_carrier_ );
+			if ( up_copy != nullptr ) {
+				base_t::up_carrier_ = std::move( up_copy );
+			}
+			return *this;
+		}
+
+		constrained_any_impl_copy_move_layer( rhs ).swap( *this );
+
+		return *this;
+	}
+
+	constrained_any_impl_copy_move_layer( constrained_any_impl_copy_move_layer&& src )
+	  : base_t( src.up_carrier_->mk_clone_by_move_construction() )
+	{
+	}
+	constrained_any_impl_copy_move_layer& operator=( constrained_any_impl_copy_move_layer&& rhs ) noexcept
+	{
+		if ( this == &rhs ) return *this;
+
+		if ( base_t::up_carrier_->get_type_info() == rhs.up_carrier_->get_type_info() ) {
+			auto up_move = rhs.up_carrier_->move_my_value_to_other( *base_t::up_carrier_ );
+			if ( up_move != nullptr ) {
+				base_t::up_carrier_ = std::move( up_move );
+			}
+			return *this;
+		}
+
+		constrained_any_impl_copy_move_layer( std::move( rhs ) ).swap( *this );
+
+		return *this;
+	}
+};
+
+template <>
+struct constrained_any_impl_copy_move_layer<false, true> : public constrained_any_impl_base<false, true> {
+	using base_t                 = constrained_any_impl_base<false, true>;
+	using value_carrier_keeper_t = impl::value_carrier_if<false, true>;
+
+	~constrained_any_impl_copy_move_layer() = default;
+	constrained_any_impl_copy_move_layer( std::unique_ptr<value_carrier_keeper_t>&& up_carrier )
+	  : base_t( std::move( up_carrier ) )
+	{
+	}
+	constrained_any_impl_copy_move_layer( const constrained_any_impl_copy_move_layer& src )            = delete;
+	constrained_any_impl_copy_move_layer& operator=( const constrained_any_impl_copy_move_layer& rhs ) = delete;
+	constrained_any_impl_copy_move_layer( constrained_any_impl_copy_move_layer&& src )
+	  : base_t( src.up_carrier_->mk_clone_by_move_construction() )
+	{
+	}
+	constrained_any_impl_copy_move_layer& operator=( constrained_any_impl_copy_move_layer&& rhs ) noexcept
+	{
+		if ( this == &rhs ) return *this;
+
+		if ( base_t::up_carrier_->get_type_info() == rhs.up_carrier_->get_type_info() ) {
+			auto up_move = rhs.up_carrier_->move_my_value_to_other( *base_t::up_carrier_ );
+			if ( up_move != nullptr ) {
+				base_t::up_carrier_ = std::move( up_move );
+			}
+			return *this;
+		}
+
+		constrained_any_impl_copy_move_layer( std::move( rhs ) ).swap( *this );
+		return *this;
+	}
+};
+
+template <>
+struct constrained_any_impl_copy_move_layer<false, false> : public constrained_any_impl_base<false, false> {
+	using base_t                 = constrained_any_impl_base<false, false>;
+	using value_carrier_keeper_t = impl::value_carrier_if<false, false>;
+
+	~constrained_any_impl_copy_move_layer() = default;
+	constrained_any_impl_copy_move_layer( std::unique_ptr<value_carrier_keeper_t>&& up_carrier )
+	  : base_t( std::move( up_carrier ) )
+	{
+	}
+	constrained_any_impl_copy_move_layer( const constrained_any_impl_copy_move_layer& src )                = delete;
+	constrained_any_impl_copy_move_layer& operator=( const constrained_any_impl_copy_move_layer& rhs )     = delete;
+	constrained_any_impl_copy_move_layer( constrained_any_impl_copy_move_layer&& src )                     = delete;
+	constrained_any_impl_copy_move_layer& operator=( constrained_any_impl_copy_move_layer&& rhs ) noexcept = delete;
+};
+
+template <bool RequiresCopy, bool RequiresMove>
+struct constrained_any_impl : public constrained_any_impl_copy_move_layer<RequiresCopy, RequiresMove> {
+	using base_t                 = constrained_any_impl_copy_move_layer<RequiresCopy, RequiresMove>;
+	using value_carrier_keeper_t = impl::value_carrier_if<RequiresCopy, RequiresMove>;
+
+	~constrained_any_impl() = default;
+
+	constrained_any_impl( std::unique_ptr<value_carrier_keeper_t>&& up_carrier )
+	  : base_t( std::move( up_carrier ) )
+	{
+	}
+	constrained_any_impl( const constrained_any_impl& src )                = default;
+	constrained_any_impl& operator=( const constrained_any_impl& rhs )     = default;
+	constrained_any_impl( constrained_any_impl&& src )                     = default;
+	constrained_any_impl& operator=( constrained_any_impl&& rhs ) noexcept = default;
 };
 
 template <template <class> class... ConstrainAndOperationArgs>

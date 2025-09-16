@@ -39,7 +39,8 @@ add_test(NAME test_constrained_any_cxx20 COMMAND $<TARGET_FILE:test_constrained_
 
 add_executable(test_performance_constrained_any EXCLUDE_FROM_ALL perf_test_src/test_performance_constrained_any.cpp)
 target_include_directories( test_performance_constrained_any  PRIVATE ../inc )
-target_compile_options(test_performance_constrained_any PUBLIC  -Wall -Wconversion -Wsign-conversion -Werror)
+# target_compile_options(test_performance_constrained_any PUBLIC  -Wall -Wconversion -Wsign-conversion -Werror)
+target_compile_options(test_performance_constrained_any PUBLIC -std=c++17 -Wall -Wconversion -Wsign-conversion -Werror)
 # target_link_libraries(test_performance_constrained_any )
 add_dependencies(build-test test_performance_constrained_any)
 add_test(NAME test_performance_constrained_any COMMAND $<TARGET_FILE:test_performance_constrained_any>)

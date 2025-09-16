@@ -10,6 +10,7 @@
  */
 
 #include <array>
+#include <deque>
 #include <map>
 #include <unordered_map>
 
@@ -95,6 +96,9 @@ struct TestCopyAndMoveType {
 	TestCopyAndMoveType( int v )
 	  : v_( v ) {}
 };
+
+static_assert( std::is_copy_constructible<TestCopyAndMoveType>::value, "TestCopyAndMoveType should be copy constructible" );
+static_assert( std::is_move_constructible<TestCopyAndMoveType>::value, "TestCopyAndMoveType should be move constructible" );
 
 struct TestCopyConstructOnly {
 	int v_;
@@ -967,7 +971,7 @@ TEST( TestConstrainedAnyCast, Nullptr_CanConstrainedAnyCast_ThenReturnNullptr )
 
 // ================================================================
 
-TEST( TestMovableAny, CanConstruct )
+TEST( TestMoveOnlyAny, CanConstruct )
 {
 	// Arrange
 
@@ -979,7 +983,7 @@ TEST( TestMovableAny, CanConstruct )
 	EXPECT_EQ( sut.type(), typeid( void ) );
 }
 
-TEST( TestMovableAny, Empty_CanMoveConstruct_ThenEmpty )
+TEST( TestMoveOnlyAny, Empty_CanMoveConstruct_ThenEmpty )
 {
 	// Arrange
 	yan::move_only_any src;
@@ -992,7 +996,7 @@ TEST( TestMovableAny, Empty_CanMoveConstruct_ThenEmpty )
 	EXPECT_EQ( sut.type(), typeid( void ) );
 }
 
-TEST( TestMovableAny, Empty_CanMoveAssignToEmpty_ThenEmpty )
+TEST( TestMoveOnlyAny, Empty_CanMoveAssignToEmpty_ThenEmpty )
 {
 	// Arrange
 	yan::move_only_any src;
@@ -1006,7 +1010,7 @@ TEST( TestMovableAny, Empty_CanMoveAssignToEmpty_ThenEmpty )
 	EXPECT_EQ( sut.type(), typeid( void ) );
 }
 
-TEST( TestMovableAny, Empty_CanMoveAssignToValid_ThenEmpty )
+TEST( TestMoveOnlyAny, Empty_CanMoveAssignToValid_ThenEmpty )
 {
 	// Arrange
 	yan::move_only_any src;
@@ -1020,7 +1024,7 @@ TEST( TestMovableAny, Empty_CanMoveAssignToValid_ThenEmpty )
 	EXPECT_EQ( sut.type(), typeid( void ) );
 }
 
-TEST( TestMovableAny, Valid_CanMoveConstruct_ThenValid )
+TEST( TestMoveOnlyAny, Valid_CanMoveConstruct_ThenValid )
 {
 	// Arrange
 	yan::move_only_any src( TestMoveOnlyType( 1 ) );
@@ -1034,7 +1038,7 @@ TEST( TestMovableAny, Valid_CanMoveConstruct_ThenValid )
 	EXPECT_EQ( yan::constrained_any_cast<TestMoveOnlyType&>( sut ).v_, 1 );
 }
 
-TEST( TestMovableAny, Valid_CanMoveAssignBySameType_ThenValid )
+TEST( TestMoveOnlyAny, Valid_CanMoveAssignBySameType_ThenValid )
 {
 	// Arrange
 	yan::move_only_any src( TestMoveOnlyType( 1 ) );
@@ -1047,6 +1051,40 @@ TEST( TestMovableAny, Valid_CanMoveAssignBySameType_ThenValid )
 	EXPECT_TRUE( sut.has_value() );
 	EXPECT_EQ( sut.type(), typeid( TestMoveOnlyType ) );
 	EXPECT_EQ( yan::constrained_any_cast<TestMoveOnlyType&>( sut ).v_, 1 );
+}
+
+TEST( TestMoveOnlyAny, CanApplyStdDeque )
+{
+	// Arrange
+	std::deque<yan::move_only_any> deq;
+
+	// Act
+	deq.emplace_back( std::make_unique<int>( 1 ) );
+	deq.emplace_back( std::make_unique<std::string>( "2" ) );
+	deq.emplace_back( std::make_unique<double>( 3.0 ) );
+
+	// Assert
+	ASSERT_EQ( deq.size(), 3 );
+	yan::move_only_any poped_value = std::move( deq.front() );
+	deq.pop_front();
+	EXPECT_TRUE( poped_value.has_value() );
+	EXPECT_EQ( poped_value.type(), typeid( std::unique_ptr<int> ) );
+	std::unique_ptr<int> up_poped1 = yan::constrained_any_cast<std::unique_ptr<int>>( std::move( poped_value ) );
+	EXPECT_EQ( *( up_poped1 ), 1 );
+
+	poped_value = std::move( deq.front() );
+	deq.pop_front();
+	EXPECT_TRUE( poped_value.has_value() );
+	EXPECT_EQ( poped_value.type(), typeid( std::unique_ptr<std::string> ) );
+	std::unique_ptr<std::string> up_poped2 = yan::constrained_any_cast<std::unique_ptr<std::string>>( std::move( poped_value ) );
+	EXPECT_EQ( *( up_poped2 ), std::string( "2" ) );
+
+	poped_value = std::move( deq.front() );
+	deq.pop_front();
+	EXPECT_TRUE( poped_value.has_value() );
+	EXPECT_EQ( poped_value.type(), typeid( std::unique_ptr<double> ) );
+	std::unique_ptr<double> up_poped3 = yan::constrained_any_cast<std::unique_ptr<double>>( std::move( poped_value ) );
+	EXPECT_EQ( *( up_poped3 ), 3.0 );
 }
 
 // ================================================================
@@ -1459,13 +1497,18 @@ TEST( TestConstrainedAny_NonMemberFunction, CanNotMakeConstrainedAnyWithKeyableA
 #endif
 
 // ================================================
-#if __cpp_concepts >= 201907L
+
+static_assert( std::is_copy_constructible<yan::copyable_any>::value, "copyable_any is copy constructible." );
+static_assert( std::is_copy_assignable<yan::copyable_any>::value, "copyable_any is copy assignable." );
+static_assert( std::is_move_constructible<yan::copyable_any>::value, "copyable_any is move constructible." );
+static_assert( std::is_move_assignable<yan::copyable_any>::value, "copyable_any is move assignable." );
 
 static_assert( !std::is_copy_constructible<yan::move_only_any>::value, "move_only_any is not copy constructible." );
 static_assert( !std::is_copy_assignable<yan::move_only_any>::value, "move_only_any is not copy assignable." );
 static_assert( std::is_move_constructible<yan::move_only_any>::value, "move_only_any is move constructible." );
 static_assert( std::is_move_assignable<yan::move_only_any>::value, "move_only_any is move assignable." );
-#endif
+
+// ================================================
 
 template <bool IsDefaultConstructible>
 struct select_default_constructible;

@@ -315,8 +315,6 @@ private:
 	value_type value_;
 };
 
-}   // namespace impl
-
 template <bool RequiresCopy, bool RequiresMove>
 struct constrained_any_impl_base {
 	using value_carrier_keeper_t = impl::value_carrier_if<RequiresCopy, RequiresMove>;
@@ -464,6 +462,8 @@ struct constrained_any_impl : public constrained_any_impl_copy_move_layer<Requir
 	constrained_any_impl( constrained_any_impl&& src )                     = default;
 	constrained_any_impl& operator=( constrained_any_impl&& rhs ) noexcept = default;
 };
+
+}   // namespace impl
 
 template <template <class> class... ConstrainAndOperationArgs>
 class constrained_any : public ConstrainAndOperationArgs<constrained_any<ConstrainAndOperationArgs...>>... {
@@ -630,7 +630,7 @@ private:
 #endif
 	}
 
-	constrained_any_impl<RequiresCopy, RequiresMove> impl_;
+	impl::constrained_any_impl<RequiresCopy, RequiresMove> impl_;
 
 	template <class T, template <class> class... USpecializedOperator>
 	friend T constrained_any_cast( const constrained_any<USpecializedOperator...>& operand );

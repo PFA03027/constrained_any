@@ -43,11 +43,6 @@ struct value_carrier_if_common {
 
 template <template <class> class... ConstrainAndOperationArgs>
 class constrained_any;
-#if __cpp_concepts >= 201907L
-#else    // __cpp_concepts >= 201907L
-template <bool RequiresCopy, bool RequiresMove>
-class constrained_any_impl;
-#endif   // __cpp_concepts >= 201907L
 
 /**
  * @brief primary template to check if T is specialized type of constrained_any
@@ -71,11 +66,6 @@ struct is_specialized_of_constrained_any : public std::false_type {};
  */
 template <template <class> class... ConstrainAndOperationArgs>
 struct is_specialized_of_constrained_any<constrained_any<ConstrainAndOperationArgs...>> : public std::true_type {};
-#if __cpp_concepts >= 201907L
-#else    // __cpp_concepts >= 201907L
-template <bool RequiresCopy, bool RequiresMove>
-struct is_specialized_of_constrained_any<constrained_any_impl<RequiresCopy, RequiresMove>> : public std::true_type {};
-#endif   // __cpp_concepts >= 201907L
 
 template <>
 struct is_specialized_of_constrained_any<impl::constrained_any_tag> : public std::true_type {};

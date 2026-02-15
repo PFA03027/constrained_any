@@ -46,29 +46,30 @@ CMAKE_CONFIGURE_OPTS += -DSANITIZER_TYPE=${SANITIZER_TYPE}
 CMAKE_CONFIGURE_OPTS += -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
 
 all: configure-cmake
-	set -e; \
-	cd ${BUILD_DIR}; \
-	cmake --build . -j ${JOBS} -v --target ${BUILDIMPLTARGET}
-
-configure-cmake:
-	set -e; \
-	mkdir -p ${BUILD_DIR}; \
-	cd ${BUILD_DIR}; \
-	cmake ${CMAKE_CONFIGURE_OPTS} -G "Unix Makefiles" ${MAKEFILE_DIR}
+	cmake --build ${BUILD_DIR} -j ${JOBS} -v --target all
 
 test: build-test
-	set -e; \
-	cd ${BUILD_DIR}; \
-	ctest -j ${JOBS} -v
+	setarch $(uname -m) -R ctest --test-dir ${BUILD_DIR} -j ${JOBS} -v
 
-sample: build-test
-	build/sample/sample_of_constrained_any
+build-test: configure-cmake
+	cmake --build ${BUILD_DIR} -j ${JOBS} -v --target build-test
 
-build-test:
-	make BUILDIMPLTARGET=build-test all
+configure-cmake:
+	cmake -S . -B ${BUILD_DIR} -G "Unix Makefiles" ${CMAKE_CONFIGURE_OPTS}
 
 clean:
+	-cmake --build ${BUILD_DIR} -j ${JOBS} -v --target clean
+
+clean-all:
 	-rm -fr ${BUILD_DIR}
+
+# This is inatall command example
+install: all
+	DESTDIR=/tmp/install-test cmake --install ${BUILD_DIR} --prefix /usr/local
+
+
+sample: build-test
+	-build/sample/sample_of_constrained_any
 
 coverage: clean
 	set -e; \

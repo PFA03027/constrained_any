@@ -1,5 +1,12 @@
 cmake_minimum_required(VERSION 3.16)
-project(constrained_any CXX)
+project(
+    constrained_any
+    #
+    DESCRIPTION "std::any is very useful. But it is too free. yan::constrained_any introduces the constrain. Then, e.g., yan::constrained_any can be used as key value."
+    LANGUAGES CXX
+    VERSION 1.6.1
+    )
+
 set(CMAKE_VERBOSE_MAKEFILE 1)
 
 

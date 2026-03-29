@@ -286,12 +286,12 @@ namespace yan {
 }
 ```
 ### abstruction of non member function
-1. make_constrained_any constructs the value of type T with Args... args internally. and then, returns the constrained_any\<RequiresCopy, ConstrainAndOperationArgs...\> that has the value.
-2. make_constrained_any constructs the value of type T that satisfies Constrain of SpecializedConstraintAny with Args... args internally. and then, returns the SpecializedConstraintAny that has the value.<br> The type of SpecializedConstraintAny should be the specialized class of constrained_any.
-3. Specify the type held by the constrained_any object to get a copy or reference to the value.<br> To get a copy, use constrained_any _cast\<int\>(x),<br> and to get a reference, use constrained_any _cast\<int&\>(x).<br> If you specify an incorrect type, the exception std::bad_any_cast will be thrown.
+1. `make_constrained_any` constructs the value of type `T` with `Args...` args internally. and then, returns the `constrained_any<RequiresCopy, ConstrainAndOperationArgs...>` that has the value.
+2. `make_constrained_any` constructs the value of type `T` that satisfies Constrain of `SpecializedConstraintAny` with `Args...` args internally. and then, returns the `SpecializedConstraintAny` that has the value.<br> The type of `SpecializedConstraintAny` should be the specialized class of `constrained_any`.
+3. Specify the type held by the `constrained_any` object to get a copy or reference to the value.<br> To get a copy, use `constrained_any _cast<T>(x)`,<br> and to get a reference, `use constrained_any _cast<int&>(x)`.<br> If you specify an incorrect type, the exception `std::bad_any_cast` will be thrown.
 4. see (3)
 5. see (3)
-6. Specify the type held by the constrained_any object to get a pointer to the value.<br> If you specify an incorrect type, it returns nullptr.
+6. Specify the type held by the constrained_any object to get a pointer to the value.<br> If you specify an incorrect type, it returns `nullptr`.
 7. see (6)
 
 ### Requirements
@@ -365,7 +365,7 @@ move constructor/move assigner spec of std::any in C++ library does not specify 
 
 Current constrained_any implementation is;<br>
 Even if constrained_any is after move constructor/assigner, it is has_value() == true and value it self is applied move constructor/assigner if it has.<br>
-But, it leads Complex implementation.
+But, it leads complex implementation.
 
 On the other hand, if constrained_any is has_value() == false after move constructor/assigner, constrained_any implementation is simpler than above meybe.
 

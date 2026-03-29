@@ -31,7 +31,7 @@ namespace impl {
 
 static constexpr size_t sso_buff_size = 128;
 
-class constrained_any_tag {};
+class constrained_any_tag { };
 
 struct value_carrier_if_common {
 	virtual ~value_carrier_if_common() = default;
@@ -41,6 +41,26 @@ struct value_carrier_if_common {
 
 }   // namespace impl
 
+/**
+ * @brief tag class that has target type and convertible types from T
+ *
+ * Main purpose of this tag class is the provider of T and convertible types that construction user could allow the convertible types explicitly when constrained_any_cast() is called.
+ * According to this information, the caller of constrained_any_cast() could become polymorphic behavior.
+ *
+ * @tparam T target type
+ * @tparam CONVERTIBLES template parameter pack of convertible types
+ */
+template <typename T, typename... CONVERTIBLES>
+class in_place_and_convertible_t {
+	static_assert( sizeof...( CONVERTIBLES ) > 0, "CONVERTIBLES should not be empty." );
+	static_assert( ( ... && std::is_convertible<T, CONVERTIBLES>::value ), "all types of CONVERTIBLES should convertible from T." );
+};
+
+/**
+ * @brief forward declaration of constrained_any class template
+ *
+ * @tparam ConstrainAndOperationArgs
+ */
 template <template <class> class... ConstrainAndOperationArgs>
 class constrained_any;
 
@@ -50,7 +70,7 @@ class constrained_any;
  * @tparam T
  */
 template <typename T>
-struct is_specialized_of_constrained_any : public std::false_type {};
+struct is_specialized_of_constrained_any : public std::false_type { };
 
 /**
  * @brief specialization of is_specialized_of_constrained_any for constrained_any
@@ -65,10 +85,10 @@ struct is_specialized_of_constrained_any : public std::false_type {};
  * @tparam ConstrainAndOperationArgs compiler deduces this parameter.
  */
 template <template <class> class... ConstrainAndOperationArgs>
-struct is_specialized_of_constrained_any<constrained_any<ConstrainAndOperationArgs...>> : public std::true_type {};
+struct is_specialized_of_constrained_any<constrained_any<ConstrainAndOperationArgs...>> : public std::true_type { };
 
 template <>
-struct is_specialized_of_constrained_any<impl::constrained_any_tag> : public std::true_type {};
+struct is_specialized_of_constrained_any<impl::constrained_any_tag> : public std::true_type { };
 
 /**
  * @brief meta function to check if T is specialized type of value_carrier class in constrained_any
@@ -116,16 +136,16 @@ struct is_required_copy_constructible_impl {
 };
 
 template <typename T>
-struct is_required_copy_constructible : public decltype( is_required_copy_constructible_impl::check<T>( nullptr ) ) {};
+struct is_required_copy_constructible : public decltype( is_required_copy_constructible_impl::check<T>( nullptr ) ) { };
 
 template <template <class> class... ConstrainAndOperationArgs>
-struct do_any_constraints_requir_copy_constructible {
+struct do_any_constraints_require_copy_constructible {
 	static constexpr bool value = ( ... || is_required_copy_constructible<ConstrainAndOperationArgs<impl::constrained_any_tag>>::value );
 };
 
 template <typename T, template <class> class... ConstrainAndOperationArgs>
 struct is_satisfy_required_copy_constructible_constraint {
-	static constexpr bool are_constrains_required_copy_constructible = do_any_constraints_requir_copy_constructible<ConstrainAndOperationArgs...>::value;
+	static constexpr bool are_constrains_required_copy_constructible = do_any_constraints_require_copy_constructible<ConstrainAndOperationArgs...>::value;
 
 	static constexpr bool value = ( are_constrains_required_copy_constructible ? std::is_copy_constructible<T>::value : true );
 };
@@ -140,12 +160,12 @@ struct is_required_move_constructible_impl {
 };
 
 template <typename T>
-struct is_required_move_constructible : public decltype( is_required_move_constructible_impl::check<T>( nullptr ) ) {};
+struct is_required_move_constructible : public decltype( is_required_move_constructible_impl::check<T>( nullptr ) ) { };
 
 template <template <class> class... ConstrainAndOperationArgs>
-struct do_any_constraints_requir_move_constructible {
+struct do_any_constraints_require_move_constructible {
 private:
-	static constexpr bool are_constrains_required_copy_constructible = do_any_constraints_requir_copy_constructible<ConstrainAndOperationArgs...>::value;
+	static constexpr bool are_constrains_required_copy_constructible = do_any_constraints_require_copy_constructible<ConstrainAndOperationArgs...>::value;
 
 public:
 	// コピー構築を要求されている場合、ムーブ構築をサポートしていない型であってもムーブ構築をコピー構築で代用できるため、ムーブ構築の要求を無効化する。
@@ -154,7 +174,7 @@ public:
 
 template <typename T, template <class> class... ConstrainAndOperationArgs>
 struct is_satisfy_required_move_constructible_constraint {
-	static constexpr bool are_constrains_required_move_constructible = do_any_constraints_requir_move_constructible<ConstrainAndOperationArgs...>::value;
+	static constexpr bool are_constrains_required_move_constructible = do_any_constraints_require_move_constructible<ConstrainAndOperationArgs...>::value;
 
 	static constexpr bool value = ( are_constrains_required_move_constructible ? std::is_move_constructible<T>::value : true );
 };
@@ -169,13 +189,13 @@ struct is_constraint_check_result_impl {
 };
 
 template <typename T>
-struct is_constraint_check_result : public decltype( is_constraint_check_result_impl::check<T>( nullptr ) ) {};
+struct is_constraint_check_result : public decltype( is_constraint_check_result_impl::check<T>( nullptr ) ) { };
 
 template <template <class> class Constraint, template <class> class... ConstrainAndOperationArgs>
-struct is_constraint_check_result<Constraint<constrained_any<ConstrainAndOperationArgs...>>> : public std::false_type {};
+struct is_constraint_check_result<Constraint<constrained_any<ConstrainAndOperationArgs...>>> : public std::false_type { };
 
 template <template <class> class Constraint>
-struct is_constraint_check_result<Constraint<impl::constrained_any_tag>> : public std::false_type {};
+struct is_constraint_check_result<Constraint<impl::constrained_any_tag>> : public std::false_type { };
 
 template <typename T, template <class> class... ConstrainAndOperationArgs>
 struct is_satisfy_constraints {
@@ -577,8 +597,8 @@ private:
  */
 template <template <class> class... ConstrainAndOperationArgs>
 class constrained_any : public ConstrainAndOperationArgs<constrained_any<ConstrainAndOperationArgs...>>... {
-	static constexpr bool RequiresCopy = impl::do_any_constraints_requir_copy_constructible<ConstrainAndOperationArgs...>::value;
-	static constexpr bool RequiresMove = impl::do_any_constraints_requir_move_constructible<ConstrainAndOperationArgs...>::value;
+	static constexpr bool RequiresCopy = impl::do_any_constraints_require_copy_constructible<ConstrainAndOperationArgs...>::value;
+	static constexpr bool RequiresMove = impl::do_any_constraints_require_move_constructible<ConstrainAndOperationArgs...>::value;
 
 public:
 	~constrained_any()
@@ -653,6 +673,16 @@ public:
 				  impl::is_acceptable_value_type<VT, ConstrainAndOperationArgs...>::value>::type* = nullptr>
 	constrained_any( T&& v )
 	  : constrained_any( std::in_place_type<std::decay_t<T>>, std::forward<T>( v ) )
+	{
+	}
+
+	template <class T, class... CONVERTIBLES, class... Args, typename VT = std::decay_t<T>,
+	          typename std::enable_if<
+				  impl::is_acceptable_value_type<VT, ConstrainAndOperationArgs...>::value &&
+				  std::is_constructible<VT, Args...>::value>::type* = nullptr>
+	explicit constrained_any( in_place_and_convertible_t<T, CONVERTIBLES...>, Args&&... args )
+	  : p_cur_carrier_( nullptr )
+	  , up_carrier_( construct_value_carrier_info<VT>( &p_cur_carrier_, buff_, std::forward<Args>( args )... ) )
 	{
 	}
 
@@ -1337,8 +1367,8 @@ struct constrained_any_impl : public constrained_any_impl_copy_move_layer<Requir
 
 template <template <class> class... ConstrainAndOperationArgs>
 class constrained_any : public ConstrainAndOperationArgs<constrained_any<ConstrainAndOperationArgs...>>... {
-	static constexpr bool RequiresCopy = impl::do_any_constraints_requir_copy_constructible<ConstrainAndOperationArgs...>::value;
-	static constexpr bool RequiresMove = impl::do_any_constraints_requir_move_constructible<ConstrainAndOperationArgs...>::value;
+	static constexpr bool RequiresCopy = impl::do_any_constraints_require_copy_constructible<ConstrainAndOperationArgs...>::value;
+	static constexpr bool RequiresMove = impl::do_any_constraints_require_move_constructible<ConstrainAndOperationArgs...>::value;
 
 public:
 	~constrained_any() = default;
@@ -1367,6 +1397,15 @@ public:
 				  impl::is_acceptable_value_type<VT, ConstrainAndOperationArgs...>::value>::type* = nullptr>
 	constrained_any( T&& v )
 	  : constrained_any( std::in_place_type<std::decay_t<T>>, std::forward<T>( v ) )
+	{
+	}
+
+	template <class T, class... CONVERTIBLES, class... Args, typename VT = std::decay_t<T>,
+	          typename std::enable_if<
+				  impl::is_acceptable_value_type<VT, ConstrainAndOperationArgs...>::value &&
+				  std::is_constructible<VT, Args...>::value>::type* = nullptr>
+	explicit constrained_any( in_place_and_convertible_t<T, CONVERTIBLES...>, Args&&... args )
+	  : impl_( construct_value_carrier_info<VT>( std::forward<Args>( args )... ) )
 	{
 	}
 
@@ -1644,7 +1683,7 @@ struct is_weak_orderable_impl {
 };
 
 template <typename T>
-struct is_weak_orderable : public decltype( is_weak_orderable_impl::check<T>( nullptr ) ) {};
+struct is_weak_orderable : public decltype( is_weak_orderable_impl::check<T>( nullptr ) ) { };
 
 struct is_hashable_impl {
 	template <typename T, typename RVCVR_T = typename impl::remove_cvref<T>::type>
@@ -1653,7 +1692,7 @@ struct is_hashable_impl {
 	static auto check( ... ) -> std::false_type;
 };
 template <typename T>
-struct is_hashable : public decltype( is_hashable_impl::check<T>( nullptr ) ) {};
+struct is_hashable : public decltype( is_hashable_impl::check<T>( nullptr ) ) { };
 
 struct is_callable_equal_to_impl {
 	template <typename T>
@@ -1662,7 +1701,7 @@ struct is_callable_equal_to_impl {
 	static auto check( ... ) -> std::false_type;
 };
 template <typename T>
-struct is_callable_equal_to : public decltype( is_callable_equal_to_impl::check<T>( nullptr ) ) {};
+struct is_callable_equal_to : public decltype( is_callable_equal_to_impl::check<T>( nullptr ) ) { };
 
 // -----------------------------------------
 // Special Operation implementation section

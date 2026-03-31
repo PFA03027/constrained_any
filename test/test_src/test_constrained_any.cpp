@@ -2012,3 +2012,88 @@ TEST( TestKeyableAny, CanUseMapWithKeyableAny )
 	EXPECT_EQ( map[key2], 2 );
 	EXPECT_EQ( map[key3], 3 );
 }
+
+// ================================================================
+
+class PolymorphicTestBase1 {
+public:
+	virtual ~PolymorphicTestBase1()   = default;
+	virtual std::string print() const = 0;
+};
+
+class PolymorphicTestBase2 {
+public:
+	virtual ~PolymorphicTestBase2()    = default;
+	virtual std::string print2() const = 0;
+};
+
+class Derived : public PolymorphicTestBase1, public PolymorphicTestBase2 {
+public:
+	std::string print() const override
+	{
+		std::cout << "Derived::print()" << std::endl;
+		return "Derived::print()";
+	}
+	std::string print2() const override
+	{
+		std::cout << "Derived::print2()" << std::endl;
+		return "Derived::print2()";
+	}
+};
+
+TEST( TestConstrainedAnyWithPolymorphicType, CanConstructWithRawPointerToDerived )
+{
+	// Arrange
+	Derived value;
+
+	// Act
+	auto sut = yan::make_constrained_any<yan::copyable_any, PolymorphicTestBase1*>( &value );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	ASSERT_EQ( sut.type(), typeid( PolymorphicTestBase1* ) );
+	EXPECT_EQ( yan::constrained_any_cast<PolymorphicTestBase1*>( sut )->print(), value.print() );
+}
+
+TEST( TestConstrainedAnyWithPolymorphicType, CanConstructWithSharedPointerToDerived )
+{
+	// Arrange
+
+	// Act
+	auto sut = yan::make_constrained_any<yan::copyable_any, std::shared_ptr<PolymorphicTestBase2>>( std::make_shared<Derived>() );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	ASSERT_EQ( sut.type(), typeid( std::shared_ptr<PolymorphicTestBase2> ) );
+	EXPECT_EQ( yan::constrained_any_cast<std::shared_ptr<PolymorphicTestBase2>>( sut )->print2(), std::string( "Derived::print2()" ) );
+}
+
+TEST( TestConstrainedAnyWithPolymorphicType, CanConstructWithWeakPointerToDerived )
+{
+	// Arrange
+	auto value = std::make_shared<Derived>();
+
+	// Act
+	auto sut = yan::make_constrained_any<yan::copyable_any, std::weak_ptr<PolymorphicTestBase1>>( std::weak_ptr<Derived>( value ) );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	ASSERT_EQ( sut.type(), typeid( std::weak_ptr<PolymorphicTestBase1> ) );
+	EXPECT_EQ( yan::constrained_any_cast<std::weak_ptr<PolymorphicTestBase1>>( sut ).lock()->print(), std::string( "Derived::print()" ) );
+}
+
+TEST( TestConstrainedAnyWithPolymorphicType, CanConstructWithUniquePointerToDerived )
+{
+	// Arrange
+	auto value = std::make_unique<Derived>();
+
+	// Act
+	auto sut = yan::make_constrained_any<yan::move_only_any, std::unique_ptr<PolymorphicTestBase2>>( std::move( value ) );
+
+	// Assert
+	EXPECT_TRUE( sut.has_value() );
+	ASSERT_EQ( sut.type(), typeid( std::unique_ptr<PolymorphicTestBase2> ) );
+	auto up_ret = yan::constrained_any_cast<std::unique_ptr<PolymorphicTestBase2>>( std::move( sut ) );
+	ASSERT_NE( up_ret, nullptr );
+	EXPECT_EQ( up_ret->print2(), std::string( "Derived::print2()" ) );
+}

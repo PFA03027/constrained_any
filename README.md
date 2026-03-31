@@ -27,7 +27,7 @@ This constraint "impl::special_operation_less\<T\>" requires the type T to be we
         // a is greater than or equal to b
     }
 ```
-and according to this constraint, yan::weak_ordering_any is alble to apply the comparison operator \< by the member function named "less".
+and according to this constraint, yan::weak_ordering_any is able to apply the comparison operator \< by the member function named "less".
 Therefore, you can compare by less like below;
 ```cpp
     yan::weak_ordering_any a = 1;
@@ -144,6 +144,52 @@ This is mostly same as std::any.<br>
 ## yan::move_only_any
 yan::move_only_any is a type aliased from yan::constrained_any that requires move constructible.
 Therefore, yan::move_only_any support move constructor but not support copy constructor.
+
+# 多態性のある型を保持する方法
+yan::constrained_anyは、yan::constrained_any_cast(std::any用のstd::any_castを含む)で指定した型と保持してる型と正確に一致する場合に、値へのアクセスが可能になる仕様です。通常、型情報が設計段階で決定されているので、十分な仕様です。
+一方で、I/Fクラスから派生した実装クラスを隠蔽したい場合など、多態性を実現するためにI/Fクラスへのアクセスができないことを意味します。また、I/Fクラスを用いた依存性注入を行うような設計にも適用できません。
+このようなI/Fクラスを用いた実装クラスを隠蔽したオブジェクトをyan::constrained_anyに適用する場合は、I/Fクラスへのスマートポインタをyan::constrained_anyに保持させるようにします(*)。こうすることで、I/Fクラスの型情報で値を保持できるようになります。
+
+```cpp
+class PolymorphicTestBase {
+public:
+	virtual ~PolymorphicTestBase()   = default;
+	virtual std::string print() const = 0;
+};
+
+class Derived : public PolymorphicTestBase {
+public:
+	void print() const override
+	{
+		std::cout << "Derived::print()" << std::endl;
+	}
+};
+
+void foo( void )
+{
+    // 実装クラスへのポインタではなく、I/Fクラスへの共有ポインタを保持する。
+	auto sut = yan::make_constrained_any<yan::copyable_any, std::shared_ptr<PolymorphicTestBase>>( std::make_shared<Derived>() );
+
+    if( sut.type() != typeid( std::shared_ptr<PolymorphicTestBase> ) ) {
+        return; // keep type is not expected
+    }
+
+    // I/Fクラスへの共有ポインタを取り出す
+    std::shared_ptr<PolymorphicTestBase> sp_v = yan::constrained_any_cast<std::shared_ptr<PolymorphicTestBase>>( sut );
+
+    // 取り出した共有ポインタ経由で仮想関数を呼び出す。
+    sp_v->print();  // "Derived::print()"と出力される
+}
+```
+(*)グローバル変数など、オブジェクトの生存が保証されているならば、生ポインタで保持することも可能です。
+
+### yan::constrained_any_cast\<T\>()が多態性をサポートしない理由について
+yan::constrained_any_cast\<T\>()が多態性をサポートを行った場合、I/Fクラスの型で値をコピーしてしまうようなスライシングを発生させる実装が容易に可能になります。
+また、実装クラスの真の型情報が隠蔽されている以上、保持している値を多態性を保ったままの状態でオブジェクトとしてを取り出すことできません。その結果、オブジェクトを保持するためのyan::constrained_any型の変数に加えて、I/Fクラスへアクセスするためのポインタ、あるいは参照を用意する必要があります。（値の保持とアクセスが分離してしまうため、変数の寿命管理が追加で必要となることも意味します。）
+結果として、ポインタ情報を保持する変数を追加で用意するのであれば、yan::constrained_anyに保持する情報もポインタで十分です。
+そして、ポインタを保持するのであれば、スライシングを発生させない構造のまま、I/Fクラスの型情報でオブジェクトを取り出す実装が容易に実現できます。
+このように、yan::constrained_any_cast\<T\>()が多態性をサポートをしない方が、型安全な実装を導けます。そのうえで、スマートポインタでポインタ情報を保持すれば、メモリ安全な実装も実現します。
+これが、yan::constrained_any_cast\<T\>()が多態性をサポートをしない方がよい理由です。
 
 # yan::constrained_any is fundamental type of constrained any
 yan::constrained_any is a generalized any type that has the template parameter pack named ConstrainAndOperationArgs for the multiple constraints and the specialized member functions.<br> This paramter pack ConstrainAndOperationArgs supports to composite the multiple specialized operators mixin.

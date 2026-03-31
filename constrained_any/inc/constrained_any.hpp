@@ -42,21 +42,6 @@ struct value_carrier_if_common {
 }   // namespace impl
 
 /**
- * @brief tag class that has target type and convertible types from T
- *
- * Main purpose of this tag class is the provider of T and convertible types that construction user could allow the convertible types explicitly when constrained_any_cast() is called.
- * According to this information, the caller of constrained_any_cast() could become polymorphic behavior.
- *
- * @tparam T target type
- * @tparam CONVERTIBLES template parameter pack of convertible types
- */
-template <typename T, typename... CONVERTIBLES>
-class in_place_and_convertible_t {
-	static_assert( sizeof...( CONVERTIBLES ) > 0, "CONVERTIBLES should not be empty." );
-	static_assert( ( ... && std::is_convertible<T, CONVERTIBLES>::value ), "all types of CONVERTIBLES should convertible from T." );
-};
-
-/**
  * @brief forward declaration of constrained_any class template
  *
  * @tparam ConstrainAndOperationArgs
@@ -673,16 +658,6 @@ public:
 				  impl::is_acceptable_value_type<VT, ConstrainAndOperationArgs...>::value>::type* = nullptr>
 	constrained_any( T&& v )
 	  : constrained_any( std::in_place_type<std::decay_t<T>>, std::forward<T>( v ) )
-	{
-	}
-
-	template <class T, class... CONVERTIBLES, class... Args, typename VT = std::decay_t<T>,
-	          typename std::enable_if<
-				  impl::is_acceptable_value_type<VT, ConstrainAndOperationArgs...>::value &&
-				  std::is_constructible<VT, Args...>::value>::type* = nullptr>
-	explicit constrained_any( in_place_and_convertible_t<T, CONVERTIBLES...>, Args&&... args )
-	  : p_cur_carrier_( nullptr )
-	  , up_carrier_( construct_value_carrier_info<VT>( &p_cur_carrier_, buff_, std::forward<Args>( args )... ) )
 	{
 	}
 
@@ -1397,15 +1372,6 @@ public:
 				  impl::is_acceptable_value_type<VT, ConstrainAndOperationArgs...>::value>::type* = nullptr>
 	constrained_any( T&& v )
 	  : constrained_any( std::in_place_type<std::decay_t<T>>, std::forward<T>( v ) )
-	{
-	}
-
-	template <class T, class... CONVERTIBLES, class... Args, typename VT = std::decay_t<T>,
-	          typename std::enable_if<
-				  impl::is_acceptable_value_type<VT, ConstrainAndOperationArgs...>::value &&
-				  std::is_constructible<VT, Args...>::value>::type* = nullptr>
-	explicit constrained_any( in_place_and_convertible_t<T, CONVERTIBLES...>, Args&&... args )
-	  : impl_( construct_value_carrier_info<VT>( std::forward<Args>( args )... ) )
 	{
 	}
 

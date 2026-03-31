@@ -145,10 +145,10 @@ This is mostly same as std::any.<br>
 yan::move_only_any is a type aliased from yan::constrained_any that requires move constructible.
 Therefore, yan::move_only_any support move constructor but not support copy constructor.
 
-# 多態性のある型を保持する方法
-yan::constrained_anyは、yan::constrained_any_cast(std::any用のstd::any_castを含む)で指定した型と保持してる型と正確に一致する場合に、値へのアクセスが可能になる仕様です。通常、型情報が設計段階で決定されているので、十分な仕様です。
-一方で、I/Fクラスから派生した実装クラスを隠蔽したい場合など、多態性を実現するためにI/Fクラスへのアクセスができないことを意味します。また、I/Fクラスを用いた依存性注入を行うような設計にも適用できません。
-このようなI/Fクラスを用いた実装クラスを隠蔽したオブジェクトをyan::constrained_anyに適用する場合は、I/Fクラスへのスマートポインタをyan::constrained_anyに保持させるようにします(*)。こうすることで、I/Fクラスの型情報で値を保持できるようになります。
+# How to Hold Types with Polymorphism
+yan::constrained_any allows access to the value only when the type specified in yan::constrained_any_cast (including std::any_cast for std::any) exactly matches the type being held. Normally, since type information is determined at the design stage, this is sufficient.
+However, this means that when you want to hide implementation classes derived from an I/F class, etc., to achieve polymorphism, you cannot access the I/F class. Also, it cannot be applied to designs that perform dependency injection using the I/F class.
+When applying such objects that hide implementation classes using the I/F class to yan::constrained_any, you should hold a smart pointer to the I/F class in yan::constrained_any (*). This way, you can hold the value with the type information of the I/F class.
 
 ```cpp
 class PolymorphicTestBase {
@@ -181,6 +181,25 @@ void foo( void )
     sp_v->print();  // "Derived::print()"と出力される
 }
 ```
+(*) If the object's lifetime is guaranteed (e.g., global variables), raw pointers can also be held.
+
+### Why yan::constrained_any_cast<T>() does not support polymorphism
+If yan::constrained_any_cast<T>() supported polymorphism, it would be easy to implement code that causes slicing by copying values with the I/F class type.
+
+Furthermore, since the true type information of the implementation class is hidden, it is impossible to extract the held value as an object while maintaining polymorphism. As a result, in addition to the yan::constrained_any variable for holding the object, you need to prepare a pointer or reference to access the I/F class. (This also means that additional lifetime management of variables is required because value holding and access are separated.)
+
+As a result, if you need to prepare additional variables to hold pointer information, it is sufficient for yan::constrained_any to hold pointer information as well.
+
+Moreover, if holding pointers, it is easy to implement extraction of objects with I/F class type information without causing slicing.
+
+In this way, not supporting polymorphism in yan::constrained_any_cast<T>() leads to type-safe implementation. Furthermore, by holding pointer information with smart pointers, memory-safe implementation can also be achieved.
+
+This is the reason why it is better for yan::constrained_any_cast<T>() not to support polymorphism.
+
+# How to Hold Types with Polymorphism
+yan::constrained_anyは、yan::constrained_any_cast(std::any用のstd::any_castを含む)で指定した型と保持してる型と正確に一致する場合に、値へのアクセスが可能になる仕様です。通常、型情報が設計段階で決定されているので、十分な仕様です。
+一方で、I/Fクラスから派生した実装クラスを隠蔽したい場合など、多態性を実現するためにI/Fクラスへのアクセスができないことを意味します。また、I/Fクラスを用いた依存性注入を行うような設計にも適用できません。
+このようなI/Fクラスを用いた実装クラスを隠蔽したオブジェクトをyan::constrained_anyに適用する場合は、I/Fクラスへのスマートポインタをyan::constrained_anyに保持させるようにします(*)。こうすることで、I/Fクラスの型情報で値を保持できるようになります。
 (*)グローバル変数など、オブジェクトの生存が保証されているならば、生ポインタで保持することも可能です。
 
 ### yan::constrained_any_cast\<T\>()が多態性をサポートしない理由について
@@ -190,6 +209,7 @@ yan::constrained_any_cast\<T\>()が多態性をサポートを行った場合、
 そして、ポインタを保持するのであれば、スライシングを発生させない構造のまま、I/Fクラスの型情報でオブジェクトを取り出す実装が容易に実現できます。
 このように、yan::constrained_any_cast\<T\>()が多態性をサポートをしない方が、型安全な実装を導けます。そのうえで、スマートポインタでポインタ情報を保持すれば、メモリ安全な実装も実現します。
 これが、yan::constrained_any_cast\<T\>()が多態性をサポートをしない方がよい理由です。
+
 
 # yan::constrained_any is fundamental type of constrained any
 yan::constrained_any is a generalized any type that has the template parameter pack named ConstrainAndOperationArgs for the multiple constraints and the specialized member functions.<br> This paramter pack ConstrainAndOperationArgs supports to composite the multiple specialized operators mixin.

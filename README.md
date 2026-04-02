@@ -325,34 +325,40 @@ const T* get_special_operation_if() const noexcept;  // (7)
 ## Non member function
 ```cpp
 namespace yan {
-    template <class SpecializedConstraintAny,
-              class T,
+    template <class T,
+              template <class> class... ConstrainAndOperationArgs,
               class... Args>
-    SpecializedConstraintAny make_constrained_any( Args&&... args );  // (1)
+    constrained_any<RequiresCopy, ConstrainAndOperationArgs...> make_constrained_any( Args&&... args );  // (1)
+
+    template <class T,
+              class SpecializedConstraintAny,
+              class... Args>
+    SpecializedConstraintAny make_constrained_any( Args&&... args );  // (2)
 
     template <class T>
-    T constrained_any_cast( const constrained_any& operand );    // (2)
+    T constrained_any_cast( const constrained_any& operand );    // (3)
 
     template <class T>
-    T constrained_any_cast( constrained_any& operand );          // (3)
+    T constrained_any_cast( constrained_any& operand );          // (4)
 
     template <class T>
-    T constrained_any_cast( constrained_any&& operand );         // (4)
+    T constrained_any_cast( constrained_any&& operand );         // (5)
 
     template <class T>
-    const T* constrained_any_cast( const constrained_any* operand ) noexcept;   // (5)
+    const T* constrained_any_cast( const constrained_any* operand ) noexcept;   // (6)
 
     template <class T>
-    T* constrained_any_cast( constrained_any* operand ) noexcept;   // (6)
+    T* constrained_any_cast( constrained_any* operand ) noexcept;   // (7)
 }
 ```
 ### abstruction of non member function
-1. `make_constrained_any` constructs the value of type `T` that satisfies Constrain of `SpecializedConstraintAny` with `Args...` args internally. and then, returns the `SpecializedConstraintAny` that has the value.<br> The type of `SpecializedConstraintAny` should be the specialized class of `constrained_any`.
-2. Specify the type held by the `constrained_any` object to get a copy or reference to the value.<br> To get a copy, use `constrained_any _cast<T>(x)`,<br> and to get a reference, `use constrained_any _cast<int&>(x)`.<br> If you specify an incorrect type, the exception `std::bad_any_cast` will be thrown.
-3. see (2)
-4. see (2)
-5. Specify the type held by the constrained_any object to get a pointer to the value.<br> If you specify an incorrect type, it returns `nullptr`.
-6. see (5)
+1. `make_constrained_any` constructs the value of type `T` with `Args...` args internally. and then, returns the `constrained_any<RequiresCopy, ConstrainAndOperationArgs...>` that has the value.
+2. `make_constrained_any` constructs the value of type `T` that satisfies Constrain of `SpecializedConstraintAny` with `Args...` args internally. and then, returns the `SpecializedConstraintAny` that has the value.<br> The type of `SpecializedConstraintAny` should be the specialized class of `constrained_any`.
+3. Specify the type held by the `constrained_any` object to get a copy or reference to the value.<br> To get a copy, use `constrained_any _cast<T>(x)`,<br> and to get a reference, `use constrained_any _cast<int&>(x)`.<br> If you specify an incorrect type, the exception `std::bad_any_cast` will be thrown.
+4. see (3)
+5. see (3)
+6. Specify the type held by the constrained_any object to get a pointer to the value.<br> If you specify an incorrect type, it returns `nullptr`.
+7. see (6)
 
 ### Requirements
 as the pre-condition, using U = remove_cv_t\<remove_reference_t\<T\>\>.

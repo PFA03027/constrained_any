@@ -24,14 +24,14 @@ struct TestCopyOnlyType {
 	int v_;
 
 	TestCopyOnlyType()
-	  : v_( 0 ) { }
+	  : v_( 0 ) {}
 	TestCopyOnlyType( const TestCopyOnlyType& )            = default;
 	TestCopyOnlyType( TestCopyOnlyType&& )                 = delete;
 	TestCopyOnlyType& operator=( const TestCopyOnlyType& ) = default;
 	TestCopyOnlyType& operator=( TestCopyOnlyType&& )      = delete;
 
 	TestCopyOnlyType( int v )
-	  : v_( v ) { }
+	  : v_( v ) {}
 };
 
 struct TestCopyOnlyTypeWithoutDefaultCtor {
@@ -44,21 +44,21 @@ struct TestCopyOnlyTypeWithoutDefaultCtor {
 	TestCopyOnlyTypeWithoutDefaultCtor& operator=( TestCopyOnlyTypeWithoutDefaultCtor&& )      = delete;
 
 	TestCopyOnlyTypeWithoutDefaultCtor( int v )
-	  : v_( v ) { }
+	  : v_( v ) {}
 };
 
 struct TestMoveOnlyType {
 	int v_;
 
 	TestMoveOnlyType()
-	  : v_( 0 ) { }
+	  : v_( 0 ) {}
 	TestMoveOnlyType( const TestMoveOnlyType& )            = delete;
 	TestMoveOnlyType( TestMoveOnlyType&& )                 = default;
 	TestMoveOnlyType& operator=( const TestMoveOnlyType& ) = delete;
 	TestMoveOnlyType& operator=( TestMoveOnlyType&& )      = default;
 
 	TestMoveOnlyType( int v )
-	  : v_( v ) { }
+	  : v_( v ) {}
 };
 
 struct TestMoveOnlyTypeWithoutDefaultCtor {
@@ -71,14 +71,14 @@ struct TestMoveOnlyTypeWithoutDefaultCtor {
 	TestMoveOnlyTypeWithoutDefaultCtor& operator=( TestMoveOnlyTypeWithoutDefaultCtor&& )      = default;
 
 	TestMoveOnlyTypeWithoutDefaultCtor( int v )
-	  : v_( v ) { }
+	  : v_( v ) {}
 };
 
 struct TestCopyAndMoveType {
 	int v_;
 
 	TestCopyAndMoveType()
-	  : v_( 0 ) { }
+	  : v_( 0 ) {}
 	TestCopyAndMoveType( const TestCopyAndMoveType& ) = default;
 	TestCopyAndMoveType( TestCopyAndMoveType&& src )
 	  : v_( src.v_ )
@@ -94,7 +94,7 @@ struct TestCopyAndMoveType {
 	}
 
 	TestCopyAndMoveType( int v )
-	  : v_( v ) { }
+	  : v_( v ) {}
 };
 
 static_assert( std::is_copy_constructible<TestCopyAndMoveType>::value, "TestCopyAndMoveType should be copy constructible" );
@@ -104,14 +104,14 @@ struct TestCopyConstructOnly {
 	int v_;
 
 	TestCopyConstructOnly()
-	  : v_( 0 ) { }
+	  : v_( 0 ) {}
 	TestCopyConstructOnly( const TestCopyConstructOnly& )            = default;
 	TestCopyConstructOnly( TestCopyConstructOnly&& )                 = delete;
 	TestCopyConstructOnly& operator=( const TestCopyConstructOnly& ) = delete;
 	TestCopyConstructOnly& operator=( TestCopyConstructOnly&& )      = delete;
 
 	TestCopyConstructOnly( int v )
-	  : v_( v ) { }
+	  : v_( v ) {}
 };
 
 struct TestCopyConstructOnlyWithoutDefaultCtor {
@@ -124,21 +124,21 @@ struct TestCopyConstructOnlyWithoutDefaultCtor {
 	TestCopyConstructOnlyWithoutDefaultCtor& operator=( TestCopyConstructOnlyWithoutDefaultCtor&& )      = delete;
 
 	TestCopyConstructOnlyWithoutDefaultCtor( int v )
-	  : v_( v ) { }
+	  : v_( v ) {}
 };
 
 struct TestMoveConstructOnly {
 	int v_;
 
 	TestMoveConstructOnly()
-	  : v_( 0 ) { }
+	  : v_( 0 ) {}
 	TestMoveConstructOnly( const TestMoveConstructOnly& )            = delete;
 	TestMoveConstructOnly( TestMoveConstructOnly&& )                 = default;
 	TestMoveConstructOnly& operator=( const TestMoveConstructOnly& ) = delete;
 	TestMoveConstructOnly& operator=( TestMoveConstructOnly&& )      = delete;
 
 	TestMoveConstructOnly( int v )
-	  : v_( v ) { }
+	  : v_( v ) {}
 };
 
 struct TestMoveConstructOnlyWithoutDefaultCtor {
@@ -151,21 +151,21 @@ struct TestMoveConstructOnlyWithoutDefaultCtor {
 	TestMoveConstructOnlyWithoutDefaultCtor& operator=( TestMoveConstructOnlyWithoutDefaultCtor&& )      = delete;
 
 	TestMoveConstructOnlyWithoutDefaultCtor( int v )
-	  : v_( v ) { }
+	  : v_( v ) {}
 };
 
 struct TestCopyMoveConstructOnly {
 	int v_;
 
 	TestCopyMoveConstructOnly()
-	  : v_( 0 ) { }
+	  : v_( 0 ) {}
 	TestCopyMoveConstructOnly( const TestCopyMoveConstructOnly& )            = default;
 	TestCopyMoveConstructOnly( TestCopyMoveConstructOnly&& )                 = default;
 	TestCopyMoveConstructOnly& operator=( const TestCopyMoveConstructOnly& ) = delete;
 	TestCopyMoveConstructOnly& operator=( TestCopyMoveConstructOnly&& )      = delete;
 
 	TestCopyMoveConstructOnly( int v )
-	  : v_( v ) { }
+	  : v_( v ) {}
 };
 
 struct TestOverSSOSize {
@@ -1100,7 +1100,7 @@ struct is_callable_print_impl {
 };
 
 template <typename T>
-struct is_callable_print : public is_callable_print_impl::type<T> { };
+struct is_callable_print : public is_callable_print_impl::type<T> {};
 
 struct special_operation_adapter_call_print_if {
 	virtual ~special_operation_adapter_call_print_if() = default;
@@ -1113,7 +1113,7 @@ class special_operation_adapter_call_print : public special_operation_adapter_ca
 public:
 	static constexpr bool require_copy_constructible = true;
 	static constexpr bool constraint_check_result    = !yan::is_related_type_of_constrained_any<Carrier>::value &&
-	                                                   is_callable_print<Carrier>::value;
+	                                                is_callable_print<Carrier>::value;
 
 	template <typename U = Carrier, typename std::enable_if<yan::is_specialized_of_constrained_any<U>::value>::type* = nullptr>
 	bool call_print( void ) const
@@ -1150,9 +1150,9 @@ public:
 	int value_;
 
 	Foo_has_print()
-	  : value_( 0 ) { }
+	  : value_( 0 ) {}
 	Foo_has_print( int value )
-	  : value_( value ) { }
+	  : value_( value ) {}
 	Foo_has_print( const Foo_has_print& )            = default;
 	Foo_has_print( Foo_has_print&& )                 = default;
 	Foo_has_print& operator=( const Foo_has_print& ) = default;
@@ -1452,7 +1452,6 @@ TEST( TestConstrainedAny_NowAllowCopy, CanGetValueByMoveCast )
 	EXPECT_EQ( yan::constrained_any_cast<std::unique_ptr<int>&>( sut ), nullptr );
 }
 
-#if 0
 TEST( TestConstrainedAny_NonMemberFunction, CanMakeConstrainedAny )
 {
 	// Arrange
@@ -1466,7 +1465,6 @@ TEST( TestConstrainedAny_NonMemberFunction, CanMakeConstrainedAny )
 	EXPECT_EQ( sut.type(), typeid( int ) );
 	EXPECT_EQ( yan::constrained_any_cast<int>( sut ), value );
 }
-#endif
 
 TEST( TestConstrainedAny_NonMemberFunction, CanMakeConstrainedAnyWithKeyableAny )
 {
@@ -1474,7 +1472,7 @@ TEST( TestConstrainedAny_NonMemberFunction, CanMakeConstrainedAnyWithKeyableAny 
 	int value = 42;
 
 	// Act
-	auto sut = yan::make_constrained_any<yan::keyable_any, int>( 42 );
+	auto sut = yan::make_constrained_any<int, yan::keyable_any>( 42 );
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );
@@ -1483,14 +1481,13 @@ TEST( TestConstrainedAny_NonMemberFunction, CanMakeConstrainedAnyWithKeyableAny 
 }
 
 #if 0
-// 保持したい型を構築できない引数列を受け取った場合、コンパイルエラーになることを確認するテスト。
 TEST( TestConstrainedAny_NonMemberFunction, CanNotMakeConstrainedAnyWithKeyableAny )
 {
 	// Arrange
 	Foo_has_print value = 42;
 
 	// Act
-	auto sut = yan::make_constrained_any<yan::keyable_any, int>( value );   // compile error is expected
+	auto sut = yan::make_constrained_any<int, yan::keyable_any>( value );	// compile error is expected
 
 	// Assert
 	EXPECT_TRUE( sut.has_value() );

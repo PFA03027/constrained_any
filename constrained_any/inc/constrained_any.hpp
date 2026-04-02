@@ -1525,7 +1525,6 @@ private:
 
 #endif   // #if __cpp_concepts >= 201907L
 
-#if 0
 /**
  * @brief helper function to create constrained_any object
  *
@@ -1541,7 +1540,6 @@ constrained_any<ConstrainAndOperationArgs...> make_constrained_any( Args&&... ar
 {
 	return constrained_any<ConstrainAndOperationArgs...>( std::in_place_type<T>, std::forward<Args>( args )... );
 }
-#endif
 
 /**
  * @brief helper function to create specialized constrained_any object
@@ -1552,7 +1550,7 @@ constrained_any<ConstrainAndOperationArgs...> make_constrained_any( Args&&... ar
  * @param args constructor arguments for the value type
  * @return SpecializedConstraintAny created specialized constrained_any object
  */
-template <typename SpecializedConstraintAny, class T, class... Args, typename std::enable_if<is_specialized_of_constrained_any<SpecializedConstraintAny>::value>::type* = nullptr>
+template <class T, typename SpecializedConstraintAny, class... Args, typename std::enable_if<is_specialized_of_constrained_any<SpecializedConstraintAny>::value>::type* = nullptr>
 SpecializedConstraintAny make_constrained_any( Args&&... args )
 {
 	return SpecializedConstraintAny( std::in_place_type<T>, std::forward<Args>( args )... );

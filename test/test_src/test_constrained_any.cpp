@@ -1481,6 +1481,7 @@ TEST( TestConstrainedAny_NonMemberFunction, CanMakeConstrainedAnyWithKeyableAny 
 }
 
 #if 0
+// 保持したい型を構築できない引数列を受け取った場合、コンパイルエラーになることを確認するテスト。
 TEST( TestConstrainedAny_NonMemberFunction, CanNotMakeConstrainedAnyWithKeyableAny )
 {
 	// Arrange
